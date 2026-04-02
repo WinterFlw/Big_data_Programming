@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# System
+.DS_Store
+*.tmp
+~$*
+.~lock.*
+
+# Large files
+checkpoints/
+*.pt
+
+# Generated outputs (재생성 가능: ./run.sh all)
+outputs/
+data/
+
+# Matplotlib cache
+.mplconfig/
+.cache/
+
+# Reference papers (저작권)
+빅데프 참고문헌pdf/
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
