@@ -155,9 +155,6 @@ HateSpeachStudy/
 │   ├── 추가_논문 요약 및 리뷰.docx
 │   └── 수행계획서.docx / .pdf
 │
-├── compat/                    # 레거시 호환용 래퍼 스크립트
-│   ├── s00_data.py ~ s09_xai_phase2.py
-│   └── stage01~04_*.py
 │
 ├── data/                      # HateXplain 원본 (자동 다운로드)
 ├── checkpoints/               # 모델 체크포인트 (.pt)

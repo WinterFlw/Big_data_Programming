@@ -25,18 +25,6 @@ case "$command" in
   fresh-all)
     ./run_fresh_full.sh "$@"
     ;;
-  svm|bert|bert-v|roberta-v|baselines|improved)
-    echo "[info] '$command' is now routed to the repeated benchmark suite."
-    "$python_bin" -u run_experiments.py benchmark "$@"
-    ;;
-  xai1|xai2)
-    echo "[info] '$command' is now routed to the integrated XAI stage."
-    "$python_bin" -u run_experiments.py xai "$@"
-    ;;
-  hatebert|hatebert-v)
-    echo "[info] '$command' was replaced by the report-aligned freeze-study / benchmark flow."
-    "$python_bin" -u run_experiments.py freeze-study "$@"
-    ;;
   help|-h|--help)
     cat <<'EOF'
 Usage: ./run.sh [command]
@@ -54,11 +42,6 @@ Main commands:
   fresh-all      Clean generated artifacts and rerun the full pipeline from scratch
   status         Show current artifact status
   clean          Remove outputs/ and checkpoints/
-
-Compatibility aliases:
-  svm, bert, bert-v, roberta-v, baselines, improved -> benchmark
-  xai1, xai2                                      -> xai
-  hatebert, hatebert-v                            -> freeze-study
 
 Optional flags:
   --force        Rebuild cached artifacts for the current command
