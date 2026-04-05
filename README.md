@@ -1,15 +1,15 @@
-# Hate Speech Detection with XAI-Driven Improvement
+# Hate Speech Detection with XAI-Based Verification
 
 > HateXplain 데이터셋 기반 혐오표현 탐지 파이프라인
-> **XAI 진단 → 피처 보강 → XAI 재진단**의 순환적 프레임워크
+> **가설 수립 → 실험적 검증 → XAI Before/After 해석**의 과학적 프레임워크
 
 ---
 
 ## 핵심 목표
 
-1. BERT 계열 모델의 **hate / offensive 오분류 원인**을 SHAP + LIME으로 진단
-2. **VADER 감성 피처** 결합으로 감성 맥락 보강 (pos, neg, neu, compound 4차원)
-3. 개선 전후 XAI 비교로 **"왜 나아졌는지"** 정량적으로 설명 (Overlap@5 지표)
+1. BERT 계열 모델의 **hate / offensive 오분류 패턴**을 EDA + XAI로 분석
+2. **VADER 감성 피처** 결합 + **Ablation Study**(BERT+MLP)로 개선 요인 분리
+3. 개선 전후 XAI 비교로 **Before/After 차이를 정량적으로 검증** (Overlap@5 + 통계 검정)
 
 ---
 
@@ -46,6 +46,15 @@
 | TF-IDF + LR | Logistic Regression (1~3gram, C 튜닝) | `sklearn` |
 | TF-IDF + SVM | LinearSVC + CalibratedClassifierCV | `sklearn` |
 | BERT-base | `bert-base-uncased` [CLS] → Linear → 3-class | `TransformerCLSClassifier` |
+
+### Ablation (파라미터 수 통제)
+
+| 모델 | 아키텍처 | 클래스 |
+|------|---------|--------|
+| BERT + MLP | `[CLS](768d)` → MLP(256) → ReLU → 3-class (**VADER 없이 동일 MLP**) | `TransformerMLPClassifier` |
+
+> **왜 필요한가?** BERT+VADER의 MLP 헤드(~198K params)가 BERT-base의 Linear 헤드(~2.3K params)보다 86배 크다.
+> BERT+MLP은 동일한 MLP를 사용하되 VADER를 제거하여, 성능 향상이 MLP 크기 때문인지 VADER 때문인지 분리한다.
 
 ### Improved (VADER Hybrid)
 
@@ -85,6 +94,7 @@ pip install -r requirements.txt
 # 개별 단계 실행
 ./run.sh data          # 데이터 전처리 + 70/10/20 split
 ./run.sh vader         # VADER 감성 피처 추출
+./run.sh eda           # 탐색적 데이터 분석 (텍스트 길이, VADER 분포, 타겟, 어휘 겹침)
 ./run.sh tune          # 하이퍼파라미터 튜닝 (lr, batch, dropout, epochs)
 ./run.sh benchmark     # 반복 벤치마크 (seed 3회: 42, 52, 62)
 ./run.sh freeze-study  # encoder freeze vs fine-tuning 비교
@@ -105,13 +115,14 @@ pip install -r requirements.txt
 ## 파이프라인 흐름
 
 ```
-data → vader → tune(선택) → benchmark → freeze-study → xai → dashboard
- │       │        │             │            │           │        │
- │       │        │             │            │           │        └─ HTML 대시보드 생성
- │       │        │             │            │           └─ SHAP/LIME 비교 분석
- │       │        │             │            └─ encoder 동결 실험
- │       │        │             └─ seed 3회 반복 벤치마크
- │       │        └─ 하이퍼파라미터 순차 탐색
+data → vader → eda → tune(선택) → benchmark → freeze-study → xai → dashboard
+ │       │      │        │            │            │           │        │
+ │       │      │        │            │            │           │        └─ HTML 대시보드
+ │       │      │        │            │            │           └─ SHAP/LIME Before/After
+ │       │      │        │            │            └─ encoder 동결 실험
+ │       │      │        │            └─ seed 3회 벤치마크 + 통계 검정
+ │       │      │        └─ 하이퍼파라미터 순차 탐색
+ │       │      └─ 텍스트 길이/VADER 분포/타겟/어휘 분석
  │       └─ VADER 감성 피처 추출 (4차원)
  └─ HateXplain 다운로드 + 전처리 + 분할
 ```
@@ -126,6 +137,7 @@ HateSpeachStudy/
 ├── run_fresh_full.sh          # 클린 재실행 스크립트
 ├── run_experiments.py         # 파이프라인 관제탑 (argparse 엔트리포인트)
 ├── experiment_core.py         # 핵심 실험 로직 (모델, 학습, 벤치마크, 튜닝)
+├── experiment_eda.py          # 탐색적 데이터 분석 (텍스트 길이, VADER 분포, 타겟)
 ├── experiment_xai.py          # XAI 분석 (SHAP, LIME, Overlap@5)
 ├── experiment_dashboard.py    # 인터랙티브 HTML 대시보드 생성기
 ├── utils.py                   # 공통 유틸리티 (시드, 디바이스, 시각화, I/O)
@@ -186,6 +198,7 @@ HateSpeachStudy/
 | 클래스 | 역할 |
 |--------|------|
 | `TransformerCLSClassifier` | [CLS] → Dropout → Linear(768, 3) — baseline |
+| `TransformerMLPClassifier` | [CLS] → Linear(768, 256) → ReLU → Linear(256, 3) — ablation (MLP 크기 통제) |
 | `HybridSentimentClassifier` | [CLS](768d) + VADER(4d) → Linear(772, 256) → ReLU → Linear(256, 3) — improved |
 
 ### 주요 함수
@@ -198,8 +211,10 @@ HateSpeachStudy/
 | `run_benchmark()` | `experiment_core.py` | TF-IDF + Transformer 전체 벤치마크 |
 | `run_freeze_study()` | `experiment_core.py` | encoder 동결 비교 실험 |
 | `run_hyperparameter_tuning()` | `experiment_core.py` | lr → batch → dropout → epochs 순차 탐색 |
+| `run_eda()` | `experiment_eda.py` | 탐색적 데이터 분석 (텍스트 길이, VADER, 타겟, 어휘) |
 | `run_xai()` | `experiment_xai.py` | SHAP/LIME 비교 분석 전체 파이프라인 |
 | `run_dashboard()` | `experiment_dashboard.py` | HTML 대시보드 생성 |
+| `compute_pairwise_significance()` | `utils.py` | paired t-test + Cohen's d 통계 검정 |
 
 ---
 
@@ -232,6 +247,32 @@ HateSpeachStudy/
 | Lundberg & Lee (2017) — A Unified Approach to Interpreting Model Predictions | SHAP |
 | Ribeiro et al. (2016) — "Why Should I Trust You?": Explaining the Predictions of Any Classifier | LIME |
 | Hutto & Gilbert (2014) — VADER: A Parsimonious Rule-based Model for Sentiment Analysis | 감성 피처 |
+
+---
+
+## 연구 투명성: 한계점 및 Future Work
+
+본 프로젝트는 **가설 기반 실험 → 통제된 비교 → XAI 사후 검증** 구조를 따릅니다.
+아래는 연구 설계의 투명한 한계점과 향후 개선 방향입니다.
+
+### 설계 결정에 대한 투명한 논의
+
+| 항목 | 현재 접근 | 한계/비고 |
+|------|----------|----------|
+| **XAI 역할** | 사전 가설의 사후 검증 (Before/After) | 진정한 피드백 루프가 아닌, 가설 검증 도구로 활용 |
+| **VADER 선택 근거** | 감성 강도 차이 가설 (EDA로 실증) | hate/offensive 구분의 본질은 대상 집단 지향성 (Davidson et al., 2017) — VADER는 이를 직접 포착하지 못함 |
+| **파라미터 수 통제** | BERT+MLP ablation으로 분리 | Ablation 추가로 교란 변수 대응 완료 |
+| **SHAP의 VADER 설명** | 텍스트 입력만 perturbation | SHAP이 VADER 4차원의 기여도를 직접 산출하지 못하는 구조적 한계 |
+| **통계적 검정** | paired t-test + Cohen's d | 3-seed 반복은 검정력이 낮음 — 유의하지 않아도 "차이 없음"이 아닐 수 있음 |
+| **Overlap@5** | K=5, threshold=0.6 | 추가적인 K 민감도 분석이 필요 |
+
+### Future Work
+
+- **Target community features**: HateXplain의 target 정보를 모델 입력으로 활용
+- **HateBERT / TweetBERT**: 도메인 특화 사전학습 모델과의 비교
+- **SHAP에 VADER 포함**: feature-level SHAP으로 VADER 기여도 직접 측정
+- **더 많은 seed 반복** (5~10회): 통계적 검정력 강화
+- **Overlap@K 민감도 분석**: K=3, 5, 10에서의 결과 비교
 
 ---
 

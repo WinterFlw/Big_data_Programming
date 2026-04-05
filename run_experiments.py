@@ -79,6 +79,7 @@ from experiment_core import (
 
 # experiment_xai: SHAP과 LIME을 활용한 설명 가능한 AI(XAI) 분석 모듈이에요.
 # "이 문장이 왜 혐오표현으로 분류됐을까?"에 대한 답을 찾아줘요!
+from experiment_eda import run_eda
 from experiment_xai import run_xai
 
 # utils: 여러 곳에서 공통으로 쓰이는 유틸리티 함수 모음이에요.
@@ -155,7 +156,7 @@ def main(argv: list[str] | None = None) -> int:
     # choices에 나열된 것만 허용되고, 그 외의 값을 넣으면 argparse가 에러를 띄워줘요.
     parser.add_argument(
         "command",
-        choices=["data", "vader", "tune", "benchmark", "freeze-study", "xai", "dashboard", "all", "status", "clean"],
+        choices=["data", "vader", "eda", "tune", "benchmark", "freeze-study", "xai", "dashboard", "all", "status", "clean"],
         help="Pipeline stage to run.",
     )
 
@@ -204,6 +205,20 @@ def main(argv: list[str] | None = None) -> int:
         extract_vader_features(splits=splits, force_refresh=args.force)
         dashboard_path = run_dashboard()
         print(f"Saved VADER features to {VADER_PICKLE_PATH}")
+        print(f"Dashboard updated: {dashboard_path}")
+        return 0
+
+    # ── [eda] 탐색적 데이터 분석 단계 ──
+    # 모델을 학습하기 전에 데이터의 특성을 파악하는 단계예요!
+    # 텍스트 길이 분포, VADER 감성 점수 분포, 타겟 커뮤니티 분석 등
+    # "데이터를 충분히 이해했는가?"에 대한 근거를 만들어줘요.
+    if args.command == "eda":
+        splits = prepare_data(config=config)
+        extract_vader_features(splits=splits)
+        eda_results = run_eda(config=config, force_refresh=args.force)
+        dashboard_path = run_dashboard()
+        print("EDA complete.")
+        print(f"  Results: outputs/reports/eda/")
         print(f"Dashboard updated: {dashboard_path}")
         return 0
 
@@ -279,6 +294,9 @@ def main(argv: list[str] | None = None) -> int:
 
         # 2단계: VADER 감성 피처 추출
         extract_vader_features(force_refresh=args.force)
+
+        # 2.5단계: EDA — 데이터 특성 파악 (텍스트 길이, VADER 분포, 타겟 커뮤니티)
+        run_eda(config=config)
 
         # 3단계 (선택): 하이퍼파라미터 튜닝 -- --with-tuning 플래그가 있을 때만!
         # 튜닝은 시간이 오래 걸려서, 기본적으로는 건너뛰어요.

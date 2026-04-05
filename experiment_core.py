@@ -85,6 +85,7 @@ from utils import (
     clear_device_cache,
     compute_class_weight_tensor,
     compute_metrics,
+    compute_pairwise_significance,
     dataframe_to_markdown,
     ensure_dir,
     flatten_run_record,
@@ -580,6 +581,61 @@ class HybridSentimentClassifier(nn.Module):
         combined = self.hidden(combined)   # [batch, 256]
         combined = self.relu(combined)     # 비선형 변환
         return self.out(combined)          # [batch, 3] logits
+
+
+# ╔══════════════════════════════════════════════════════════╗
+# ║  Ablation 모델 — MLP 용량 효과를 분리해요!               ║
+# ╚══════════════════════════════════════════════════════════╝
+# BERT+VADER가 좋아진 게 VADER 4차원 덕분인지, 아니면 단순히 MLP가 커서인지
+# 알아보기 위한 대조 실험 모델이에요!
+#
+# 구조: [CLS](768d) → Dropout → Linear(768, 256) → ReLU → Linear(256, 3)
+#
+# HybridSentimentClassifier와 동일한 MLP 구조이지만 VADER 입력이 없어요.
+# 이 모델이 BERT+VADER와 비슷한 성능을 낸다면 → MLP 크기 효과
+# 이 모델보다 BERT+VADER가 확실히 낫다면 → VADER의 실질적 기여 입증!
+
+class TransformerMLPClassifier(nn.Module):
+    """
+    Ablation 분류기: Transformer [CLS] → MLP → 3-class (VADER 없이).
+
+    BERT+VADER와 동일한 MLP 용량을 가지되 VADER 입력을 제거하여,
+    성능 향상이 MLP 크기 때문인지 VADER 피처 때문인지 분리합니다.
+
+    구조:
+      [CLS](768d) → Dropout → Linear(768, hidden_dim) → ReLU → Linear(hidden_dim, 3)
+    """
+
+    def __init__(
+        self,
+        model_name: str,
+        num_labels: int = NUM_LABELS,
+        dropout: float = 0.1,
+        hidden_dim: int = 256,
+        freeze_encoder: bool = False,
+    ) -> None:
+        super().__init__()
+        self.model_name = model_name
+        self.encoder = AutoModel.from_pretrained(model_name)
+        if freeze_encoder:
+            for parameter in self.encoder.parameters():
+                parameter.requires_grad = False
+        hidden_size = self.encoder.config.hidden_size
+        self.dropout = nn.Dropout(dropout)
+        # VADER 없이 768d에서 바로 MLP로! (Hybrid는 772d → 256)
+        self.hidden = nn.Linear(hidden_size, hidden_dim)
+        self.relu = nn.ReLU()
+        self.out = nn.Linear(hidden_dim, num_labels)
+
+    def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+        outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
+        pooled_output = getattr(outputs, "pooler_output", None)
+        if pooled_output is None:
+            pooled_output = outputs.last_hidden_state[:, 0, :]
+        pooled_output = self.dropout(pooled_output)
+        pooled_output = self.hidden(pooled_output)
+        pooled_output = self.relu(pooled_output)
+        return self.out(pooled_output)
 
 
 # ╔══════════════════════════════════════════════════════════╗
@@ -1197,7 +1253,7 @@ def run_transformer_benchmark(
     seeds = seeds or config.seeds
     tuned_params = tuned_params or load_tuned_hyperparams()
 
-    # 실험할 모델 3가지를 정의해요
+    # 실험할 모델 4가지를 정의해요 (ablation 포함!)
     model_specs = [
         {
             "display_name": "BERT-base",
@@ -1208,6 +1264,18 @@ def run_transformer_benchmark(
                 dropout=local_config.dropout,
             ),
             "tuning_key": "BERT-base",
+        },
+        {
+            # Ablation: VADER 없이 MLP만 키운 모델 — 파라미터 수 교란 변수 통제용!
+            "display_name": "BERT+MLP",
+            "model_name": "bert-base-uncased",
+            "builder": lambda local_config: _transformer_dataset_builder(local_config, "bert-base-uncased"),
+            "factory": lambda local_config: TransformerMLPClassifier(
+                model_name="bert-base-uncased",
+                dropout=local_config.dropout,
+                hidden_dim=local_config.mlp_hidden,
+            ),
+            "tuning_key": "BERT+MLP",
         },
         {
             "display_name": "BERT+VADER",
@@ -1353,6 +1421,20 @@ def save_benchmark_artifacts(run_records: list[dict[str, Any]]) -> pd.DataFrame:
 
     best_runs = _select_best_runs(run_records)
     save_json(best_runs, BEST_MODELS_PATH)
+
+    # ── 통계적 유의성 검정 ──────────────────────────
+    # 모든 모델 쌍에 대해 paired t-test 수행 (같은 시드끼리 비교!)
+    sig_frame = compute_pairwise_significance(flat_runs, metric_key="macro_f1")
+    if not sig_frame.empty:
+        save_dataframe(sig_frame, REPORT_DIR / "significance_tests.csv")
+        save_text(
+            "# Statistical Significance Tests\n\n"
+            "Paired t-test on macro F1 across seeds (alpha=0.05).\n"
+            "⚠️ 3-seed 반복은 검정력이 낮으므로 해석에 주의가 필요합니다.\n\n"
+            + dataframe_to_markdown(sig_frame),
+            REPORT_DIR / "significance_tests.md",
+        )
+
     return summary_frame
 
 
@@ -1362,6 +1444,7 @@ def load_tuned_hyperparams() -> dict[str, dict[str, Any]]:
     if not TUNING_SUMMARY_PATH.exists():
         return {
             "BERT-base": {},
+            "BERT+MLP": {},
             "BERT+VADER": {},
             "RoBERTa+VADER": {},
         }
@@ -1377,6 +1460,7 @@ def load_tuned_hyperparams() -> dict[str, dict[str, Any]]:
 # Grid Search보다 훨씬 효율적이에요 (모든 조합을 안 해도 되니까).
 _TUNING_KEY_TO_MODEL_NAME = {
     "BERT-base": "bert-base-uncased",
+    "BERT+MLP": "bert-base-uncased",
     "BERT+VADER": "bert-base-uncased",
     "RoBERTa+VADER": "roberta-base",
 }

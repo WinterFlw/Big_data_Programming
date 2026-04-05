@@ -642,3 +642,79 @@ def flatten_run_record(record: dict[str, Any]) -> dict[str, Any]:
         else:
             flat[key] = value
     return flat
+
+
+# ╔══════════════════════════════════════════════════════════╗
+# ║  통계적 유의성 검정 — "이 차이가 진짜인가요?"             ║
+# ╚══════════════════════════════════════════════════════════╝
+# 모델 A가 모델 B보다 성능이 좋다고 해서 그게 '진짜' 차이인지는
+# 통계적으로 검증해야 해요. 같은 시드에서의 성능 차이를 비교하는
+# paired t-test를 사용합니다!
+#
+# ⚠️ 참고: 3-seed 반복은 통계적 검정력(power)이 낮아요.
+#    유의하지 않다고 해서 "차이가 없다"가 아니라,
+#    "이 실험으로는 판단이 어렵다"일 수 있어요. 해석에 주의!
+
+def compute_pairwise_significance(
+    run_records: list[dict[str, Any]],
+    metric_key: str = "macro_f1",
+    alpha: float = 0.05,
+) -> pd.DataFrame:
+    """
+    모든 모델 쌍에 대해 paired t-test를 수행해요.
+
+    같은 시드에서의 성능 차이를 비교하기 때문에 paired(대응) 검정이 맞아요.
+    예: seed=42에서의 BERT F1 vs seed=42에서의 BERT+VADER F1
+
+    Returns:
+        DataFrame with columns: model_a, model_b, metric, mean_diff,
+        t_statistic, p_value, significant, cohens_d
+    """
+    from itertools import combinations
+    from scipy.stats import ttest_rel
+
+    # 모델별로 시드 → 메트릭값 매핑 만들기
+    model_seed_scores: dict[str, dict[int, float]] = {}
+    for record in run_records:
+        model_name = record.get("model", "")
+        seed = record.get("seed")
+        score = record.get(metric_key)
+        if model_name and seed is not None and score is not None:
+            model_seed_scores.setdefault(model_name, {})[seed] = float(score)
+
+    model_names = sorted(model_seed_scores.keys())
+    rows = []
+
+    for model_a, model_b in combinations(model_names, 2):
+        scores_a = model_seed_scores[model_a]
+        scores_b = model_seed_scores[model_b]
+        # 같은 시드만 비교 (paired test니까!)
+        common_seeds = sorted(set(scores_a.keys()) & set(scores_b.keys()))
+        if len(common_seeds) < 2:
+            continue
+
+        vals_a = [scores_a[s] for s in common_seeds]
+        vals_b = [scores_b[s] for s in common_seeds]
+        diffs = [a - b for a, b in zip(vals_a, vals_b)]
+        mean_diff = sum(diffs) / len(diffs)
+
+        # paired t-test
+        t_stat, p_value = ttest_rel(vals_a, vals_b)
+
+        # Cohen's d (효과 크기) — 차이가 얼마나 의미있게 큰지 보여줘요
+        std_diff = (sum((d - mean_diff) ** 2 for d in diffs) / max(len(diffs) - 1, 1)) ** 0.5
+        cohens_d = mean_diff / std_diff if std_diff > 0 else 0.0
+
+        rows.append({
+            "model_a": model_a,
+            "model_b": model_b,
+            "metric": metric_key,
+            "n_seeds": len(common_seeds),
+            "mean_diff": round(mean_diff, 6),
+            "t_statistic": round(t_stat, 4),
+            "p_value": round(p_value, 6),
+            "significant": p_value < alpha,
+            "cohens_d": round(cohens_d, 4),
+        })
+
+    return pd.DataFrame(rows)
