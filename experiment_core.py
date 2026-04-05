@@ -1,4 +1,17 @@
-"""Core experiment pipeline aligned with the report specification."""
+"""
+핵심 실험 파이프라인 — 보고서 사양에 맞춘 전체 실험 흐름.
+
+이 모듈은 다음을 포함합니다:
+  1. 데이터 준비: HateXplain 다운로드, 다수결 라벨링, 70/10/20 stratified split
+  2. VADER 감성 피처 추출 (pos, neg, neu, compound 4차원)
+  3. 모델 정의:
+     - TransformerCLSClassifier: BERT/HateBERT baseline ([CLS] → Linear → 3-class)
+     - HybridSentimentClassifier: [CLS](768d) + VADER(4d) → MLP(256) → 3-class
+  4. 학습 루프: AdamW + linear warmup + early stopping + class weighting
+  5. 벤치마크: TF-IDF(LR/SVM) + Transformer 모델 seed별 반복 실험
+  6. 하이퍼파라미터 순차 탐색 (lr → batch → dropout → epochs)
+  7. Freeze Study: encoder 동결 vs 미세조정 비교
+"""
 
 from __future__ import annotations
 
@@ -64,34 +77,50 @@ from utils import (
 
 @dataclass
 class ExperimentConfig:
-    """Configuration used across the end-to-end experiment pipeline."""
+    """
+    실험 전체에서 공유되는 설정값.
+    run.sh 또는 코드에서 변경 가능. outputs/experiment_config.json에 자동 저장.
+    """
 
+    # ── 데이터 분할 비율 (합계 = 1.0) ──
     split_train: float = 0.70
     split_val: float = 0.10
     split_test: float = 0.20
-    max_len: int = 128
-    batch_size: int = 64
-    epochs: int = 5
-    learning_rate: float = 2e-5
-    warmup_ratio: float = 0.10
-    weight_decay: float = 0.01
-    dropout: float = 0.10
-    mlp_hidden: int = 256
-    early_stopping_patience: int = 2
-    early_stopping_min_delta: float = 1e-4
-    imbalance_threshold: float = 0.10
+
+    # ── 학습 하이퍼파라미터 ──
+    max_len: int = 128            # 토큰 최대 길이 (HateXplain 대부분 128 이내)
+    batch_size: int = 64          # MPS에서 64까지 ~6GB, 메모리 여유 충분
+    epochs: int = 5               # 최대 에포크 (early stopping으로 조기 종료 가능)
+    learning_rate: float = 2e-5   # BERT 표준 fine-tuning lr
+    warmup_ratio: float = 0.10    # 전체 스텝의 10%를 warmup에 사용
+    weight_decay: float = 0.01    # AdamW L2 정규화
+    dropout: float = 0.10         # 분류 헤드 드롭아웃
+    mlp_hidden: int = 256         # 하이브리드 모델 MLP 은닉층 차원
+
+    # ── Early Stopping ──
+    early_stopping_patience: int = 2      # 개선 없이 허용하는 에포크 수
+    early_stopping_min_delta: float = 1e-4  # 최소 개선 기준
+
+    # ── 클래스 가중치 ──
+    imbalance_threshold: float = 0.10  # 소수 클래스 비율이 이 미만이면 가중치 적용
+
+    # ── 반복 실험 시드 (3회 평균 ± 표준편차) ──
     seeds: list[int] = field(default_factory=lambda: [42, 52, 62])
+
+    # ── 하이퍼파라미터 탐색 후보 ──
     tune_learning_rates: list[float] = field(default_factory=lambda: [1e-5, 2e-5, 3e-5])
     tune_batch_sizes: list[int] = field(default_factory=lambda: [64])
     tune_dropouts: list[float] = field(default_factory=lambda: [0.1, 0.2, 0.3])
     tune_epochs: list[int] = field(default_factory=lambda: [5])
     tuning_seed: int = 42
     tuning_max_epochs: int = 5
-    xai_sample_size: int = 24
-    lime_num_features: int = 5
-    lime_num_samples: int = 500
-    shap_max_evals: int = 300
-    shap_batch_size: int = 32
+
+    # ── XAI 분석 설정 ──
+    xai_sample_size: int = 24     # SHAP/LIME 분석 대상 샘플 수
+    lime_num_features: int = 5    # LIME Top-K 피처 수
+    lime_num_samples: int = 500   # LIME perturbation 샘플 수
+    shap_max_evals: int = 300     # SHAP 최대 평가 횟수
+    shap_batch_size: int = 32     # SHAP 배치 크기
 
 
 DEFAULT_CONFIG = ExperimentConfig()
@@ -141,15 +170,20 @@ def ensure_raw_hatexplain(force_download: bool = False) -> None:
 
 
 def _majority_label(sample: dict[str, Any]) -> int | None:
+    """
+    3명 어노테이터의 다수결 투표로 라벨 결정.
+    2표 이상 일치하지 않으면 None(undecided) → 분석에서 제외.
+    """
     annotator_labels = [annotator["label"] for annotator in sample["annotators"]]
     label_counts = Counter(annotator_labels)
     majority_label, majority_count = label_counts.most_common(1)[0]
     if majority_count < 2:
-        return None
+        return None  # undecided (HateXplain 919건 해당)
     return LABEL2ID.get(majority_label)
 
 
 def _collect_targets(sample: dict[str, Any]) -> list[str]:
+    """대상 커뮤니티 수집 (African, Islam, Jewish 등 10개)."""
     targets: list[str] = []
     for annotator in sample["annotators"]:
         if "target" in annotator:
@@ -288,7 +322,7 @@ def extract_vader_features(
 
 
 class TransformerTextDataset(Dataset):
-    """Tokenized text dataset for transformer-only models."""
+    """트랜스포머 전용 데이터셋. 텍스트를 토크나이즈하여 input_ids, attention_mask, labels 반환."""
 
     def __init__(self, texts: list[str], labels: np.ndarray, tokenizer, max_len: int) -> None:
         self.encodings = tokenizer(
@@ -310,7 +344,7 @@ class TransformerTextDataset(Dataset):
 
 
 class HybridTextDataset(Dataset):
-    """Dataset for transformer + VADER hybrid models."""
+    """트랜스포머 + VADER 하이브리드용 데이터셋. VADER 4차원 피처를 추가로 포함."""
 
     def __init__(
         self,
@@ -341,7 +375,15 @@ class HybridTextDataset(Dataset):
 
 
 class TransformerCLSClassifier(nn.Module):
-    """Transformer baseline using the CLS token and a linear classifier."""
+    """
+    Baseline 분류기: Transformer [CLS] → Dropout → Linear → 3-class.
+
+    구조:
+      BERT/HateBERT encoder → [CLS] 토큰 (768d) → Dropout → Linear(768, 3)
+
+    freeze_encoder=True로 설정하면 encoder 파라미터를 동결하여
+    분류 헤드만 학습 (freeze study용).
+    """
 
     def __init__(
         self,
@@ -370,7 +412,17 @@ class TransformerCLSClassifier(nn.Module):
 
 
 class HybridSentimentClassifier(nn.Module):
-    """Transformer CLS embedding concatenated with 4 VADER features."""
+    """
+    개선 모델: Transformer [CLS] + VADER 감성 피처 결합 → MLP → 3-class.
+
+    구조:
+      Transformer encoder → [CLS] (768d)  ─┐
+      VADER(pos,neg,neu,compound) (4d)     ─┤→ concat (772d)
+                                             → Dropout → Linear(772, 256) → ReLU → Linear(256, 3)
+
+    핵심 아이디어: BERT가 놓치는 감성적 뉘앙스를 VADER의 명시적 감성 점수로 보완.
+    hate speech는 높은 neg + 낮은 compound, offensive는 중간 수준의 부정성을 보임.
+    """
 
     def __init__(
         self,
@@ -528,7 +580,17 @@ def train_neural_model(
     output_root: Path | None = None,
     evaluate_test: bool = True,
 ) -> dict[str, Any]:
-    """Train a neural model for one seed and save run artifacts."""
+    """
+    하나의 시드에 대해 트랜스포머 모델을 학습하고 산출물을 저장.
+
+    학습 흐름:
+      1. 데이터셋 구축 (토크나이즈)
+      2. 클래스 가중치 계산 (불균형 시)
+      3. AdamW + linear warmup 스케줄러 설정
+      4. 에포크 루프: 학습 → 검증 → 체크포인트 저장 → early stopping 체크
+      5. 최적 체크포인트 로드 → 테스트셋 평가
+      6. 학습곡선, 혼동행렬, 메트릭 JSON 저장
+    """
     hyperparams = hyperparams or {}
     run_config = ExperimentConfig(**{**asdict(config), **hyperparams})
     set_seed(seed)
@@ -748,7 +810,11 @@ def run_tfidf_baselines(
     config: ExperimentConfig,
     seeds: list[int] | None = None,
 ) -> list[dict[str, Any]]:
-    """Train TF-IDF + LR / SVM baselines with report-friendly outputs."""
+    """
+    전통 ML 베이스라인 학습: TF-IDF(1~3gram) + Logistic Regression / Linear SVM.
+    C 파라미터를 검증셋 기준으로 선택 후 테스트셋 평가.
+    Davidson et al. (2017)의 방법론을 재현.
+    """
     seeds = seeds or config.seeds
     train_texts = splits["train"]["text"].tolist()
     train_labels = splits["train"]["label"].to_numpy()
@@ -964,7 +1030,11 @@ def run_freeze_study(
     config: ExperimentConfig | None = None,
     seeds: list[int] | None = None,
 ) -> pd.DataFrame:
-    """Compare frozen vs fine-tuned encoder for BERT+VADER."""
+    """
+    Encoder Freeze Study: BERT+VADER에서 encoder 동결 vs 미세조정 비교.
+    동결 시 VADER 피처만으로 분류 헤드가 얼마나 학습하는지,
+    미세조정 시 BERT 표현이 VADER와 얼마나 시너지를 내는지 분석.
+    """
     config = config or get_config()
     seeds = seeds or config.seeds
     tuned_hyperparams = load_tuned_hyperparams().get("BERT+VADER", {})

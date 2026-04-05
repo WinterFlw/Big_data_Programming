@@ -1,4 +1,16 @@
-"""Command-line entrypoint for the report-aligned experiment pipeline."""
+"""
+CLI 엔트리포인트 — run.sh에서 호출되는 메인 실행기.
+
+사용법:
+  ./run.sh data        # 데이터 전처리
+  ./run.sh vader       # VADER 감성 피처 추출
+  ./run.sh tune        # 하이퍼파라미터 탐색
+  ./run.sh benchmark   # seed 3회 반복 벤치마크
+  ./run.sh freeze-study # encoder 동결 비교
+  ./run.sh xai         # SHAP + LIME 분석
+  ./run.sh dashboard   # HTML 대시보드 생성
+  ./run.sh all         # 전체 파이프라인 순차 실행
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,17 @@
-"""XAI pipeline for SHAP/LIME comparison and report-ready artifacts."""
+"""
+XAI (설명 가능한 AI) 분석 파이프라인.
+
+연구의 핵심 흐름:
+  Phase 1: BERT baseline에 SHAP + LIME 적용 → 오분류 원인 진단
+  Phase 2: 개선 모델(+VADER)에 동일 분석 → Before/After 비교
+
+분석 산출물:
+  - Overlap@5: SHAP Top-5 ∩ LIME Top-5 일치도 (≥60%이면 높은 신뢰)
+  - 케이스 비교: 오분류→정분류 전환 샘플의 SHAP attribution 변화
+  - xai_summary.md: 보고서에 바로 사용 가능한 요약
+
+주의: SHAP는 CPU에서 실행 (MPS에서 DeepExplainer 비호환).
+"""
 
 from __future__ import annotations
 
@@ -169,7 +182,7 @@ def _compute_vader_array(texts: list[str]) -> np.ndarray:
 
 
 def predict_probabilities(bundle: LoadedModelBundle, texts: list[str], batch_size: int = 64) -> np.ndarray:
-    """Predict class probabilities for a list of texts."""
+    """텍스트 리스트에 대해 3-class 확률 예측. LIME의 predict_fn으로도 사용됨."""
     if not texts:
         return np.zeros((0, NUM_LABELS), dtype=np.float32)
 
@@ -225,7 +238,11 @@ def run_shap_explanations(
     predicted_labels: list[int],
     config: ExperimentConfig,
 ) -> list[dict[str, Any]]:
-    """Generate SHAP explanations for selected samples."""
+    """
+    SHAP 설명 생성 (Lundberg & Lee, 2017).
+    각 토큰의 예측 기여도(Shapley value)를 계산하여 Top-5 중요 토큰 추출.
+    CPU에서 실행됨 — MPS 미지원.
+    """
     explainer = shap.Explainer(
         lambda batch: predict_probabilities(bundle, list(batch)),
         bundle.tokenizer,
@@ -269,7 +286,11 @@ def run_lime_explanations(
     predicted_labels: list[int],
     config: ExperimentConfig,
 ) -> list[dict[str, Any]]:
-    """Generate LIME explanations for selected samples."""
+    """
+    LIME 설명 생성 (Ribeiro et al., 2016).
+    입력 텍스트를 perturbation하여 로컬 선형 모델로 근사, Top-5 피처 추출.
+    Model-agnostic이므로 SHAP과 독립적인 교차 검증 수단으로 활용.
+    """
     explainer = LimeTextExplainer(class_names=LABEL_NAMES, split_expression=r"\s+")
     results = []
 
@@ -421,7 +442,17 @@ def _select_analysis_samples(
 
 
 def run_xai(config: ExperimentConfig | None = None) -> dict[str, Any]:
-    """Run SHAP/LIME comparison for the baseline and improved model."""
+    """
+    XAI 전체 파이프라인 실행: Baseline vs 개선 모델의 SHAP/LIME 비교.
+
+    흐름:
+      1. 테스트셋 예측 (baseline + improved)
+      2. 분석 대상 샘플 선정 (오분류→정분류 전환 우선)
+      3. SHAP + LIME 설명 생성 (각 모델별)
+      4. Overlap@5 계산 및 시각화
+      5. 케이스별 SHAP attribution 비교 차트 생성
+      6. xai_summary.json + xai_summary.md 저장
+    """
     config = config or get_config()
     set_seed(config.tuning_seed)
     ensure_dir(XAI_DIR)

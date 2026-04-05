@@ -1,4 +1,13 @@
-"""Shared utilities for reproducible hate-speech experiments."""
+"""
+공통 유틸리티 모듈 — 재현 가능한 혐오표현 탐지 실험을 위한 헬퍼 함수 모음.
+
+이 모듈은 다음을 제공합니다:
+  - 디바이스(MPS/CUDA/CPU) 감지 및 시드 고정
+  - 분류 성능 지표 계산 (Accuracy, Macro F1, AUROC 등)
+  - 파일 I/O (JSON, pickle, CSV, 텍스트)
+  - 시각화 (혼동행렬, 학습곡선, 모델 비교 차트)
+  - Early Stopping 구현
+"""
 
 from __future__ import annotations
 
@@ -12,6 +21,7 @@ from dataclasses import asdict, is_dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
+# ─── matplotlib 백엔드 설정 (GUI 없이 이미지 저장 전용) ───
 MPLCONFIGDIR = Path(__file__).resolve().parent / ".mplconfig"
 MPLCONFIGDIR.mkdir(parents=True, exist_ok=True)
 os.environ.setdefault("MPLCONFIGDIR", str(MPLCONFIGDIR))
@@ -21,7 +31,7 @@ os.environ.setdefault("XDG_CACHE_HOME", str(CACHE_DIR))
 
 import matplotlib
 
-matplotlib.use("Agg")
+matplotlib.use("Agg")  # 서버/CLI 환경에서도 동작하도록 비대화형 백엔드 사용
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -37,27 +47,32 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
+# ─── 프로젝트 디렉토리 구조 ───
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
-OUTPUT_DIR = BASE_DIR / "outputs"
-CHECKPOINT_DIR = BASE_DIR / "checkpoints"
-REPORT_DIR = OUTPUT_DIR / "reports"
-RUNS_DIR = OUTPUT_DIR / "runs"
-TUNING_DIR = OUTPUT_DIR / "tuning"
-XAI_DIR = OUTPUT_DIR / "xai"
+DATA_DIR = BASE_DIR / "data"              # HateXplain 원본 데이터
+OUTPUT_DIR = BASE_DIR / "outputs"          # 모든 실험 산출물의 루트
+CHECKPOINT_DIR = BASE_DIR / "checkpoints"  # PyTorch 모델 체크포인트 (.pt)
+REPORT_DIR = OUTPUT_DIR / "reports"        # 보고서용 요약/시각화
+RUNS_DIR = OUTPUT_DIR / "runs"             # seed별 반복 실험 결과
+TUNING_DIR = OUTPUT_DIR / "tuning"         # 하이퍼파라미터 탐색 기록
+XAI_DIR = OUTPUT_DIR / "xai"              # SHAP/LIME 분석 결과
 
+# ─── 라벨 체계 (Davidson et al. 2017 기반 3-class) ───
 LABEL_NAMES = ["hatespeech", "offensive", "normal"]
 LABEL2ID = {name: index for index, name in enumerate(LABEL_NAMES)}
 ID2LABEL = {index: name for name, index in LABEL2ID.items()}
 NUM_LABELS = len(LABEL_NAMES)
+
+# VADER 감성 분석 출력 컬럼 (Hutto & Gilbert, 2014)
 VADER_COLUMNS = ["pos", "neg", "neu", "compound"]
 
+# 필요한 디렉토리 자동 생성
 for directory in [DATA_DIR, OUTPUT_DIR, CHECKPOINT_DIR, REPORT_DIR, RUNS_DIR, TUNING_DIR, XAI_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
 
 def get_device() -> torch.device:
-    """Prefer Apple MPS when available, otherwise CUDA, otherwise CPU."""
+    """학습/추론 디바이스 자동 감지: MPS(Apple Silicon) > CUDA > CPU 순."""
     if torch.backends.mps.is_available():
         return torch.device("mps")
     if torch.cuda.is_available():
@@ -66,18 +81,19 @@ def get_device() -> torch.device:
 
 
 def set_seed(seed: int = 42) -> None:
-    """Set random seeds for reproducible runs."""
+    """모든 난수 생성기의 시드를 고정하여 실험 재현성 확보."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+    # MPS 시드 설정 (PyTorch 버전에 따라 지원 여부 다름)
     if hasattr(torch.mps, "manual_seed") and torch.backends.mps.is_available():
         torch.mps.manual_seed(seed)
 
 
 def clear_device_cache() -> None:
-    """Release cached accelerator memory when possible."""
+    """GPU/MPS 메모리 캐시 해제. 모델 전환 시 호출하여 메모리 누수 방지."""
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     if torch.backends.mps.is_available():
@@ -185,7 +201,11 @@ def remove_tree(path: Path | str) -> None:
 
 
 def compute_class_weight_tensor(labels: Iterable[int], imbalance_threshold: float = 0.10) -> tuple[torch.Tensor | None, dict[str, Any]]:
-    """Return balanced class weights only when the minority ratio is below threshold."""
+    """
+    클래스 불균형 감지 및 가중치 텐서 반환.
+    소수 클래스 비율이 threshold 미만일 때만 balanced 가중치를 적용.
+    HateXplain은 hate:29.5%, off:27.2%, norm:38.8%로 moderate imbalance.
+    """
     label_array = np.asarray(list(labels))
     counts = np.bincount(label_array, minlength=NUM_LABELS)
     ratios = counts / max(counts.sum(), 1)
@@ -211,7 +231,11 @@ def compute_class_weight_tensor(labels: Iterable[int], imbalance_threshold: floa
 
 
 def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray, y_prob: np.ndarray | None = None) -> dict[str, Any]:
-    """Compute report-friendly classification metrics."""
+    """
+    보고서용 분류 성능 지표 일괄 계산.
+    반환: accuracy, macro_f1, macro_precision, macro_recall, auroc,
+          클래스별 precision/recall/f1, 혼동행렬
+    """
     accuracy = accuracy_score(y_true, y_pred)
     macro_f1 = f1_score(y_true, y_pred, average="macro", zero_division=0)
     macro_precision = precision_score(y_true, y_pred, average="macro", zero_division=0)
@@ -298,7 +322,11 @@ def aggregate_run_metrics(run_records: list[dict[str, Any]]) -> pd.DataFrame:
 
 
 class EarlyStopping:
-    """Simple early stopping helper."""
+    """
+    Early Stopping 헬퍼.
+    검증 손실이 patience 에포크 동안 개선되지 않으면 학습을 조기 중단.
+    과적합 방지를 위해 모든 트랜스포머 학습에서 사용.
+    """
 
     def __init__(self, patience: int = 2, mode: str = "min", min_delta: float = 0.0) -> None:
         if mode not in {"min", "max"}:
