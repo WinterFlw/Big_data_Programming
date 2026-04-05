@@ -1375,6 +1375,13 @@ def load_tuned_hyperparams() -> dict[str, dict[str, Any]]:
 # 순차적 탐색(Sequential Search) 전략을 사용해요:
 # lr를 먼저 최적화 -> 그 값을 고정하고 batch size 최적화 -> ... 이런 식으로!
 # Grid Search보다 훨씬 효율적이에요 (모든 조합을 안 해도 되니까).
+_TUNING_KEY_TO_MODEL_NAME = {
+    "BERT-base": "bert-base-uncased",
+    "BERT+VADER": "bert-base-uncased",
+    "RoBERTa+VADER": "roberta-base",
+}
+
+
 def _tune_single_model(
     tuning_key: str,
     base_config: ExperimentConfig,
@@ -1426,7 +1433,7 @@ def _tune_single_model(
                 flush=True,
             )
             tuning_result = train_neural_model(
-                model_name=tuning_key.lower(),
+                model_name=_TUNING_KEY_TO_MODEL_NAME.get(tuning_key, tuning_key.lower()),
                 display_name=f"{tuning_key} Tuning [{parameter_name}={candidate}]",
                 dataset_builder=dataset_builder,
                 model_factory=model_factory,

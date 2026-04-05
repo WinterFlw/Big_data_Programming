@@ -497,7 +497,9 @@ def _compute_overlap_at_5(
                     break
 
         # 겹치는 토큰 수 / 5 = Overlap@5 비율 (0.0 ~ 1.0)
-        overlaps.append(len(matched_shap_tokens & lime_top) / 5.0)
+        # matched_shap_tokens에는 exact + fuzzy 매칭 결과가 모두 들어있으므로
+        # lime_top과 다시 교집합하면 fuzzy 매칭이 날아가버려요! 그래서 그대로 사용합니다.
+        overlaps.append(len(matched_shap_tokens) / 5.0)
     return overlaps
 
 
@@ -529,12 +531,14 @@ def _plot_case_comparison(
     baseline_result: dict[str, Any],
     improved_result: dict[str, Any],
     output_path: Path,
+    baseline_name: str = "BERT-base",
+    improved_name: str = "Improved",
 ) -> None:
     ensure_dir(output_path.parent)
     fig, axes = plt.subplots(1, 2, figsize=(12, 4))  # 좌: Baseline, 우: Improved
     for axis, title, result in [
-        (axes[0], "BERT-base SHAP", baseline_result),
-        (axes[1], "RoBERTa+VADER SHAP", improved_result),
+        (axes[0], f"{baseline_name} SHAP", baseline_result),
+        (axes[1], f"{improved_name} SHAP", improved_result),
     ]:
         tokens = result["top_tokens"][:5]
         scores = result["top_scores"][:5]
@@ -801,6 +805,8 @@ def run_xai(config: ExperimentConfig | None = None) -> dict[str, Any]:
             baseline_result=baseline_case,
             improved_result=improved_case,
             output_path=XAI_DIR / "cases" / f"case_{local_index + 1:02d}.png",
+            baseline_name=baseline_bundle.display_name,
+            improved_name=improved_bundle.display_name,
         )
         case_rows.append(
             {
