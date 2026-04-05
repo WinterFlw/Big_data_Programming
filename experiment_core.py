@@ -11,8 +11,9 @@
 #      다수결로 라벨을 정해요. 그리고 70/10/20 비율로 나눠요 (train/val/test)
 #   2. VADER 감성 피처 추출: 텍스트의 감성 점수 4가지를 뽑아요
 #      (긍정 pos, 부정 neg, 중립 neu, 종합 compound)
-#   3. 모델 정의 — 두 가지 분류기를 만들어요:
+#   3. 모델 정의 — 세 가지 분류기를 만들어요:
 #      - TransformerCLSClassifier: BERT의 [CLS] 토큰으로 바로 분류하는 기본 모델
+#      - TransformerMLPClassifier: BERT [CLS] + MLP 헤드 (VADER 없음) — ablation 통제용
 #      - HybridSentimentClassifier: BERT [CLS] + VADER 감성 점수를 합쳐서
 #        더 똑똑하게 분류하는 우리의 개선 모델이에요!
 #   4. 학습 루프: AdamW 옵티마이저 + 워밍업 + 조기 종료로 안정적으로 학습해요
