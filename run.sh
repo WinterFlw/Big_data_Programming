@@ -38,7 +38,7 @@ Main commands:
   freeze-study   Compare BERT+VADER with frozen vs fine-tuned encoder
   xai            Run SHAP + LIME comparison and Overlap@5 analysis
   dashboard      Build the interactive HTML dashboard from saved artifacts
-  all            Run data -> vader -> eda -> benchmark -> freeze-study -> xai
+  all            Run data -> vader -> eda -> benchmark -> freeze-study -> xai -> dashboard
   fresh-all      Clean generated artifacts and rerun the full pipeline from scratch
   status         Show current artifact status
   clean          Remove outputs/ and checkpoints/
