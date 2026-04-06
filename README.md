@@ -116,7 +116,7 @@ Playground 탭(실시간 추론, Attention Heatmap, LIME 분석)을 사용하려
 |------|------|------|
 | `models.zip` | 최적 모델 4개 (BERT-base, BERT+MLP, BERT+VADER, RoBERTa+VADER) | ~1.7GB |
 
-> 다운로드 링크: **[Google Drive](https://drive.google.com)** (추후 업데이트)
+> 다운로드 링크: **[Google Drive에서 다운로드](https://drive.google.com/file/d/1wS6Qcc7NLyajC-fXQeK6zpZXSffnoQQB/view?usp=sharing)**
 
 **압축 해제 방법:**
 
