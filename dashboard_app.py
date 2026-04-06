@@ -1108,6 +1108,45 @@ select {{
   .lightbox-overlay {{ display:none !important; }}
   .report-actions {{ display:none !important; }}
 }}
+
+/* Pipeline Deep-Dive 스타일 */
+.pipeline-stage {{ border-left:4px solid; padding:0; margin-bottom:24px; border-radius:12px; background:var(--bg-dark); overflow:hidden }}
+.pipeline-stage-header {{ display:flex; align-items:center; gap:12px; padding:20px 24px 12px }}
+.pipeline-stage-num {{ display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;font-weight:800;font-size:1rem;color:#fff;flex-shrink:0 }}
+.pipeline-stage-body {{ padding:0 24px 20px }}
+.pipeline-section {{ margin-bottom:14px }}
+.pipeline-section-title {{ font-size:0.8rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; color:var(--text-secondary) }}
+.pipeline-next {{ background:rgba(124,138,255,0.06); border-top:1px dashed var(--border-subtle); padding:14px 24px; border-radius:0 0 11px 11px; font-size:0.9rem }}
+.pipeline-next strong {{ color:var(--accent-blue) }}
+.pipeline-io {{ display:grid; grid-template-columns:1fr 1fr; gap:12px }}
+@media (max-width:768px) {{ .pipeline-io {{ grid-template-columns:1fr }} }}
+.pipeline-stage.color-blue {{ border-left-color: var(--accent-blue) }}
+.pipeline-stage.color-green {{ border-left-color: var(--accent-green) }}
+.pipeline-stage.color-purple {{ border-left-color: var(--accent-purple) }}
+.pipeline-stage.color-orange {{ border-left-color: var(--accent-orange) }}
+
+/* References 스타일 */
+.ref-item {{ background:var(--bg-dark); border:1px solid var(--border-subtle); border-radius:10px; padding:16px 20px; margin-bottom:12px }}
+.ref-item .ref-citation {{ font-size:0.92rem; color:var(--text-primary); margin-bottom:6px; font-weight:500 }}
+.ref-item .ref-role {{ font-size:0.85rem; color:var(--text-secondary); padding-left:12px; border-left:3px solid var(--accent-blue) }}
+.ref-item .ref-diff {{ font-size:0.85rem; color:var(--accent-orange); margin-top:6px; padding-left:12px; border-left:3px solid var(--accent-orange) }}
+
+/* Error Analysis 스타일 */
+.error-pattern-card {{ background:var(--bg-dark); border:1px solid var(--border-subtle); border-radius:10px; padding:16px 20px; margin-bottom:12px }}
+.error-pattern-arrow {{ display:inline-flex; align-items:center; gap:8px; font-weight:700; font-size:0.95rem; margin-bottom:8px }}
+.error-pattern-arrow .from-label {{ color:var(--accent-red, #ff6b6b) }}
+.error-pattern-arrow .to-label {{ color:var(--accent-blue) }}
+.error-pattern-desc {{ font-size:0.9rem; color:var(--text-secondary) }}
+.ablation-diagram {{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin:16px 0 }}
+@media (max-width:768px) {{ .ablation-diagram {{ grid-template-columns:1fr }} }}
+.ablation-col {{ background:var(--bg-dark); border:1px solid var(--border-subtle); border-radius:10px; padding:20px; text-align:center }}
+.ablation-col h4 {{ margin:0 0 8px; font-size:0.95rem }}
+.ablation-col .ablation-f1 {{ font-size:1.6rem; font-weight:800; color:var(--accent-blue) }}
+.ablation-col .ablation-arch {{ font-size:0.8rem; color:var(--text-secondary); margin-top:4px }}
+.ablation-pval {{ display:flex; align-items:center; justify-content:center; gap:8px; font-size:0.85rem; color:var(--text-secondary); margin:8px 0 }}
+.repro-table {{ width:100%; border-collapse:collapse }}
+.repro-table th, .repro-table td {{ padding:10px 14px; text-align:left; border-bottom:1px solid var(--border-subtle) }}
+.repro-table th {{ font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary) }}
 </style>
 </head>
 <body>
@@ -1142,6 +1181,9 @@ select {{
   <button class="tab-btn active" data-tab="overview">
     <span class="ko">Overview</span><span class="en">Overview</span>
   </button>
+  <button class="tab-btn" data-tab="pipeline">
+    <span class="ko">Pipeline Deep-Dive</span><span class="en">Pipeline Deep-Dive</span>
+  </button>
   <button class="tab-btn" data-tab="benchmark">
     <span class="ko">Benchmark</span><span class="en">Benchmark</span>
   </button>
@@ -1166,6 +1208,9 @@ select {{
   <button class="tab-btn" data-tab="xai_cases">
     <span class="ko">XAI Cases</span><span class="en">XAI Cases</span>
   </button>
+  <button class="tab-btn" data-tab="errors">
+    <span class="ko">Error Analysis</span><span class="en">Error Analysis</span>
+  </button>
   <button class="tab-btn" data-tab="architecture">
     <span class="ko">Model Architecture</span><span class="en">Model Architecture</span>
   </button>
@@ -1177,6 +1222,9 @@ select {{
   </button>
   <button class="tab-btn" data-tab="report">
     <span class="ko">Report</span><span class="en">Report</span>
+  </button>
+  <button class="tab-btn" data-tab="references">
+    <span class="ko">References</span><span class="en">References</span>
   </button>
   <button class="tab-btn" data-tab="playground">
     <span class="ko">Playground</span><span class="en">Playground</span>
@@ -1297,6 +1345,241 @@ select {{
       <span class="en"><strong>hate/offensive classification boundary is blurry:</strong> Vocabulary Jaccard similarity of 0.7094 indicates substantial overlap.
       Hate F1 is decent at 0.775 for the best model, but offensive (0.547) remains challenging.</span>
     </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB: Pipeline Deep-Dive
+     ================================================================ -->
+<div id="tab-pipeline" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">Pipeline Deep-Dive: 8단계 실험 흐름</span><span class="en">Pipeline Deep-Dive: 8-Stage Experiment Flow</span></h2>
+    <div class="ko-block desc">각 단계가 왜 필요했는지, 무엇을 발견했는지, 그리고 다음 단계로 어떻게 연결되는지를 상세히 서술한다. 이것은 과학적 검증 프레임워크의 전체 흐름이다.</div>
+    <div class="en-block desc">Each stage explains why it was needed, what was discovered, and how it connects to the next. This is the full flow of the scientific verification framework.</div>
+  </div>
+
+  <!-- Stage 1 -->
+  <div class="card pipeline-stage color-blue" style="border-left-color:var(--accent-blue)">
+    <div class="pipeline-stage-header">
+      <span class="pipeline-stage-num" style="background:var(--accent-blue)">1</span>
+      <h3 style="margin:0"><span class="ko">Stage 1: 가설 수립 (Hypothesis)</span><span class="en">Stage 1: Hypothesis Formation</span></h3>
+    </div>
+    <div class="pipeline-stage-body">
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">목적 (Why)</span><span class="en">Purpose (Why)</span></div>
+        <div class="ko-block">Cheng(2022, Virginia Tech)의 연구에서 감성 분석이 혐오표현 분류에 유의미한 기여를 한다는 발견에 기반. 선행 연구의 사전 가설을 체계적으로 검증하기 위한 출발점.</div>
+        <div class="en-block">Based on Cheng (2022, Virginia Tech) finding that sentiment analysis contributes meaningfully to hate speech classification. Starting point for systematically verifying prior research hypotheses.</div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">입력/출력 (Input / Output)</span><span class="en">Input / Output</span></div>
+        <div class="pipeline-io">
+          <div><strong>Input:</strong> <span class="ko">선행 연구 문헌 (Cheng 2022, Mathew et al. 2021 HateXplain)</span><span class="en">Prior research literature (Cheng 2022, Mathew et al. 2021 HateXplain)</span></div>
+          <div><strong>Output:</strong> <span class="ko">"VADER 감성 점수를 보조 특성으로 결합하면 혐오표현 탐지 성능이 향상될 것이다"</span><span class="en">"Combining VADER sentiment scores as auxiliary features will improve hate speech detection performance"</span></div>
+        </div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">핵심 결과 (Key Result)</span><span class="en">Key Result</span></div>
+        <div class="ko-block">Cheng(2022)와의 차별점 -- 우리는 VADER를 XAI 진단 결과가 아닌 선행 연구 기반 사전 가설로 도입하며, XAI는 사후 검증 도구로만 사용한다.</div>
+        <div class="en-block">Differentiation from Cheng(2022) -- we introduce VADER as a prior research-based hypothesis, not as an XAI diagnostic result. XAI is used solely as a post-hoc verification tool.</div>
+      </div>
+    </div>
+    <div class="pipeline-next"><strong>&#x2192; <span class="ko">다음 단계:</span><span class="en">Next:</span></strong> <span class="ko">가설 검증 전, 데이터 특성을 파악해야 한다 &#x2192; EDA</span><span class="en">Before hypothesis testing, data characteristics must be understood &#x2192; EDA</span></div>
+  </div>
+
+  <!-- Stage 2 -->
+  <div class="card pipeline-stage color-green" style="border-left-color:var(--accent-green)">
+    <div class="pipeline-stage-header">
+      <span class="pipeline-stage-num" style="background:var(--accent-green)">2</span>
+      <h3 style="margin:0"><span class="ko">Stage 2: EDA (탐색적 데이터 분석)</span><span class="en">Stage 2: EDA (Exploratory Data Analysis)</span></h3>
+    </div>
+    <div class="pipeline-stage-body">
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">목적 (Why)</span><span class="en">Purpose (Why)</span></div>
+        <div class="ko-block">모델 설계 전 데이터의 본질적 특성과 난이도를 파악. 클래스 간 구별 가능성을 사전에 진단.</div>
+        <div class="en-block">Understand intrinsic data characteristics and difficulty before model design. Pre-diagnose inter-class separability.</div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">입력/출력 (Input / Output)</span><span class="en">Input / Output</span></div>
+        <div class="pipeline-io">
+          <div><strong>Input:</strong> <span class="ko">HateXplain 원본 19,192 텍스트 &#x2192; majority vote 후 13,433 샘플</span><span class="en">HateXplain raw 19,192 texts &#x2192; 13,433 samples after majority vote</span></div>
+          <div><strong>Output:</strong> <span class="ko">클래스 분포, VADER 감성 패턴, 어휘 중첩도, 텍스트 길이 통계</span><span class="en">Class distribution, VADER sentiment patterns, vocabulary overlap, text length statistics</span></div>
+        </div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">핵심 결과 (Key Result)</span><span class="en">Key Result</span></div>
+        <div class="ko-block">hate/offensive 어휘 Jaccard 유사도 <strong>0.7094</strong> -- 두 클래스가 71% 어휘를 공유. VADER compound: hate=-0.358 > offensive=-0.283 > normal=-0.181로 감성 gradient 존재 확인.</div>
+        <div class="en-block">hate/offensive vocabulary Jaccard similarity <strong>0.7094</strong> -- 71% shared vocabulary. VADER compound: hate=-0.358 > offensive=-0.283 > normal=-0.181, confirming sentiment gradient.</div>
+      </div>
+    </div>
+    <div class="pipeline-next"><strong>&#x2192; <span class="ko">다음 단계:</span><span class="en">Next:</span></strong> <span class="ko">높은 어휘 중첩 &#x2192; 단순 어휘 기반 모델의 한계 예측 &#x2192; 베이스라인 수립</span><span class="en">High vocabulary overlap &#x2192; predicted limits of simple lexical models &#x2192; establish baseline</span></div>
+  </div>
+
+  <!-- Stage 3 -->
+  <div class="card pipeline-stage color-purple" style="border-left-color:var(--accent-purple)">
+    <div class="pipeline-stage-header">
+      <span class="pipeline-stage-num" style="background:var(--accent-purple)">3</span>
+      <h3 style="margin:0"><span class="ko">Stage 3: 베이스라인 (TF-IDF + ML)</span><span class="en">Stage 3: Baseline (TF-IDF + ML)</span></h3>
+    </div>
+    <div class="pipeline-stage-body">
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">목적 (Why)</span><span class="en">Purpose (Why)</span></div>
+        <div class="ko-block">딥러닝 투입 전 전통 ML로 기준선 확보. 어휘 기반 접근의 실제 한계를 정량화.</div>
+        <div class="en-block">Establish baseline with traditional ML before deep learning. Quantify actual limits of lexical approaches.</div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">입력/출력 (Input / Output)</span><span class="en">Input / Output</span></div>
+        <div class="pipeline-io">
+          <div><strong>Input:</strong> <span class="ko">TF-IDF 벡터화된 텍스트 (max_features=30000)</span><span class="en">TF-IDF vectorized text (max_features=30000)</span></div>
+          <div><strong>Output:</strong> TF-IDF+LR F1=0.6370, TF-IDF+SVM F1=0.6393</div>
+        </div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">핵심 결과 (Key Result)</span><span class="en">Key Result</span></div>
+        <div class="ko-block">EDA에서 예측한 대로 어휘 중첩(0.71)이 성능 천장을 만듦. offensive F1이 특히 낮음 &#x2192; 문맥 이해가 필요.</div>
+        <div class="en-block">As predicted by EDA, vocabulary overlap (0.71) creates a performance ceiling. Offensive F1 is particularly low &#x2192; contextual understanding needed.</div>
+      </div>
+    </div>
+    <div class="pipeline-next"><strong>&#x2192; <span class="ko">다음 단계:</span><span class="en">Next:</span></strong> <span class="ko">어휘 한계 확인 &#x2192; 문맥적 표현 학습이 가능한 Transformer 도입</span><span class="en">Lexical limits confirmed &#x2192; introduce Transformer for contextual representation learning</span></div>
+  </div>
+
+  <!-- Stage 4 -->
+  <div class="card pipeline-stage color-orange" style="border-left-color:var(--accent-orange)">
+    <div class="pipeline-stage-header">
+      <span class="pipeline-stage-num" style="background:var(--accent-orange)">4</span>
+      <h3 style="margin:0"><span class="ko">Stage 4: 딥러닝 (Transformer)</span><span class="en">Stage 4: Deep Learning (Transformer)</span></h3>
+    </div>
+    <div class="pipeline-stage-body">
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">목적 (Why)</span><span class="en">Purpose (Why)</span></div>
+        <div class="ko-block">BERT의 양방향 문맥 표현으로 어휘 중첩 문제 극복 시도. RoBERTa는 더 많은 데이터, 더 긴 학습, 동적 마스킹으로 사전학습이 강화된 모델.</div>
+        <div class="en-block">Attempt to overcome vocabulary overlap via BERT's bidirectional contextual representations. RoBERTa has enhanced pretraining with more data, longer training, and dynamic masking.</div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">입력/출력 (Input / Output)</span><span class="en">Input / Output</span></div>
+        <div class="pipeline-io">
+          <div><strong>Input:</strong> <span class="ko">토크나이즈된 텍스트 (max_len=128), [CLS] 토큰 표현</span><span class="en">Tokenized text (max_len=128), [CLS] token representation</span></div>
+          <div><strong>Output:</strong> BERT-base F1=0.6744 (+5.5%p vs SVM)</div>
+        </div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">핵심 결과 (Key Result)</span><span class="en">Key Result</span></div>
+        <div class="ko-block">Transformer 도입으로 +5.5%p 향상. 하지만 BERT 단독으로는 감성 뉘앙스를 완전히 포착하지 못할 수 있음.</div>
+        <div class="en-block">Transformer introduction yields +5.5%p improvement. However, BERT alone may not fully capture sentiment nuances.</div>
+      </div>
+    </div>
+    <div class="pipeline-next"><strong>&#x2192; <span class="ko">다음 단계:</span><span class="en">Next:</span></strong> <span class="ko">가설 검증을 위해 VADER 감성을 보조 특성으로 결합 &#x2192; 하이브리드</span><span class="en">Combine VADER sentiment as auxiliary feature for hypothesis testing &#x2192; Hybrid</span></div>
+  </div>
+
+  <!-- Stage 5 -->
+  <div class="card pipeline-stage color-blue" style="border-left-color:var(--accent-blue)">
+    <div class="pipeline-stage-header">
+      <span class="pipeline-stage-num" style="background:var(--accent-blue)">5</span>
+      <h3 style="margin:0"><span class="ko">Stage 5: 하이브리드 (Transformer + VADER)</span><span class="en">Stage 5: Hybrid (Transformer + VADER)</span></h3>
+    </div>
+    <div class="pipeline-stage-body">
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">목적 (Why)</span><span class="en">Purpose (Why)</span></div>
+        <div class="ko-block">768차원 [CLS] 벡터에 VADER 4차원(compound, pos, neg, neu)을 concat하여 감성 정보를 직접 주입. 이것이 핵심 가설의 구현.</div>
+        <div class="en-block">Concatenate VADER 4 dimensions (compound, pos, neg, neu) to 768-dim [CLS] vector for direct sentiment injection. This is the core hypothesis implementation.</div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">입력/출력 (Input / Output)</span><span class="en">Input / Output</span></div>
+        <div class="pipeline-io">
+          <div><strong>Input:</strong> [CLS](768d) + VADER(4d) = 772d &#x2192; MLP(256d) &#x2192; 3-class</div>
+          <div><strong>Output:</strong> BERT+VADER F1=0.6794, RoBERTa+VADER F1=0.6863</div>
+        </div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">핵심 결과 (Key Result)</span><span class="en">Key Result</span></div>
+        <div class="ko-block">RoBERTa+VADER가 최고 성능. 하지만 BERT+VADER vs BERT-base 차이(+0.5%p)가 통계적으로 유의하지 않음 &#x2192; 인코더 품질이 더 중요한 변수.</div>
+        <div class="en-block">RoBERTa+VADER achieves best performance. But BERT+VADER vs BERT-base difference (+0.5%p) is not statistically significant &#x2192; encoder quality is the more important variable.</div>
+      </div>
+    </div>
+    <div class="pipeline-next"><strong>&#x2192; <span class="ko">다음 단계:</span><span class="en">Next:</span></strong> <span class="ko">VADER 효과와 MLP 구조 효과를 분리해야 함 &#x2192; Ablation</span><span class="en">Must separate VADER effect from MLP structure effect &#x2192; Ablation</span></div>
+  </div>
+
+  <!-- Stage 6 -->
+  <div class="card pipeline-stage color-green" style="border-left-color:var(--accent-green)">
+    <div class="pipeline-stage-header">
+      <span class="pipeline-stage-num" style="background:var(--accent-green)">6</span>
+      <h3 style="margin:0"><span class="ko">Stage 6: Ablation Study</span><span class="en">Stage 6: Ablation Study</span></h3>
+    </div>
+    <div class="pipeline-stage-body">
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">목적 (Why)</span><span class="en">Purpose (Why)</span></div>
+        <div class="ko-block">성능 향상이 VADER 때문인지, MLP 레이어 추가 때문인지 분리. 과학적 검증의 핵심 통제 실험.</div>
+        <div class="en-block">Separate whether improvement is from VADER or MLP layer addition. Core controlled experiment of scientific verification.</div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">입력/출력 (Input / Output)</span><span class="en">Input / Output</span></div>
+        <div class="pipeline-io">
+          <div><strong>Input:</strong> <span class="ko">BERT+MLP (768d&#x2192;256d, VADER 없음) vs BERT+VADER (772d&#x2192;256d, VADER 있음)</span><span class="en">BERT+MLP (768d&#x2192;256d, no VADER) vs BERT+VADER (772d&#x2192;256d, with VADER)</span></div>
+          <div><strong>Output:</strong> BERT+MLP F1=0.6810, BERT+VADER F1=0.6794, p=0.567</div>
+        </div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">핵심 결과 (Key Result)</span><span class="en">Key Result</span></div>
+        <div class="ko-block">두 모델 성능 거의 동일(p=0.567) &#x2192; 같은 인코더에서 VADER 추가 효과 미미. 성능 차이의 주요 원인은 인코더 사전학습 품질(BERT vs RoBERTa).</div>
+        <div class="en-block">Nearly identical performance (p=0.567) &#x2192; VADER effect minimal on same encoder. Main performance driver is encoder pretraining quality (BERT vs RoBERTa).</div>
+      </div>
+    </div>
+    <div class="pipeline-next"><strong>&#x2192; <span class="ko">다음 단계:</span><span class="en">Next:</span></strong> <span class="ko">인코더가 핵심이라면, 인코더 동결 시 성능이 얼마나 떨어지는지 확인 &#x2192; Freeze Study</span><span class="en">If encoder is key, how much does freezing it hurt? &#x2192; Freeze Study</span></div>
+  </div>
+
+  <!-- Stage 7 -->
+  <div class="card pipeline-stage color-purple" style="border-left-color:var(--accent-purple)">
+    <div class="pipeline-stage-header">
+      <span class="pipeline-stage-num" style="background:var(--accent-purple)">7</span>
+      <h3 style="margin:0"><span class="ko">Stage 7: Freeze Study</span><span class="en">Stage 7: Freeze Study</span></h3>
+    </div>
+    <div class="pipeline-stage-body">
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">목적 (Why)</span><span class="en">Purpose (Why)</span></div>
+        <div class="ko-block">인코더 미세조정의 중요성을 정량화. "VADER+MLP만으로 충분한가?"라는 질문에 답변.</div>
+        <div class="en-block">Quantify the importance of encoder fine-tuning. Answer: "Is VADER+MLP alone sufficient?"</div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">입력/출력 (Input / Output)</span><span class="en">Input / Output</span></div>
+        <div class="pipeline-io">
+          <div><strong>Input:</strong> <span class="ko">BERT+VADER (encoder frozen) vs BERT+VADER (encoder fine-tuned)</span><span class="en">BERT+VADER (encoder frozen) vs BERT+VADER (encoder fine-tuned)</span></div>
+          <div><strong>Output:</strong> Frozen F1=0.324, Fine-tuned F1=0.679 (+109%)</div>
+        </div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">핵심 결과 (Key Result)</span><span class="en">Key Result</span></div>
+        <div class="ko-block">동결 시 random 수준(0.33)에 근접 &#x2192; MLP+VADER만으로는 분류 불가능. 인코더의 도메인 특화 미세조정이 성능의 결정적 요인.</div>
+        <div class="en-block">Frozen performance near random level (0.33) &#x2192; MLP+VADER alone cannot classify. Encoder domain-specific fine-tuning is the decisive performance factor.</div>
+      </div>
+    </div>
+    <div class="pipeline-next"><strong>&#x2192; <span class="ko">다음 단계:</span><span class="en">Next:</span></strong> <span class="ko">모든 실험 완료 &#x2192; 모델의 예측 근거를 사후 검증 &#x2192; XAI</span><span class="en">All experiments complete &#x2192; post-hoc verification of model reasoning &#x2192; XAI</span></div>
+  </div>
+
+  <!-- Stage 8 -->
+  <div class="card pipeline-stage color-orange" style="border-left-color:var(--accent-orange)">
+    <div class="pipeline-stage-header">
+      <span class="pipeline-stage-num" style="background:var(--accent-orange)">8</span>
+      <h3 style="margin:0"><span class="ko">Stage 8: XAI 사후 검증</span><span class="en">Stage 8: XAI Post-hoc Verification</span></h3>
+    </div>
+    <div class="pipeline-stage-body">
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">목적 (Why)</span><span class="en">Purpose (Why)</span></div>
+        <div class="ko-block">모델이 "올바른 이유로" 올바른 예측을 하는지 검증. 이것은 피드백 루프가 아니라 사후 검증 도구이다. SHAP과 LIME 두 기법의 교차 검증으로 설명의 신뢰성 확보.</div>
+        <div class="en-block">Verify whether models predict correctly "for the right reasons." This is NOT a feedback loop but a post-hoc verification tool. Cross-validation between SHAP and LIME ensures explanation reliability.</div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">입력/출력 (Input / Output)</span><span class="en">Input / Output</span></div>
+        <div class="pipeline-io">
+          <div><strong>Input:</strong> <span class="ko">BERT-base(베이스라인) + RoBERTa+VADER(개선 모델) x 24 샘플</span><span class="en">BERT-base (baseline) + RoBERTa+VADER (improved) x 24 samples</span></div>
+          <div><strong>Output:</strong> Overlap@5: Baseline 71.7%, Improved 67.5%. <span class="ko">오분류 수정 12건</span><span class="en">12 misclassification corrections</span></div>
+        </div>
+      </div>
+      <div class="pipeline-section">
+        <div class="pipeline-section-title"><span class="ko">핵심 결과 (Key Result)</span><span class="en">Key Result</span></div>
+        <div class="ko-block">개선 모델의 Overlap이 약간 낮지만, 60% 이상 샘플 수는 더 많음(20 vs 18). 모델이 더 다양한 특성에 주목하면서도 일관성 유지.</div>
+        <div class="en-block">Improved model's Overlap is slightly lower, but more samples exceed 60% (20 vs 18). Model attends to more diverse features while maintaining consistency.</div>
+      </div>
+    </div>
+    <div class="pipeline-next"><strong><span class="ko">(파이프라인 종료) 결론 -- 가설 부분 채택. 인코더 품질이 핵심, VADER는 보조.</span><span class="en">(Pipeline complete) Conclusion -- Hypothesis partially adopted. Encoder quality is key, VADER is supplementary.</span></strong></div>
   </div>
 </div>
 
@@ -1792,6 +2075,130 @@ select {{
 </div>
 
 <!-- ================================================================
+     TAB: Error Analysis
+     ================================================================ -->
+<div id="tab-errors" class="tab-content">
+  <!-- Overview -->
+  <div class="card">
+    <h2><span class="ko">Error Analysis: 오분류 패턴 분석</span><span class="en">Error Analysis: Misclassification Pattern Analysis</span></h2>
+    <div class="ko-block desc">모델의 오분류 패턴을 분석하여 한계점과 개선 방향을 파악한다. 과학적 검증 프레임워크의 일환으로, 모델이 실패하는 지점을 투명하게 서술한다.</div>
+    <div class="en-block desc">Analyze misclassification patterns to identify limitations and improvement directions. As part of the scientific verification framework, model failure points are described transparently.</div>
+  </div>
+
+  <!-- Error Pattern Summary -->
+  <div class="card">
+    <h3><span class="ko">주요 오분류 패턴</span><span class="en">Major Error Patterns</span></h3>
+    <div class="error-pattern-card">
+      <div class="error-pattern-arrow"><span class="from-label">hate</span> &#x2192; <span class="to-label">offensive</span></div>
+      <div class="error-pattern-desc">
+        <span class="ko">어휘 Jaccard 0.71 -- 동일 비속어를 공유하는 두 클래스. 맥락적 차이(직접 공격 vs 일반적 표현)를 잡기 어려움.</span>
+        <span class="en">Vocabulary Jaccard 0.71 -- two classes share the same profanity. Contextual difference (direct attack vs general expression) is hard to capture.</span>
+      </div>
+    </div>
+    <div class="error-pattern-card">
+      <div class="error-pattern-arrow"><span class="from-label">offensive</span> &#x2192; <span class="to-label">normal</span></div>
+      <div class="error-pattern-desc">
+        <span class="ko">비꼬기, 슬랭, 은유적 표현이 offensive로 보이지만 실제 normal.</span>
+        <span class="en">Sarcasm, slang, and metaphorical expressions appear offensive but are actually normal.</span>
+      </div>
+    </div>
+    <div class="error-pattern-card">
+      <div class="error-pattern-arrow"><span class="from-label">normal</span> &#x2192; <span class="to-label">hate</span></div>
+      <div class="error-pattern-desc">
+        <span class="ko">인용, 보도, 교육 목적의 혐오 단어 포함 텍스트를 hate로 과잉 분류.</span>
+        <span class="en">Texts containing hate words for quotation, reporting, or educational purposes are over-classified as hate.</span>
+      </div>
+    </div>
+    <div class="error-pattern-card">
+      <div class="error-pattern-arrow"><span class="from-label">hate</span> &#x2192; <span class="to-label">normal</span></div>
+      <div class="error-pattern-desc">
+        <span class="ko">간접적, 완곡한 혐오 표현을 모델이 감지하지 못함.</span>
+        <span class="en">Model fails to detect indirect, euphemistic hate speech.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- VADER Blind Spots -->
+  <div class="card">
+    <h3><span class="ko">VADER Blind Spots</span><span class="en">VADER Blind Spots</span></h3>
+    <div class="error-pattern-card">
+      <div class="error-pattern-arrow"><strong><span class="ko">반어 (Sarcasm)</span><span class="en">Sarcasm</span></strong></div>
+      <div class="error-pattern-desc">
+        <span class="ko">VADER compound > 0인데 실제 hate인 경우. 긍정적 표현으로 포장된 혐오를 탐지하지 못한다.</span>
+        <span class="en">VADER compound > 0 but actually hate. Cannot detect hate wrapped in positive expressions.</span>
+      </div>
+    </div>
+    <div class="error-pattern-card">
+      <div class="error-pattern-arrow"><strong><span class="ko">중립 혐오 (Neutral Hate)</span><span class="en">Neutral Hate</span></strong></div>
+      <div class="error-pattern-desc">
+        <span class="ko">VADER compound &#x2248; 0인데 실제 hate인 경우 ("those people don't belong here"). 감성적으로 중립이지만 의미적으로 혐오.</span>
+        <span class="en">VADER compound &#x2248; 0 but actually hate ("those people don't belong here"). Sentimentally neutral but semantically hateful.</span>
+      </div>
+    </div>
+    <div style="margin-top:16px; padding:14px 18px; background:rgba(124,138,255,0.06); border-radius:8px; border-left:3px solid var(--accent-blue)">
+      <span class="ko">VADER는 lexicon 기반이므로 반어/완곡어법을 해석하지 못한다. 이것이 VADER 단독 효과가 제한적(p=0.138)인 이유이다.</span>
+      <span class="en">VADER is lexicon-based and cannot interpret sarcasm/euphemism. This is why VADER's standalone effect is limited (p=0.138).</span>
+    </div>
+  </div>
+
+  <!-- Ablation Insight -->
+  <div class="card">
+    <h3><span class="ko">Ablation Insight: VADER vs MLP 효과 분리</span><span class="en">Ablation Insight: Separating VADER vs MLP Effects</span></h3>
+    <div class="ablation-diagram">
+      <div class="ablation-col">
+        <h4>BERT-base</h4>
+        <div class="ablation-f1">0.6744</div>
+        <div class="ablation-arch">768 &#x2192; 3</div>
+      </div>
+      <div class="ablation-col">
+        <h4>BERT+MLP</h4>
+        <div class="ablation-f1">0.6810</div>
+        <div class="ablation-arch">768 &#x2192; 256 &#x2192; 3</div>
+      </div>
+      <div class="ablation-col">
+        <h4>BERT+VADER</h4>
+        <div class="ablation-f1">0.6794</div>
+        <div class="ablation-arch">772 &#x2192; 256 &#x2192; 3</div>
+      </div>
+    </div>
+    <div class="ablation-pval">
+      <span>BERT+MLP vs BERT+VADER: <strong>p = 0.567</strong> (<span class="ko">유의하지 않음</span><span class="en">not significant</span>)</span>
+    </div>
+    <div style="margin-top:12px; padding:14px 18px; background:rgba(124,138,255,0.06); border-radius:8px; border-left:3px solid var(--accent-orange)">
+      <span class="ko">VADER 4차원이 768차원 대비 0.5%에 불과. 정보량 비율로 보면 VADER 기여가 작은 것은 당연. 그러나 RoBERTa처럼 인코더 품질이 높아지면 미세한 감성 보완이 유의미해진다.</span>
+      <span class="en">VADER's 4 dimensions are only 0.5% of 768 dimensions. In terms of information ratio, small VADER contribution is expected. However, with higher encoder quality like RoBERTa, subtle sentiment supplementation becomes meaningful.</span>
+    </div>
+  </div>
+
+  <!-- Limitations & Future Work -->
+  <div class="card">
+    <h3><span class="ko">한계점 및 향후 과제</span><span class="en">Limitations &amp; Future Work</span></h3>
+    <div style="display:grid; gap:10px">
+      <div class="error-pattern-card">
+        <span class="ko"><strong>3개 시드의 검정력 한계:</strong> n=3 paired t-test는 통계적 검정력이 제한적. 더 많은 시드(5-10)로 반복 실험 필요.</span>
+        <span class="en"><strong>Statistical power with 3 seeds:</strong> n=3 paired t-test has limited statistical power. More seeds (5-10) needed for replication.</span>
+      </div>
+      <div class="error-pattern-card">
+        <span class="ko"><strong>영어 전용 데이터셋:</strong> HateXplain은 영어 전용. 한국어/다국어 혐오표현 탐지로의 확장 필요.</span>
+        <span class="en"><strong>English-only dataset:</strong> HateXplain is English-only. Extension to Korean/multilingual hate speech detection needed.</span>
+      </div>
+      <div class="error-pattern-card">
+        <span class="ko"><strong>VADER lexicon 한계:</strong> 일반 목적 감성 사전. 혐오표현 도메인 특화 감성 사전 구축 가능성.</span>
+        <span class="en"><strong>VADER lexicon limitations:</strong> General-purpose sentiment lexicon. Domain-specific sentiment dictionary for hate speech is possible.</span>
+      </div>
+      <div class="error-pattern-card">
+        <span class="ko"><strong>offensive 클래스 F1 0.53-0.55:</strong> 구조적 한계. hate/offensive 경계의 모호함은 데이터셋 자체의 문제.</span>
+        <span class="en"><strong>Offensive class F1 0.53-0.55:</strong> Structural limitation. The ambiguous hate/offensive boundary is a dataset-level issue.</span>
+      </div>
+      <div class="error-pattern-card">
+        <span class="ko"><strong>Annotator 간 불일치:</strong> majority vote는 소수 의견을 무시. 3명 중 2명만 동의한 샘플의 정보 손실.</span>
+        <span class="en"><strong>Inter-annotator disagreement:</strong> Majority vote ignores minority opinions. Information loss from samples where only 2 of 3 annotators agree.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
      TAB 10: Model Architecture
      ================================================================ -->
 <div id="tab-architecture" class="tab-content">
@@ -1992,6 +2399,85 @@ select {{
 
   <div class="card">
     <div class="report-container" id="report-content"></div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB: References
+     ================================================================ -->
+<div id="tab-references" class="tab-content">
+  <!-- Key References -->
+  <div class="card">
+    <h2><span class="ko">주요 참고문헌</span><span class="en">Key References</span></h2>
+
+    <div class="ref-item">
+      <div class="ref-citation">Mathew, B., Saha, P., Yimam, S. M., et al. (2021). "HateXplain: A Benchmark Dataset for Explainable Hate Speech Detection." <em>AAAI 2021</em>.</div>
+      <div class="ref-role"><span class="ko">데이터셋 및 XAI 평가 프레임워크 제공</span><span class="en">Provides the dataset and XAI evaluation framework</span></div>
+    </div>
+
+    <div class="ref-item">
+      <div class="ref-citation">Cheng, L. (2022). "Towards Explainable and Adaptive Sentiment-enhanced Hate Speech Detection." <em>Virginia Tech, PhD Dissertation</em>.</div>
+      <div class="ref-role"><span class="ko">감성 분석 기반 혐오표현 탐지의 선구적 연구</span><span class="en">Pioneering research on sentiment-based hate speech detection</span></div>
+      <div class="ref-diff"><span class="ko">차별점: Cheng은 XAI 진단 &#x2192; 개선 순환 구조. 본 연구는 사전 가설 &#x2192; 사후 검증 구조 (과학적 검증 프레임워크)</span><span class="en">Differentiation: Cheng uses XAI diagnosis &#x2192; improvement cycle. Our study uses prior hypothesis &#x2192; post-hoc verification (scientific verification framework)</span></div>
+    </div>
+
+    <div class="ref-item">
+      <div class="ref-citation">Devlin, J., et al. (2019). "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding." <em>NAACL 2019</em>.</div>
+      <div class="ref-role"><span class="ko">양방향 문맥 표현 학습</span><span class="en">Bidirectional contextual representation learning</span></div>
+    </div>
+
+    <div class="ref-item">
+      <div class="ref-citation">Liu, Y., et al. (2019). "RoBERTa: A Robustly Optimized BERT Pretraining Approach." <em>arXiv:1907.11692</em>.</div>
+      <div class="ref-role"><span class="ko">강화된 사전학습 전략</span><span class="en">Enhanced pretraining strategy</span></div>
+    </div>
+
+    <div class="ref-item">
+      <div class="ref-citation">Hutto, C. J. &amp; Gilbert, E. (2014). "VADER: A Parsimonious Rule-based Model for Sentiment Analysis of Social Media Text." <em>ICWSM 2014</em>.</div>
+      <div class="ref-role"><span class="ko">규칙 기반 감성 분석</span><span class="en">Rule-based sentiment analysis</span></div>
+    </div>
+
+    <div class="ref-item">
+      <div class="ref-citation">Ribeiro, M. T., Singh, S., &amp; Guestrin, C. (2016). "Why Should I Trust You?: Explaining the Predictions of Any Classifier." <em>KDD 2016</em>.</div>
+      <div class="ref-role"><span class="ko">LIME 설명가능성 기법</span><span class="en">LIME explainability technique</span></div>
+    </div>
+
+    <div class="ref-item">
+      <div class="ref-citation">Lundberg, S. &amp; Lee, S.-I. (2017). "A Unified Approach to Interpreting Model Predictions." <em>NeurIPS 2017</em>.</div>
+      <div class="ref-role"><span class="ko">SHAP 설명가능성 기법</span><span class="en">SHAP explainability technique</span></div>
+    </div>
+  </div>
+
+  <!-- Reproducibility -->
+  <div class="card">
+    <h3><span class="ko">재현성 (Reproducibility)</span><span class="en">Reproducibility</span></h3>
+    <table class="repro-table">
+      <tr><th><span class="ko">항목</span><span class="en">Item</span></th><th><span class="ko">값</span><span class="en">Value</span></th></tr>
+      <tr><td>Environment</td><td>Python 3.13, PyTorch (MPS), Apple M3 Max 64GB</td></tr>
+      <tr><td>Seeds</td><td>42, 52, 62 (3-fold)</td></tr>
+      <tr><td>Max sequence length</td><td>128 tokens</td></tr>
+      <tr><td>Training epochs</td><td>5 (early stopping patience=2)</td></tr>
+    </table>
+    <div style="margin-top:14px; padding:14px 18px; background:rgba(124,138,255,0.06); border-radius:8px; border-left:3px solid var(--accent-green)">
+      <span class="ko"><strong>재현 방법:</strong> <code>./run.sh full</code> 또는 단계별 <code>./run.sh data &amp;&amp; ./run.sh tune &amp;&amp; ./run.sh benchmark ...</code></span>
+      <span class="en"><strong>How to reproduce:</strong> <code>./run.sh full</code> or step-by-step <code>./run.sh data &amp;&amp; ./run.sh tune &amp;&amp; ./run.sh benchmark ...</code></span>
+    </div>
+  </div>
+
+  <!-- Estimated Training Time -->
+  <div class="card">
+    <h3><span class="ko">예상 학습 시간</span><span class="en">Estimated Training Time</span></h3>
+    <table class="repro-table">
+      <tr><th><span class="ko">모델/단계</span><span class="en">Model/Stage</span></th><th><span class="ko">소요 시간</span><span class="en">Duration</span></th></tr>
+      <tr><td>TF-IDF+LR</td><td>~5<span class="ko">초</span><span class="en">s</span></td></tr>
+      <tr><td>TF-IDF+SVM</td><td>~10<span class="ko">초</span><span class="en">s</span></td></tr>
+      <tr><td>BERT-base</td><td>~8<span class="ko">분/시드</span><span class="en">min/seed</span> (MPS)</td></tr>
+      <tr><td>BERT+MLP</td><td>~8<span class="ko">분/시드</span><span class="en">min/seed</span></td></tr>
+      <tr><td>BERT+VADER</td><td>~9<span class="ko">분/시드</span><span class="en">min/seed</span></td></tr>
+      <tr><td>RoBERTa+VADER</td><td>~10<span class="ko">분/시드</span><span class="en">min/seed</span></td></tr>
+      <tr><td>Tuning (grid search)</td><td>~2<span class="ko">시간</span><span class="en">h</span></td></tr>
+      <tr><td>XAI (SHAP+LIME)</td><td>~30<span class="ko">분</span><span class="en">min</span></td></tr>
+      <tr style="font-weight:700; border-top:2px solid var(--border-subtle)"><td>Total</td><td>~4-5<span class="ko">시간</span><span class="en">h</span></td></tr>
+    </table>
   </div>
 </div>
 
