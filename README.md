@@ -21,6 +21,49 @@ python3 dashboard_app.py
 브라우저에서 **http://localhost:8501** 접속하면 18개 탭 대시보드가 즉시 작동합니다.
 `outputs/`(38MB)와 `data/`(12MB)가 git에 포함되어 있어 별도 데이터 준비가 필요 없습니다.
 
+<details>
+<summary><strong>대시보드 실행 옵션 상세</strong></summary>
+
+**기본 실행:**
+```bash
+python3 dashboard_app.py          # http://localhost:8501 (기본)
+```
+
+**포트/호스트 변경 (uvicorn 직접 호출):**
+```bash
+# 다른 포트에서 실행
+uvicorn dashboard_app:app --host 0.0.0.0 --port 9000
+
+# 자동 리로드 (개발 모드)
+uvicorn dashboard_app:app --host 0.0.0.0 --port 8501 --reload
+```
+
+**백그라운드 실행:**
+```bash
+nohup python3 dashboard_app.py > dashboard.log 2>&1 &
+echo $!  # PID 확인
+# 종료: kill $(lsof -t -i:8501)
+```
+
+**필수 의존성:**
+```bash
+pip install fastapi uvicorn           # 최소 (대시보드만)
+pip install -r requirements.txt       # 전체 (Playground LIME/SHAP 포함)
+```
+
+| 의존성 | 용도 | 필수 여부 |
+|--------|------|:---------:|
+| `fastapi`, `uvicorn` | 웹 서버 | 필수 |
+| `torch`, `transformers` | Playground 모델 추론 | Playground 사용 시 |
+| `lime` | LIME 해석 | Playground LIME 버튼 사용 시 |
+| `shap` | SHAP 해석 | XAI 탭 활용 시 |
+| `vaderSentiment` | VADER 감성 피처 | VADER 모델 Playground 시 |
+
+> Playground 관련 패키지가 없어도 대시보드 자체는 정상 실행됩니다.
+> 해당 탭 접근 시에만 동적으로 import하며, 없으면 안내 메시지를 표시합니다.
+
+</details>
+
 ### 2단계: Playground 활성화 (선택)
 
 Playground 탭(실시간 모델 추론 + Attention Heatmap + LIME)을 사용하려면
