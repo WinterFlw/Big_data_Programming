@@ -1147,6 +1147,30 @@ select {{
 .repro-table {{ width:100%; border-collapse:collapse }}
 .repro-table th, .repro-table td {{ padding:10px 14px; text-align:left; border-bottom:1px solid var(--border-subtle) }}
 .repro-table th {{ font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary) }}
+
+/* E2E Pipeline Analysis */
+.e2e-flow {{ display:flex; flex-direction:column; gap:0; position:relative }}
+.e2e-node {{ background:var(--bg-dark); border:2px solid var(--border-subtle); border-radius:12px; padding:20px 24px; position:relative }}
+.e2e-node.active {{ border-color:var(--accent-green) }}
+.e2e-connector {{ display:flex; align-items:center; justify-content:center; padding:4px 0 }}
+.e2e-connector .arrow {{ color:var(--accent-blue); font-size:1.6rem }}
+.e2e-connector .transform {{ font-size:0.78rem; color:var(--text-secondary); background:var(--bg-card); padding:2px 12px; border-radius:12px; border:1px dashed var(--border-subtle); margin:0 12px }}
+.e2e-node-header {{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px }}
+.e2e-node-title {{ font-weight:700; font-size:1rem }}
+.e2e-badge {{ display:inline-block; padding:3px 10px; border-radius:6px; font-size:0.75rem; font-weight:600 }}
+.e2e-metrics {{ display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px; margin-top:10px }}
+.e2e-metric {{ background:var(--bg-card); padding:10px; border-radius:8px; text-align:center; border:1px solid var(--border-subtle) }}
+.e2e-metric .val {{ font-size:1.2rem; font-weight:700 }}
+.e2e-metric .lbl {{ font-size:0.75rem; color:var(--text-secondary); margin-top:2px }}
+.e2e-decision {{ background:rgba(124,138,255,0.06); border-left:3px solid var(--accent-blue); padding:10px 14px; margin-top:10px; border-radius:0 8px 8px 0; font-size:0.85rem }}
+.e2e-decision strong {{ color:var(--accent-blue) }}
+.e2e-bottleneck {{ background:rgba(255,107,122,0.08); border-left:3px solid var(--accent-red); padding:10px 14px; margin-top:8px; border-radius:0 8px 8px 0; font-size:0.85rem }}
+.e2e-bottleneck strong {{ color:var(--accent-red) }}
+.e2e-sankey {{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; text-align:center; margin:16px 0 }}
+.e2e-sankey-col {{ padding:12px }}
+.e2e-sankey-box {{ background:var(--bg-dark); border:1px solid var(--border-subtle); border-radius:8px; padding:10px; margin-bottom:6px; font-size:0.85rem }}
+.e2e-time-bar {{ height:24px; border-radius:4px; display:flex; align-items:center; padding:0 8px; font-size:0.75rem; font-weight:600; color:#fff; min-width:40px }}
+.e2e-section {{ margin-bottom:28px }}
 </style>
 </head>
 <body>
@@ -1183,6 +1207,9 @@ select {{
   </button>
   <button class="tab-btn" data-tab="pipeline">
     <span class="ko">Pipeline Deep-Dive</span><span class="en">Pipeline Deep-Dive</span>
+  </button>
+  <button class="tab-btn" data-tab="e2e">
+    <span class="ko">E2E Pipeline</span><span class="en">E2E Pipeline</span>
   </button>
   <button class="tab-btn" data-tab="benchmark">
     <span class="ko">Benchmark</span><span class="en">Benchmark</span>
@@ -1580,6 +1607,422 @@ select {{
       </div>
     </div>
     <div class="pipeline-next"><strong><span class="ko">(파이프라인 종료) 결론 -- 가설 부분 채택. 인코더 품질이 핵심, VADER는 보조.</span><span class="en">(Pipeline complete) Conclusion -- Hypothesis partially adopted. Encoder quality is key, VADER is supplementary.</span></strong></div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB: E2E Pipeline Analysis
+     ================================================================ -->
+<div id="tab-e2e" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">End-to-End Pipeline Analysis</span><span class="en">End-to-End Pipeline Analysis</span></h2>
+    <div class="ko-block desc">
+      원본 데이터가 최종 예측 결과가 되기까지의 기술적 데이터 흐름을 추적한다.
+      각 단계에서의 데이터 변환, 차원 변화, 처리 시간, 핵심 설계 결정을 정량적으로 분석한다.
+      Pipeline Deep-Dive가 "왜"에 초점을 맞춘다면, 이 탭은 "어떻게"에 초점을 맞춘다.
+    </div>
+    <div class="en-block desc">
+      Tracks the technical data flow from raw input to final prediction.
+      Quantitatively analyzes data transformations, dimensionality changes, processing time, and key design decisions at each stage.
+      While Pipeline Deep-Dive focuses on "why", this tab focuses on "how".
+    </div>
+  </div>
+
+  <!-- ---- 데이터 흐름 전체 요약 ---- -->
+  <div class="card">
+    <h3><span class="ko">데이터 볼륨 추적</span><span class="en">Data Volume Tracking</span></h3>
+    <div class="ko-block desc">원본 데이터에서 최종 평가까지 샘플 수와 차원이 어떻게 변하는지 추적한다.</div>
+    <div class="en-block desc">Tracks how sample counts and dimensions change from raw data to final evaluation.</div>
+
+    <div class="e2e-flow">
+      <!-- Node 1: Raw Data -->
+      <div class="e2e-node">
+        <div class="e2e-node-header">
+          <div class="e2e-node-title" style="color:var(--accent-blue)"><span class="ko">1. 원본 데이터 수집</span><span class="en">1. Raw Data Ingestion</span></div>
+          <span class="e2e-badge" style="background:rgba(124,138,255,0.2);color:var(--accent-blue)">HateXplain</span>
+        </div>
+        <div style="font-size:0.9rem;color:var(--text-secondary)">
+          <span class="ko">Mathew et al.(2021)의 HateXplain 데이터셋. JSON 형식, annotator 3명의 다수결 투표 포함.</span>
+          <span class="en">HateXplain dataset by Mathew et al.(2021). JSON format with majority vote from 3 annotators.</span>
+        </div>
+        <div class="e2e-metrics">
+          <div class="e2e-metric"><div class="val" style="color:var(--accent-blue)">19,192</div><div class="lbl"><span class="ko">전체 텍스트</span><span class="en">Total texts</span></div></div>
+          <div class="e2e-metric"><div class="val">3</div><div class="lbl"><span class="ko">클래스</span><span class="en">Classes</span></div></div>
+          <div class="e2e-metric"><div class="val">3</div><div class="lbl"><span class="ko">Annotators</span><span class="en">Annotators</span></div></div>
+          <div class="e2e-metric"><div class="val">JSON</div><div class="lbl"><span class="ko">포맷</span><span class="en">Format</span></div></div>
+        </div>
+      </div>
+
+      <div class="e2e-connector"><span class="arrow">&darr;</span><span class="transform"><span class="ko">Majority Vote 필터링</span><span class="en">Majority Vote Filtering</span></span></div>
+
+      <!-- Node 2: Preprocessing -->
+      <div class="e2e-node">
+        <div class="e2e-node-header">
+          <div class="e2e-node-title" style="color:var(--accent-green)"><span class="ko">2. 전처리 + VADER 증강</span><span class="en">2. Preprocessing + VADER Augmentation</span></div>
+          <span class="e2e-badge" style="background:rgba(0,229,176,0.2);color:var(--accent-green)">~30%</span>
+        </div>
+        <div style="font-size:0.9rem;color:var(--text-secondary)">
+          <span class="ko">Majority vote로 라벨 합의가 안 되는 샘플 제거. VADER로 4차원 감성 점수 생성. CSV 변환.</span>
+          <span class="en">Remove samples without majority vote consensus. Generate 4-dim VADER sentiment scores. Convert to CSV.</span>
+        </div>
+        <div class="e2e-metrics">
+          <div class="e2e-metric"><div class="val" style="color:var(--accent-green)">13,433</div><div class="lbl"><span class="ko">유효 샘플</span><span class="en">Valid samples</span></div></div>
+          <div class="e2e-metric"><div class="val" style="color:var(--accent-red)">-5,759</div><div class="lbl"><span class="ko">제거됨 (30%)</span><span class="en">Removed (30%)</span></div></div>
+          <div class="e2e-metric"><div class="val">+4d</div><div class="lbl">VADER (comp/pos/neg/neu)</div></div>
+          <div class="e2e-metric"><div class="val">~5s</div><div class="lbl"><span class="ko">처리 시간</span><span class="en">Processing time</span></div></div>
+        </div>
+        <div class="e2e-decision"><strong><span class="ko">설계 결정:</span><span class="en">Design decision:</span></strong> <span class="ko">majority vote를 사용하여 annotator 간 불일치 해소. 2/3 이상 합의된 라벨만 사용하여 라벨 품질 확보.</span><span class="en">Majority vote resolves annotator disagreement. Only labels with 2/3+ consensus are used for label quality.</span></div>
+      </div>
+
+      <div class="e2e-connector"><span class="arrow">&darr;</span><span class="transform"><span class="ko">Train/Val/Test 분할</span><span class="en">Train/Val/Test Split</span></span></div>
+
+      <!-- Node 3: Split -->
+      <div class="e2e-node">
+        <div class="e2e-node-header">
+          <div class="e2e-node-title" style="color:var(--accent-purple)"><span class="ko">3. 데이터 분할</span><span class="en">3. Data Split</span></div>
+          <span class="e2e-badge" style="background:rgba(181,122,255,0.2);color:var(--accent-purple)">Stratified</span>
+        </div>
+        <div style="font-size:0.9rem;color:var(--text-secondary)">
+          <span class="ko">클래스 비율을 유지하는 계층화 분할. 3개 시드(42, 52, 62)로 반복하여 분산 추정.</span>
+          <span class="en">Stratified split maintaining class proportions. Repeated with 3 seeds (42, 52, 62) for variance estimation.</span>
+        </div>
+        <div class="e2e-metrics">
+          <div class="e2e-metric"><div class="val">8,060</div><div class="lbl">Train (60%)</div></div>
+          <div class="e2e-metric"><div class="val">2,687</div><div class="lbl">Val (20%)</div></div>
+          <div class="e2e-metric"><div class="val">2,686</div><div class="lbl">Test (20%)</div></div>
+          <div class="e2e-metric"><div class="val">3</div><div class="lbl"><span class="ko">시드</span><span class="en">Seeds</span></div></div>
+        </div>
+        <div class="e2e-decision"><strong><span class="ko">설계 결정:</span><span class="en">Design decision:</span></strong> <span class="ko">시드 3개는 통계 검정의 최소 요건(paired t-test). 이상적으로는 5-10개가 바람직하나, GPU 시간 제약.</span><span class="en">3 seeds is the minimum for paired t-test. Ideally 5-10 seeds, but constrained by GPU time.</span></div>
+      </div>
+
+      <div class="e2e-connector"><span class="arrow">&darr;</span><span class="transform"><span class="ko">모델별 분기</span><span class="en">Model-specific branching</span></span></div>
+
+      <!-- Node 4: Feature Engineering -->
+      <div class="e2e-node">
+        <div class="e2e-node-header">
+          <div class="e2e-node-title" style="color:var(--accent-orange)"><span class="ko">4. 특성 추출 (2가지 경로)</span><span class="en">4. Feature Extraction (2 paths)</span></div>
+        </div>
+        <div class="grid-2" style="margin-top:10px">
+          <div style="background:var(--bg-card);padding:14px;border-radius:8px;border:1px solid var(--border-subtle)">
+            <div style="font-weight:700;color:var(--accent-orange);margin-bottom:6px">Path A: TF-IDF</div>
+            <div style="font-size:0.85rem;color:var(--text-secondary)">
+              <span class="ko">텍스트 &rarr; TF-IDF 벡터 (max 30,000 features). 단어 빈도 기반, 문맥 정보 없음.</span>
+              <span class="en">Text &rarr; TF-IDF vector (max 30,000 features). Frequency-based, no context.</span>
+            </div>
+            <div class="e2e-metrics" style="margin-top:8px">
+              <div class="e2e-metric"><div class="val">30K</div><div class="lbl"><span class="ko">차원</span><span class="en">Dimensions</span></div></div>
+              <div class="e2e-metric"><div class="val">Sparse</div><div class="lbl"><span class="ko">희소 행렬</span><span class="en">Sparse matrix</span></div></div>
+            </div>
+          </div>
+          <div style="background:var(--bg-card);padding:14px;border-radius:8px;border:1px solid var(--border-subtle)">
+            <div style="font-weight:700;color:var(--accent-blue);margin-bottom:6px">Path B: Transformer Tokenization</div>
+            <div style="font-size:0.85rem;color:var(--text-secondary)">
+              <span class="ko">텍스트 &rarr; WordPiece/BPE 토큰 &rarr; input_ids + attention_mask. 서브워드 단위, 문맥 이해 가능.</span>
+              <span class="en">Text &rarr; WordPiece/BPE tokens &rarr; input_ids + attention_mask. Subword-level, context-aware.</span>
+            </div>
+            <div class="e2e-metrics" style="margin-top:8px">
+              <div class="e2e-metric"><div class="val">128</div><div class="lbl">max_len (tokens)</div></div>
+              <div class="e2e-metric"><div class="val">30,522</div><div class="lbl"><span class="ko">어휘 크기 (BERT)</span><span class="en">Vocab size (BERT)</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="e2e-decision"><strong><span class="ko">설계 결정:</span><span class="en">Design decision:</span></strong> <span class="ko">max_len=128은 EDA 결과(평균 토큰 수 ~20-30) 기반. 99%+ 텍스트가 잘리지 않으면서 메모리 효율적.</span><span class="en">max_len=128 based on EDA results (avg ~20-30 tokens). 99%+ texts untruncated while memory-efficient.</span></div>
+      </div>
+
+      <div class="e2e-connector"><span class="arrow">&darr;</span><span class="transform"><span class="ko">모델 학습</span><span class="en">Model Training</span></span></div>
+
+      <!-- Node 5: Model Training -->
+      <div class="e2e-node" style="border-color:var(--accent-green)">
+        <div class="e2e-node-header">
+          <div class="e2e-node-title" style="color:var(--accent-green)"><span class="ko">5. 모델 학습 (6개 모델 x 3 시드)</span><span class="en">5. Model Training (6 models x 3 seeds)</span></div>
+          <span class="e2e-badge" style="background:rgba(0,229,176,0.2);color:var(--accent-green)"><span class="ko">핵심 단계</span><span class="en">Core Stage</span></span>
+        </div>
+        <div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:10px">
+          <span class="ko">각 모델의 내부 차원 변환 경로와 학습 설정을 비교한다.</span>
+          <span class="en">Compares internal dimension transformation paths and training configurations across models.</span>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="data-table" style="font-size:0.82rem">
+            <thead>
+              <tr>
+                <th><span class="ko">모델</span><span class="en">Model</span></th>
+                <th><span class="ko">입력 차원</span><span class="en">Input Dim</span></th>
+                <th><span class="ko">인코더</span><span class="en">Encoder</span></th>
+                <th><span class="ko">분류 헤드</span><span class="en">Classifier Head</span></th>
+                <th><span class="ko">출력</span><span class="en">Output</span></th>
+                <th><span class="ko">파라미터 수</span><span class="en">Parameters</span></th>
+                <th><span class="ko">학습 시간/시드</span><span class="en">Time/Seed</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>TF-IDF+LR</td><td>30,000 (sparse)</td><td><span class="ko">없음</span><span class="en">None</span></td><td>Linear</td><td>3</td><td>~90K</td><td>~5s</td>
+              </tr>
+              <tr>
+                <td>TF-IDF+SVM</td><td>30,000 (sparse)</td><td><span class="ko">없음</span><span class="en">None</span></td><td>SVM (RBF)</td><td>3</td><td>~90K</td><td>~10s</td>
+              </tr>
+              <tr>
+                <td>BERT-base</td><td>128 tokens</td><td>BERT 12L (768d)</td><td>Linear(768&rarr;3)</td><td>3</td><td>~109M</td><td>~8min</td>
+              </tr>
+              <tr>
+                <td>BERT+MLP</td><td>128 tokens</td><td>BERT 12L (768d)</td><td>MLP(768&rarr;256&rarr;3)</td><td>3</td><td>~109.5M</td><td>~8min</td>
+              </tr>
+              <tr>
+                <td>BERT+VADER</td><td>128 tokens + 4d</td><td>BERT 12L (768d)</td><td>MLP(772&rarr;256&rarr;3)</td><td>3</td><td>~109.5M</td><td>~9min</td>
+              </tr>
+              <tr style="color:var(--accent-green);font-weight:600">
+                <td>RoBERTa+VADER</td><td>128 tokens + 4d</td><td>RoBERTa 12L (768d)</td><td>MLP(772&rarr;256&rarr;3)</td><td>3</td><td>~125M</td><td>~10min</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="e2e-decision"><strong><span class="ko">설계 결정:</span><span class="en">Design decision:</span></strong> <span class="ko">batch_size=64는 M3 Max 64GB에서 MPS 메모리 30-48GB를 소비. gradient accumulation 없이 안정적으로 학습 가능한 최대 크기.</span><span class="en">batch_size=64 consumes 30-48GB MPS memory on M3 Max 64GB. Maximum stable size without gradient accumulation.</span></div>
+        <div class="e2e-bottleneck"><strong><span class="ko">병목:</span><span class="en">Bottleneck:</span></strong> <span class="ko">Transformer 모델은 시드당 8-10분 소요. 6모델 x 3시드 = 18회 학습으로 총 ~2.5시간. 튜닝 포함 시 ~4-5시간.</span><span class="en">Transformer models take 8-10min/seed. 6 models x 3 seeds = 18 runs, ~2.5h total. With tuning: ~4-5h.</span></div>
+      </div>
+
+      <div class="e2e-connector"><span class="arrow">&darr;</span><span class="transform"><span class="ko">추론 (Forward Pass)</span><span class="en">Inference (Forward Pass)</span></span></div>
+
+      <!-- Node 6: Inference -->
+      <div class="e2e-node">
+        <div class="e2e-node-header">
+          <div class="e2e-node-title" style="color:var(--accent-purple)"><span class="ko">6. 추론 차원 변환 상세</span><span class="en">6. Inference Dimension Transformation Detail</span></div>
+        </div>
+        <div class="ko-block desc" style="margin-bottom:12px">RoBERTa+VADER(최고 모델)의 단일 텍스트 추론 과정을 차원 단위로 추적한다.</div>
+        <div class="en-block desc" style="margin-bottom:12px">Traces single-text inference through RoBERTa+VADER (best model) dimension by dimension.</div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;font-size:0.85rem">
+          <div style="background:var(--bg-card);padding:10px 16px;border-radius:8px;border:1px solid var(--border-subtle);text-align:center">
+            <div style="font-weight:700;color:var(--text-primary)">Text</div>
+            <div style="color:var(--text-secondary);font-size:0.78rem">"I hate them all"</div>
+          </div>
+          <div style="color:var(--accent-blue);font-size:1.2rem">&rarr;</div>
+          <div style="background:var(--bg-card);padding:10px 16px;border-radius:8px;border:1px solid var(--border-subtle);text-align:center">
+            <div style="font-weight:700;color:var(--accent-blue)">Tokenizer</div>
+            <div style="color:var(--text-secondary);font-size:0.78rem">[1, 128] int64</div>
+          </div>
+          <div style="color:var(--accent-blue);font-size:1.2rem">&rarr;</div>
+          <div style="background:var(--bg-card);padding:10px 16px;border-radius:8px;border:2px solid var(--accent-green);text-align:center">
+            <div style="font-weight:700;color:var(--accent-green)">RoBERTa</div>
+            <div style="color:var(--text-secondary);font-size:0.78rem">[1, 768] float32</div>
+          </div>
+          <div style="color:var(--accent-blue);font-size:1.2rem">&rarr;</div>
+          <div style="background:var(--bg-card);padding:10px 16px;border-radius:8px;border:2px solid var(--accent-orange);text-align:center">
+            <div style="font-weight:700;color:var(--accent-orange)">+ VADER</div>
+            <div style="color:var(--text-secondary);font-size:0.78rem">[1, 772] float32</div>
+          </div>
+          <div style="color:var(--accent-blue);font-size:1.2rem">&rarr;</div>
+          <div style="background:var(--bg-card);padding:10px 16px;border-radius:8px;border:1px solid var(--border-subtle);text-align:center">
+            <div style="font-weight:700;color:var(--accent-purple)">MLP</div>
+            <div style="color:var(--text-secondary);font-size:0.78rem">[1, 256] &rarr; [1, 3]</div>
+          </div>
+          <div style="color:var(--accent-blue);font-size:1.2rem">&rarr;</div>
+          <div style="background:var(--bg-card);padding:10px 16px;border-radius:8px;border:2px solid var(--accent-green);text-align:center">
+            <div style="font-weight:700;color:var(--accent-green)">Softmax</div>
+            <div style="color:var(--text-secondary);font-size:0.78rem">[0.12, 0.23, 0.65]</div>
+          </div>
+        </div>
+
+        <div class="e2e-decision" style="margin-top:14px"><strong><span class="ko">핵심 관찰:</span><span class="en">Key observation:</span></strong> <span class="ko">768차원 [CLS] 벡터에 단 4차원(0.5%)을 추가. 이 미세한 감성 신호가 RoBERTa 인코더와 결합했을 때만 통계적으로 유의미한 차이를 만듦.</span><span class="en">Just 4 dims (0.5%) added to 768-dim [CLS] vector. This subtle sentiment signal creates statistically significant difference only when combined with RoBERTa encoder.</span></div>
+      </div>
+
+      <div class="e2e-connector"><span class="arrow">&darr;</span><span class="transform"><span class="ko">평가 + XAI</span><span class="en">Evaluation + XAI</span></span></div>
+
+      <!-- Node 7: Evaluation -->
+      <div class="e2e-node" style="border-color:var(--accent-green)">
+        <div class="e2e-node-header">
+          <div class="e2e-node-title" style="color:var(--accent-green)"><span class="ko">7. 평가 메트릭 산출</span><span class="en">7. Evaluation Metrics</span></div>
+        </div>
+        <div class="e2e-metrics">
+          <div class="e2e-metric"><div class="val" style="color:var(--accent-green)">0.6863</div><div class="lbl">Macro F1 (Best)</div></div>
+          <div class="e2e-metric"><div class="val">0.7258</div><div class="lbl">Accuracy</div></div>
+          <div class="e2e-metric"><div class="val">0.8400</div><div class="lbl">AUROC</div></div>
+          <div class="e2e-metric"><div class="val">p=0.037</div><div class="lbl"><span class="ko">통계적 유의성</span><span class="en">Statistical Sig.</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---- 처리 시간 분석 ---- -->
+  <div class="card">
+    <h3><span class="ko">처리 시간 분석 (Pipeline Profiling)</span><span class="en">Processing Time Analysis (Pipeline Profiling)</span></h3>
+    <div class="ko-block desc">각 파이프라인 단계별 예상 실행 시간이다. M3 Max 64GB, MPS 가속 기준.</div>
+    <div class="en-block desc">Estimated execution time per pipeline stage. Based on M3 Max 64GB with MPS acceleration.</div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:160px;text-align:right;font-size:0.85rem;color:var(--text-secondary)"><span class="ko">데이터 전처리</span><span class="en">Data preprocessing</span></span>
+        <div class="e2e-time-bar" style="width:2%;background:var(--accent-blue)">5s</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:160px;text-align:right;font-size:0.85rem;color:var(--text-secondary)">VADER</span>
+        <div class="e2e-time-bar" style="width:3%;background:var(--accent-orange)">10s</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:160px;text-align:right;font-size:0.85rem;color:var(--text-secondary)">EDA</span>
+        <div class="e2e-time-bar" style="width:5%;background:var(--accent-purple)">30s</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:160px;text-align:right;font-size:0.85rem;color:var(--text-secondary)">TF-IDF + ML</span>
+        <div class="e2e-time-bar" style="width:3%;background:var(--accent-blue)">15s</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:160px;text-align:right;font-size:0.85rem;color:var(--text-secondary)"><span class="ko">하이퍼파라미터 튜닝</span><span class="en">Hyperparameter Tuning</span></span>
+        <div class="e2e-time-bar" style="width:55%;background:var(--accent-red)">~2h</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:160px;text-align:right;font-size:0.85rem;color:var(--text-secondary)"><span class="ko">벤치마크 (6모델x3시드)</span><span class="en">Benchmark (6x3)</span></span>
+        <div class="e2e-time-bar" style="width:65%;background:var(--accent-green)">~2.5h</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:160px;text-align:right;font-size:0.85rem;color:var(--text-secondary)">Freeze Study</span>
+        <div class="e2e-time-bar" style="width:20%;background:var(--accent-purple)">~45min</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:160px;text-align:right;font-size:0.85rem;color:var(--text-secondary)">XAI (SHAP+LIME)</span>
+        <div class="e2e-time-bar" style="width:15%;background:var(--accent-orange)">~30min</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:160px;text-align:right;font-size:0.85rem;color:var(--text-secondary)"><span class="ko">대시보드 생성</span><span class="en">Dashboard</span></span>
+        <div class="e2e-time-bar" style="width:1%;background:var(--accent-blue);min-width:40px">2s</div>
+      </div>
+    </div>
+
+    <div class="insight insight-red" style="margin-top:16px">
+      <span class="ko"><strong>총 소요 시간: 약 4-5시간.</strong> 튜닝(2h)과 벤치마크(2.5h)가 전체의 90% 이상을 차지한다. TF-IDF 모델은 수 초 만에 학습 가능하나, Transformer 모델의 반복 학습이 병목이다. GPU 자원이 제한된 환경에서는 튜닝 범위를 줄이거나 시드 수를 조정해야 한다.</span>
+      <span class="en"><strong>Total time: ~4-5 hours.</strong> Tuning (2h) and benchmark (2.5h) account for 90%+. TF-IDF trains in seconds, but repeated Transformer training is the bottleneck. In GPU-limited environments, reduce tuning range or seed count.</span>
+    </div>
+  </div>
+
+  <!-- ---- 데이터 손실/변환 추적 ---- -->
+  <div class="card">
+    <h3><span class="ko">데이터 손실/변환 추적 (Data Funnel)</span><span class="en">Data Loss/Transformation Tracking (Data Funnel)</span></h3>
+    <div class="ko-block desc">원본에서 최종 평가까지 샘플이 어떻게 줄어들고 변환되는지 퍼널 형태로 시각화한다.</div>
+    <div class="en-block desc">Visualizes how samples are reduced and transformed from source to final evaluation as a funnel.</div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0;margin:20px 0">
+      <div style="width:90%;background:rgba(124,138,255,0.15);padding:14px;border-radius:10px 10px 0 0;text-align:center;border:1px solid var(--accent-blue)">
+        <div style="font-weight:700;font-size:1.1rem;color:var(--accent-blue)">19,192</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary)"><span class="ko">HateXplain 원본</span><span class="en">HateXplain Raw</span></div>
+      </div>
+      <div style="width:75%;background:rgba(255,107,122,0.1);padding:6px;text-align:center;font-size:0.78rem;color:var(--accent-red)">
+        <span class="ko">&darr; -5,759 (majority vote 미달)</span><span class="en">&darr; -5,759 (no majority vote)</span>
+      </div>
+      <div style="width:75%;background:rgba(0,229,176,0.15);padding:14px;text-align:center;border:1px solid var(--accent-green)">
+        <div style="font-weight:700;font-size:1.1rem;color:var(--accent-green)">13,433</div>
+        <div style="font-size:0.8rem;color:var(--text-secondary)"><span class="ko">유효 샘플 + VADER 증강</span><span class="en">Valid samples + VADER augmented</span></div>
+      </div>
+      <div style="width:60%;background:rgba(181,122,255,0.1);padding:6px;text-align:center;font-size:0.78rem;color:var(--accent-purple)">
+        <span class="ko">&darr; Stratified Split (60/20/20)</span><span class="en">&darr; Stratified Split (60/20/20)</span>
+      </div>
+      <div style="width:60%;display:grid;grid-template-columns:3fr 1fr 1fr;gap:4px">
+        <div style="background:rgba(124,138,255,0.15);padding:12px;text-align:center;border-radius:0 0 0 10px;border:1px solid var(--accent-blue)">
+          <div style="font-weight:700;color:var(--accent-blue)">8,060</div>
+          <div style="font-size:0.78rem;color:var(--text-secondary)">Train</div>
+        </div>
+        <div style="background:rgba(255,179,71,0.15);padding:12px;text-align:center;border:1px solid var(--accent-orange)">
+          <div style="font-weight:700;color:var(--accent-orange)">2,687</div>
+          <div style="font-size:0.78rem;color:var(--text-secondary)">Val</div>
+        </div>
+        <div style="background:rgba(0,229,176,0.15);padding:12px;text-align:center;border-radius:0 0 10px 0;border:1px solid var(--accent-green)">
+          <div style="font-weight:700;color:var(--accent-green)">2,686</div>
+          <div style="font-size:0.78rem;color:var(--text-secondary)">Test</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight insight-orange">
+      <span class="ko"><strong>30% 데이터 손실의 의미:</strong> majority vote로 5,759개 샘플이 제거된다. 이 샘플들은 annotator 간 의견이 갈린 "경계 사례"로, 제거하면 라벨 품질은 높아지지만 모델이 모호한 사례를 학습할 기회를 잃는다. 이는 트레이드오프이다.</span>
+      <span class="en"><strong>Meaning of 30% data loss:</strong> 5,759 samples removed by majority vote are "borderline cases" where annotators disagreed. Removal improves label quality but loses opportunity to learn ambiguous cases. This is a trade-off.</span>
+    </div>
+  </div>
+
+  <!-- ---- 기술 스택 매핑 ---- -->
+  <div class="card">
+    <h3><span class="ko">기술 스택 매핑</span><span class="en">Technology Stack Mapping</span></h3>
+    <div class="ko-block desc">파이프라인 각 단계에서 사용되는 라이브러리와 하드웨어 자원을 매핑한다.</div>
+    <div class="en-block desc">Maps libraries and hardware resources used at each pipeline stage.</div>
+
+    <div style="overflow-x:auto">
+      <table class="data-table" style="font-size:0.85rem">
+        <thead>
+          <tr>
+            <th><span class="ko">단계</span><span class="en">Stage</span></th>
+            <th><span class="ko">주요 라이브러리</span><span class="en">Key Libraries</span></th>
+            <th><span class="ko">연산 장치</span><span class="en">Compute</span></th>
+            <th><span class="ko">메모리 사용</span><span class="en">Memory Usage</span></th>
+            <th><span class="ko">핵심 파라미터</span><span class="en">Key Parameters</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="ko">데이터 전처리</span><span class="en">Data Preprocessing</span></td>
+            <td>pandas, json</td><td>CPU</td><td>&lt;1GB</td><td>majority_vote threshold=2/3</td>
+          </tr>
+          <tr>
+            <td>VADER</td>
+            <td>vaderSentiment</td><td>CPU</td><td>&lt;1GB</td><td>compound, pos, neg, neu</td>
+          </tr>
+          <tr>
+            <td>EDA</td>
+            <td>matplotlib, seaborn, scikit-learn</td><td>CPU</td><td>~2GB</td><td>top_n_words=500, Jaccard</td>
+          </tr>
+          <tr>
+            <td>TF-IDF + ML</td>
+            <td>scikit-learn</td><td>CPU</td><td>~3GB</td><td>max_features=30000, C=1.0</td>
+          </tr>
+          <tr>
+            <td>Transformer</td>
+            <td>transformers, PyTorch</td><td style="color:var(--accent-green);font-weight:600">MPS (M3 Max)</td><td style="color:var(--accent-orange)">30-48GB</td><td>lr=2e-5, batch=64, epochs=5</td>
+          </tr>
+          <tr>
+            <td>XAI - SHAP</td>
+            <td>shap</td><td style="color:var(--accent-red);font-weight:600">CPU only</td><td>~8GB</td><td><span class="ko">MPS 비호환 -- CPU 강제</span><span class="en">MPS incompatible -- forced CPU</span></td>
+          </tr>
+          <tr>
+            <td>XAI - LIME</td>
+            <td>lime</td><td>CPU + MPS</td><td>~4GB</td><td>num_samples=300, num_features=8</td>
+          </tr>
+          <tr>
+            <td><span class="ko">대시보드</span><span class="en">Dashboard</span></td>
+            <td>FastAPI, Chart.js, uvicorn</td><td>CPU</td><td>&lt;500MB</td><td>port=8501</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="e2e-bottleneck" style="margin-top:14px"><strong><span class="ko">SHAP의 CPU 제약:</span><span class="en">SHAP CPU constraint:</span></strong> <span class="ko">SHAP 라이브러리는 MPS를 지원하지 않아 CPU에서 실행해야 한다. 이로 인해 XAI 분석 시간이 GPU 가속 대비 3-5배 느려진다. 이것이 XAI 샘플 수를 24개로 제한한 이유이다.</span><span class="en">SHAP library doesn't support MPS, requiring CPU execution. This makes XAI analysis 3-5x slower than GPU. This is why XAI sample count is limited to 24.</span></div>
+  </div>
+
+  <!-- ---- 파이프라인 재현 명령어 ---- -->
+  <div class="card">
+    <h3><span class="ko">파이프라인 실행 명령어</span><span class="en">Pipeline Execution Commands</span></h3>
+    <div class="ko-block desc">전체 파이프라인을 재현하기 위한 명령어 체계이다.</div>
+    <div class="en-block desc">Command system for reproducing the full pipeline.</div>
+
+    <div style="background:var(--bg-dark);padding:20px;border-radius:10px;font-family:'Fira Code',monospace;font-size:0.85rem;overflow-x:auto;border:1px solid var(--border-subtle)">
+      <div style="color:var(--text-secondary);margin-bottom:8px"># <span class="ko">전체 파이프라인 한 번에 실행</span><span class="en">Run full pipeline at once</span></div>
+      <div style="color:var(--accent-green)">./run.sh full</div>
+      <br>
+      <div style="color:var(--text-secondary);margin-bottom:8px"># <span class="ko">단계별 실행 (순서 중요)</span><span class="en">Step-by-step (order matters)</span></div>
+      <div style="color:var(--accent-blue)">./run.sh data      </div><span style="color:var(--text-secondary);font-size:0.78rem"># <span class="ko">1. 데이터 전처리 + VADER</span><span class="en">1. Data preprocessing + VADER</span></span><br>
+      <div style="color:var(--accent-blue)">./run.sh eda       </div><span style="color:var(--text-secondary);font-size:0.78rem"># <span class="ko">2. 탐색적 데이터 분석</span><span class="en">2. Exploratory data analysis</span></span><br>
+      <div style="color:var(--accent-blue)">./run.sh tune      </div><span style="color:var(--text-secondary);font-size:0.78rem"># <span class="ko">3. 하이퍼파라미터 튜닝 (~2시간)</span><span class="en">3. Hyperparameter tuning (~2h)</span></span><br>
+      <div style="color:var(--accent-blue)">./run.sh benchmark </div><span style="color:var(--text-secondary);font-size:0.78rem"># <span class="ko">4. 6모델 x 3시드 벤치마크 (~2.5시간)</span><span class="en">4. 6 models x 3 seeds benchmark (~2.5h)</span></span><br>
+      <div style="color:var(--accent-blue)">./run.sh freeze    </div><span style="color:var(--text-secondary);font-size:0.78rem"># <span class="ko">5. Freeze Study (~45분)</span><span class="en">5. Freeze Study (~45min)</span></span><br>
+      <div style="color:var(--accent-blue)">./run.sh xai       </div><span style="color:var(--text-secondary);font-size:0.78rem"># <span class="ko">6. SHAP + LIME 분석 (~30분)</span><span class="en">6. SHAP + LIME analysis (~30min)</span></span><br>
+      <div style="color:var(--accent-blue)">./run.sh dashboard </div><span style="color:var(--text-secondary);font-size:0.78rem"># <span class="ko">7. 대시보드 생성</span><span class="en">7. Dashboard generation</span></span><br>
+      <br>
+      <div style="color:var(--text-secondary);margin-bottom:8px"># <span class="ko">대시보드 서버 실행</span><span class="en">Launch dashboard server</span></div>
+      <div style="color:var(--accent-green)">python3 dashboard_app.py</div>
+      <span style="color:var(--text-secondary);font-size:0.78rem"># <span class="ko">http://localhost:8501 접속</span><span class="en">Access http://localhost:8501</span></span>
+    </div>
+
+    <div class="insight insight-blue" style="margin-top:14px">
+      <span class="ko"><strong>의존성 체계:</strong> data &rarr; (eda, vader) &rarr; tune &rarr; benchmark &rarr; freeze &rarr; xai &rarr; dashboard. 각 단계의 출력이 다음 단계의 입력이 되므로 순서를 지켜야 한다. <code>./run.sh full</code>이 자동으로 순서를 보장한다.</span>
+      <span class="en"><strong>Dependency chain:</strong> data &rarr; (eda, vader) &rarr; tune &rarr; benchmark &rarr; freeze &rarr; xai &rarr; dashboard. Each stage's output feeds the next, so order matters. <code>./run.sh full</code> guarantees correct ordering.</span>
+    </div>
   </div>
 </div>
 
