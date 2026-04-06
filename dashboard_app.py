@@ -85,7 +85,7 @@ def _load_playground_model(model_key: str):
             "kwargs": {"model_name": "bert-base-uncased", "dropout": 0.1, "hidden_dim": 256},
             "checkpoint": CHECKPOINTS / "bert_mlp_seed_42.pt",
             "tokenizer": "bert-base-uncased",
-            "model_type": "transformer",
+            "model_type": "mlp",
         },
         "BERT+VADER": {
             "cls": HybridSentimentClassifier,
@@ -129,8 +129,8 @@ def _load_playground_model(model_key: str):
     return bundle
 
 
-def _predict_single(bundle: dict, text: str) -> dict:
-    """단일 텍스트 추론 -> {label, probabilities, vader_scores}"""
+def _predict_single(bundle: dict, text: str, run_lime: bool = False) -> dict:
+    """단일 텍스트 추론 -> {label, probabilities, vader_scores, attention, lime}"""
     import torch
     import numpy as np
 
@@ -145,33 +145,149 @@ def _predict_single(bundle: dict, text: str) -> dict:
     input_ids = encoded["input_ids"].to(device)
     attention_mask = encoded["attention_mask"].to(device)
 
-    # VADER 점수 (hybrid 모델용)
+    # VADER 점수
     from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
     analyzer = SentimentIntensityAnalyzer()
     vs = analyzer.polarity_scores(text)
     vader_scores = {"pos": vs["pos"], "neg": vs["neg"], "neu": vs["neu"], "compound": vs["compound"]}
 
+    # ---- Attention 추출 ----
+    token_attention = []
+    tokens_list = []
     with torch.no_grad():
+        # encoder에 output_attentions=True를 넘겨서 attention weight 추출
+        encoder_outputs = model.encoder(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            output_attentions=True,
+        )
+        # 마지막 레이어의 attention: (batch, num_heads, seq_len, seq_len)
+        last_attention = encoder_outputs.attentions[-1]
+        # 모든 head 평균 -> (batch, seq_len, seq_len)
+        avg_attention = last_attention.mean(dim=1)
+        # [CLS] 토큰(index 0)이 다른 토큰에 주는 attention -> (seq_len,)
+        cls_attention = avg_attention[0, 0, :].cpu().numpy()
+
+        # pooler output으로 logits 계산
+        pooled = getattr(encoder_outputs, "pooler_output", None)
+        if pooled is None:
+            pooled = encoder_outputs.last_hidden_state[:, 0, :]
+
         if bundle["model_type"] == "hybrid":
             vader_tensor = torch.tensor(
                 [[vs["pos"], vs["neg"], vs["neu"], vs["compound"]]],
                 dtype=torch.float32,
             ).to(device)
-            logits = model(input_ids, attention_mask, vader_tensor)
+            combined = torch.cat([pooled, vader_tensor], dim=1)
+            combined = model.dropout(combined)
+            combined = model.hidden(combined)
+            combined = model.relu(combined)
+            logits = model.out(combined)
+        elif bundle["model_type"] == "mlp":
+            # TransformerMLPClassifier: dropout -> hidden -> relu -> out
+            pooled = model.dropout(pooled)
+            pooled = model.hidden(pooled)
+            pooled = model.relu(pooled)
+            logits = model.out(pooled)
         else:
-            logits = model(input_ids, attention_mask)
+            # TransformerCLSClassifier: dropout -> classifier
+            pooled = model.dropout(pooled)
+            logits = model.classifier(pooled)
 
         probs = torch.softmax(logits, dim=-1).cpu().numpy()[0]
+
+    # 토큰 복원 + attention 매핑
+    token_ids = input_ids[0].cpu().tolist()
+    tokens_raw = tokenizer.convert_ids_to_tokens(token_ids)
+    mask = attention_mask[0].cpu().tolist()
+
+    # special token 제외, subword 병합
+    merged_tokens = []
+    merged_attention = []
+    for i, (tok, m) in enumerate(zip(tokens_raw, mask)):
+        if m == 0:
+            continue
+        # 특수 토큰 건너뛰기 ([CLS], [SEP], <s>, </s>)
+        if tok in ("[CLS]", "[SEP]", "<s>", "</s>", "[PAD]", "<pad>"):
+            continue
+        att_val = float(cls_attention[i])
+        # subword 병합 (##prefix 또는 G prefix for RoBERTa)
+        if tok.startswith("##"):
+            if merged_tokens:
+                merged_tokens[-1] += tok[2:]
+                merged_attention[-1] = max(merged_attention[-1], att_val)
+            continue
+        # RoBERTa: subword는 G로 시작하지 않음
+        if tok.startswith("Ġ"):
+            tok = tok[1:]
+        merged_tokens.append(tok)
+        merged_attention.append(att_val)
+
+    # attention 정규화 (0~1)
+    if merged_attention:
+        max_att = max(merged_attention)
+        min_att = min(merged_attention)
+        rng = max_att - min_att if max_att > min_att else 1.0
+        norm_attention = [(a - min_att) / rng for a in merged_attention]
+    else:
+        norm_attention = []
+
+    token_attention = [
+        {"token": t, "attention": round(a, 4), "raw": round(r, 6)}
+        for t, a, r in zip(merged_tokens, norm_attention, merged_attention)
+    ]
 
     label_names = ["hatespeech", "offensive", "normal"]
     pred_idx = int(np.argmax(probs))
 
-    return {
+    result = {
         "label": label_names[pred_idx],
         "label_idx": pred_idx,
         "probabilities": {name: round(float(probs[i]), 4) for i, name in enumerate(label_names)},
         "vader_scores": {k: round(v, 4) for k, v in vader_scores.items()},
+        "token_attention": token_attention,
     }
+
+    # ---- LIME 설명 (선택적) ----
+    if run_lime:
+        try:
+            from lime.lime_text import LimeTextExplainer
+            lime_explainer = LimeTextExplainer(class_names=label_names)
+
+            def _lime_predict_fn(texts):
+                """LIME용 배치 예측 함수"""
+                all_probs = []
+                for t in texts:
+                    enc = tokenizer([t], truncation=True, padding=True, max_length=128, return_tensors="pt")
+                    ids = enc["input_ids"].to(device)
+                    msk = enc["attention_mask"].to(device)
+                    with torch.no_grad():
+                        if bundle["model_type"] == "hybrid":
+                            v = analyzer.polarity_scores(t)
+                            vt = torch.tensor([[v["pos"], v["neg"], v["neu"], v["compound"]]], dtype=torch.float32).to(device)
+                            lo = model(ids, msk, vt)
+                        else:
+                            lo = model(ids, msk)
+                        p = torch.softmax(lo, dim=-1).cpu().numpy()[0]
+                    all_probs.append(p)
+                return np.array(all_probs)
+
+            explanation = lime_explainer.explain_instance(
+                text, _lime_predict_fn,
+                labels=[0, 1, 2], num_features=8, num_samples=300,
+            )
+            # 예측 라벨에 대한 설명
+            available = list(explanation.local_exp.keys())
+            lime_label = pred_idx if pred_idx in available else (available[0] if available else 0)
+            lime_weights = explanation.as_list(label=lime_label)
+            result["lime"] = [
+                {"token": tok, "weight": round(w, 4)}
+                for tok, w in lime_weights
+            ]
+        except Exception as e:
+            result["lime_error"] = str(e)
+
+    return result
 
 # 정적 파일 마운트 -- 이미지 서빙용
 app.mount("/static/xai", StaticFiles(directory=str(OUTPUTS / "xai")), name="xai_static")
@@ -246,6 +362,7 @@ async def api_predict(request: Request):
     body = await request.json()
     text = body.get("text", "").strip()
     models = body.get("models", ["BERT-base", "BERT+VADER", "RoBERTa+VADER"])
+    run_lime = body.get("run_lime", False)
 
     if not text:
         return JSONResponse({"error": "텍스트를 입력해주세요"}, status_code=400)
@@ -259,7 +376,7 @@ async def api_predict(request: Request):
             if bundle is None:
                 results[model_key] = {"error": f"체크포인트 없음: {model_key}"}
                 continue
-            results[model_key] = _predict_single(bundle, text)
+            results[model_key] = _predict_single(bundle, text, run_lime=run_lime)
         except Exception as e:
             results[model_key] = {"error": str(e)}
 
@@ -1579,6 +1696,11 @@ select {{
         style="margin-left:auto;padding:10px 28px;background:var(--accent-blue);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">
         <span class="ko">분석하기</span><span class="en">Analyze</span>
       </button>
+      <button id="pg-lime-btn" onclick="pgPredict(true)"
+        style="padding:10px 28px;background:var(--accent-green, #22c55e);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px"
+        title="Attention + LIME 분석 (모델당 5-10초 추가 소요)">
+        <span class="ko">XAI 분석</span><span class="en">XAI Analysis</span>
+      </button>
     </div>
 
     <!-- Loading -->
@@ -2029,7 +2151,7 @@ function pgFill(text) {{
   document.getElementById('pg-input').value = text;
 }}
 
-async function pgPredict() {{
+async function pgPredict(withLime=false) {{
   const text = document.getElementById('pg-input').value.trim();
   if (!text) return;
 
@@ -2037,18 +2159,22 @@ async function pgPredict() {{
   if (models.length === 0) return;
 
   const btn = document.getElementById('pg-btn');
+  const limeBtn = document.getElementById('pg-lime-btn');
   const loading = document.getElementById('pg-loading');
   const resultsDiv = document.getElementById('pg-results');
 
   btn.disabled = true;
+  if(limeBtn) limeBtn.disabled = true;
   loading.style.display = 'block';
+  if(withLime) loading.querySelector('div:last-child').innerHTML = '<span class="ko">LIME 분석 중... (모델당 5-10초 소요)</span><span class="en">Running LIME... (5-10s per model)</span>';
+  else loading.querySelector('div:last-child').innerHTML = '<span class="ko">모델 추론 중... (첫 요청은 모델 로딩으로 10-15초 소요)</span><span class="en">Running inference... (first request takes 10-15s to load models)</span>';
   resultsDiv.innerHTML = '';
 
   try {{
     const resp = await fetch('/api/predict', {{
       method: 'POST',
       headers: {{'Content-Type': 'application/json'}},
-      body: JSON.stringify({{ text, models }})
+      body: JSON.stringify({{ text, models, run_lime: withLime }})
     }});
     const data = await resp.json();
 
@@ -2057,12 +2183,74 @@ async function pgPredict() {{
       return;
     }}
 
-    const labelColors = {{ hatespeech: 'var(--accent-red)', offensive: 'var(--accent-orange)', normal: 'var(--accent-green)' }};
-    const labelEmoji = {{ hatespeech: '&#x26a0;', offensive: '&#x26a1;', normal: '&#x2714;' }};
+    const labelColors = {{ hatespeech: '#ff6b7a', offensive: '#ffb347', normal: '#00e5b0' }};
+    const labelBg = {{ hatespeech: 'rgba(255,107,122,0.1)', offensive: 'rgba(255,179,71,0.1)', normal: 'rgba(0,229,176,0.1)' }};
 
-    let html = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Device: ${{data.device}}</div>`;
-    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">';
+    let html = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">Device: ${{data.device}}</div>`;
 
+    // ---- Attention Heatmap Section (all models) ----
+    html += `<div class="card" style="margin-bottom:16px">`;
+    html += `<h3 style="color:var(--accent-blue);margin-bottom:4px"><span class="ko">Attention Heatmap -- 모델이 주목하는 토큰</span><span class="en">Attention Heatmap -- Tokens the Model Focuses On</span></h3>`;
+    html += `<div style="font-size:12px;color:var(--text-muted);margin-bottom:14px"><span class="ko">색이 진할수록 [CLS] 토큰이 해당 단어에 더 많이 주목합니다 (마지막 레이어, 모든 head 평균).</span><span class="en">Darker = more attention from [CLS] token (last layer, all heads averaged).</span></div>`;
+
+    for (const [modelName, result] of Object.entries(data.results)) {{
+      if (result.error || !result.token_attention) continue;
+      const attn = result.token_attention;
+      const color = labelColors[result.label] || '#7c8aff';
+
+      html += `<div style="margin-bottom:14px">`;
+      html += `<div style="font-size:13px;font-weight:600;margin-bottom:6px;color:${{color}}">${{modelName}} <span style="font-weight:400;color:var(--text-muted)">→ ${{result.label}}</span></div>`;
+      html += `<div style="display:flex;flex-wrap:wrap;gap:3px;line-height:2">`;
+      for (const tok of attn) {{
+        const opacity = Math.max(0.08, tok.attention);
+        const bg = `rgba(${{result.label==='hatespeech'?'255,107,122':result.label==='offensive'?'255,179,71':'0,229,176'}},${{opacity.toFixed(2)}})`;
+        const textColor = tok.attention > 0.6 ? 'white' : 'var(--text-primary)';
+        const border = tok.attention > 0.8 ? `2px solid ${{color}}` : '1px solid transparent';
+        html += `<span title="attention: ${{tok.raw.toFixed(5)}}" style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:13px;background:${{bg}};color:${{textColor}};border:${{border}};cursor:default">${{tok.token}}</span>`;
+      }}
+      html += `</div></div>`;
+    }}
+    html += `</div>`;
+
+    // ---- LIME Section (if requested) ----
+    const hasLime = Object.values(data.results).some(r => r.lime && r.lime.length > 0);
+    if (hasLime) {{
+      html += `<div class="card" style="margin-bottom:16px">`;
+      html += `<h3 style="color:var(--accent-purple);margin-bottom:4px"><span class="ko">LIME 설명 -- 예측에 기여한 단어</span><span class="en">LIME Explanation -- Words Contributing to Prediction</span></h3>`;
+      html += `<div style="font-size:12px;color:var(--text-muted);margin-bottom:14px"><span class="ko">양수(초록)=해당 라벨 방향, 음수(빨강)=반대 방향. 입력을 교란하여 로컬 선형 모델로 기여도를 추정합니다.</span><span class="en">Positive (green) = towards predicted label, Negative (red) = against. Estimated by perturbing input and fitting local linear model.</span></div>`;
+
+      for (const [modelName, result] of Object.entries(data.results)) {{
+        if (result.error || !result.lime) continue;
+        const color = labelColors[result.label] || '#7c8aff';
+        const maxAbsWeight = Math.max(...result.lime.map(l => Math.abs(l.weight)), 0.001);
+
+        html += `<div style="margin-bottom:16px">`;
+        html += `<div style="font-size:13px;font-weight:600;margin-bottom:8px;color:${{color}}">${{modelName}} <span style="font-weight:400;color:var(--text-muted)">→ ${{result.label}}</span></div>`;
+
+        for (const item of result.lime) {{
+          const pct = Math.abs(item.weight) / maxAbsWeight * 100;
+          const isPositive = item.weight > 0;
+          const barColor = isPositive ? 'var(--accent-green)' : 'var(--accent-red)';
+          html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:12px">`;
+          html += `<span style="width:100px;text-align:right;color:var(--text-primary);font-weight:500">${{item.token}}</span>`;
+          html += `<div style="flex:1;height:14px;background:var(--bg-dark);border-radius:3px;overflow:hidden;position:relative">`;
+          if (isPositive) {{
+            html += `<div style="position:absolute;left:50%;width:${{pct/2}}%;height:100%;background:${{barColor}};border-radius:0 3px 3px 0"></div>`;
+          }} else {{
+            html += `<div style="position:absolute;right:50%;width:${{pct/2}}%;height:100%;background:${{barColor}};border-radius:3px 0 0 3px"></div>`;
+          }}
+          html += `<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--text-muted)"></div>`;
+          html += `</div>`;
+          html += `<span style="width:60px;color:${{isPositive?'var(--accent-green)':'var(--accent-red)'}};font-size:11px">${{item.weight > 0 ? '+' : ''}}${{item.weight.toFixed(4)}}</span>`;
+          html += `</div>`;
+        }}
+        html += `</div>`;
+      }}
+      html += `</div>`;
+    }}
+
+    // ---- Prediction Cards ----
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px">';
     let vaderHtml = '';
 
     for (const [modelName, result] of Object.entries(data.results)) {{
@@ -2073,66 +2261,53 @@ async function pgPredict() {{
 
       const probs = result.probabilities;
       const label = result.label;
-      const color = labelColors[label] || 'var(--text-muted)';
+      const color = labelColors[label] || '#7c8aff';
       const maxProb = Math.max(probs.hatespeech, probs.offensive, probs.normal);
 
       html += `<div class="card" style="border-left:3px solid ${{color}}">`;
-      html += `<h3 style="margin-bottom:12px">${{modelName}}</h3>`;
-      html += `<div style="font-size:20px;font-weight:700;color:${{color}};margin-bottom:12px">${{labelEmoji[label] || ''}} ${{label.toUpperCase()}}</div>`;
+      html += `<h3 style="margin-bottom:8px">${{modelName}}</h3>`;
+      html += `<div style="font-size:22px;font-weight:700;color:${{color}};margin-bottom:10px">${{label.toUpperCase()}}</div>`;
 
-      // Probability bars
       for (const cls of ['hatespeech', 'offensive', 'normal']) {{
-        const p = probs[cls];
-        const pct = (p * 100).toFixed(1);
-        const barColor = labelColors[cls];
+        const p = probs[cls]; const pct = (p * 100).toFixed(1);
         const isMax = (p === maxProb);
-        html += `<div style="margin-bottom:6px">`;
-        html += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px;${{isMax?'font-weight:700;color:var(--text-primary)':'color:var(--text-muted)'}}">`;
-        html += `<span>${{cls}}</span><span>${{pct}}%</span></div>`;
-        html += `<div style="background:var(--bg-dark);border-radius:4px;height:8px;overflow:hidden">`;
-        html += `<div style="width:${{pct}}%;height:100%;background:${{barColor}};border-radius:4px;transition:width 0.5s"></div>`;
-        html += `</div></div>`;
+        html += `<div style="margin-bottom:5px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:1px;${{isMax?'font-weight:700;color:var(--text-primary)':'color:var(--text-muted)'}}"><span>${{cls}}</span><span>${{pct}}%</span></div>`;
+        html += `<div style="background:var(--bg-dark);border-radius:3px;height:6px;overflow:hidden"><div style="width:${{pct}}%;height:100%;background:${{labelColors[cls]}};border-radius:3px;transition:width 0.5s"></div></div></div>`;
       }}
 
-      // Confidence indicator
       const confidence = maxProb > 0.7 ? 'High' : maxProb > 0.45 ? 'Medium' : 'Low';
       const confColor = maxProb > 0.7 ? 'var(--accent-green)' : maxProb > 0.45 ? 'var(--accent-orange)' : 'var(--accent-red)';
-      html += `<div style="margin-top:10px;font-size:11px;color:${{confColor}}"><span class="ko">확신도: ${{confidence}} (${{(maxProb*100).toFixed(1)}}%)</span><span class="en">Confidence: ${{confidence}} (${{(maxProb*100).toFixed(1)}}%)</span></div>`;
+      html += `<div style="margin-top:8px;font-size:11px;color:${{confColor}}">Confidence: ${{confidence}} (${{(maxProb*100).toFixed(1)}}%)</div>`;
       html += `</div>`;
 
-      // VADER (only once)
       if (result.vader_scores && !vaderHtml) {{
         const vs = result.vader_scores;
-        vaderHtml = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px">`;
+        vaderHtml = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px">`;
         for (const [k, v] of Object.entries(vs)) {{
           const vc = k === 'compound' ? (v < -0.3 ? 'var(--accent-red)' : v > 0.3 ? 'var(--accent-green)' : 'var(--accent-orange)') : 'var(--text-muted)';
-          vaderHtml += `<div style="text-align:center;background:var(--bg-dark);padding:12px;border-radius:8px">`;
-          vaderHtml += `<div style="font-size:20px;font-weight:700;color:${{vc}}">${{v.toFixed(4)}}</div>`;
-          vaderHtml += `<div style="font-size:11px;color:var(--text-muted)">${{k}}</div></div>`;
+          vaderHtml += `<div style="text-align:center;background:var(--bg-dark);padding:10px;border-radius:8px"><div style="font-size:18px;font-weight:700;color:${{vc}}">${{v.toFixed(4)}}</div><div style="font-size:10px;color:var(--text-muted)">${{k}}</div></div>`;
         }}
         vaderHtml += `</div>`;
       }}
     }}
-
     html += '</div>';
 
-    // Model agreement analysis
+    // Model agreement
     const predictions = Object.entries(data.results).filter(([_,r])=>!r.error).map(([m,r])=>({{model:m,label:r.label}}));
     const uniqueLabels = [...new Set(predictions.map(p=>p.label))];
     if (predictions.length > 1) {{
       if (uniqueLabels.length === 1) {{
-        html += `<div class="insight-box insight-green" style="margin-top:14px"><strong><span class="ko">모델 합의:</span><span class="en">Model consensus:</span></strong> <span class="ko">모든 모델이 <strong>${{uniqueLabels[0]}}</strong>으로 일치합니다. 높은 신뢰도의 예측입니다.</span><span class="en">All models agree on <strong>${{uniqueLabels[0]}}</strong>. High-confidence prediction.</span></div>`;
+        html += `<div class="insight-box insight-green" style="margin-top:14px"><strong><span class="ko">모델 합의:</span><span class="en">Consensus:</span></strong> <span class="ko">모든 모델이 <strong>${{uniqueLabels[0]}}</strong>으로 일치합니다.</span><span class="en">All models agree: <strong>${{uniqueLabels[0]}}</strong>.</span></div>`;
       }} else {{
-        const disagreements = predictions.map(p=>`${{p.model}}=${{p.label}}`).join(', ');
-        html += `<div class="insight-box insight-orange" style="margin-top:14px"><strong><span class="ko">모델 불일치:</span><span class="en">Model disagreement:</span></strong> <span class="ko">${{disagreements}}. 이 텍스트는 hate/offensive 경계에 있을 수 있습니다.</span><span class="en">${{disagreements}}. This text may sit on the hate/offensive boundary.</span></div>`;
+        const dis = predictions.map(p=>`${{p.model}}=${{p.label}}`).join(', ');
+        html += `<div class="insight-box insight-orange" style="margin-top:14px"><strong><span class="ko">모델 불일치:</span><span class="en">Disagreement:</span></strong> ${{dis}}</div>`;
       }}
     }}
 
-    // VADER section
+    // VADER
     if (vaderHtml) {{
-      html += `<div class="card" style="margin-top:14px"><h3>VADER Sentiment Analysis</h3>`;
-      html += `<div class="ko-block desc" style="font-size:12px">compound가 -0.5 미만이면 매우 부정적, 0.5 초과이면 매우 긍정적입니다. Hybrid 모델은 이 값을 추가 입력으로 사용합니다.</div>`;
-      html += `<div class="en-block desc" style="font-size:12px">compound below -0.5 is very negative, above 0.5 is very positive. Hybrid models use these as additional input.</div>`;
+      html += `<div class="card" style="margin-top:14px"><h3>VADER Sentiment</h3>`;
+      html += `<div style="font-size:12px;color:var(--text-muted);margin-bottom:8px"><span class="ko">compound: -1(매우 부정) ~ +1(매우 긍정)</span><span class="en">compound: -1 (very negative) ~ +1 (very positive)</span></div>`;
       html += vaderHtml + `</div>`;
     }}
 
@@ -2142,6 +2317,7 @@ async function pgPredict() {{
     resultsDiv.innerHTML = `<div class="insight-box insight-red">Error: ${{e.message}}</div>`;
   }} finally {{
     btn.disabled = false;
+    if(limeBtn) limeBtn.disabled = false;
     loading.style.display = 'none';
   }}
 }}
