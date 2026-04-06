@@ -159,17 +159,25 @@ def _predict_single(bundle: dict, text: str, run_lime: bool = False) -> dict:
     tokens_list = []
     with torch.no_grad():
         # encoder에 output_attentions=True를 넘겨서 attention weight 추출
+        # return_dict=True를 명시해야 .attentions 속성이 정상 반환됨
         encoder_outputs = model.encoder(
             input_ids=input_ids,
             attention_mask=attention_mask,
             output_attentions=True,
+            return_dict=True,
         )
         # 마지막 레이어의 attention: (batch, num_heads, seq_len, seq_len)
-        last_attention = encoder_outputs.attentions[-1]
-        # 모든 head 평균 -> (batch, seq_len, seq_len)
-        avg_attention = last_attention.mean(dim=1)
-        # [CLS] 토큰(index 0)이 다른 토큰에 주는 attention -> (seq_len,)
-        cls_attention = avg_attention[0, 0, :].cpu().numpy()
+        attentions = getattr(encoder_outputs, "attentions", None)
+        if attentions and len(attentions) > 0:
+            last_attention = attentions[-1]
+            # 모든 head 평균 -> (batch, seq_len, seq_len)
+            avg_attention = last_attention.mean(dim=1)
+            # [CLS] 토큰(index 0)이 다른 토큰에 주는 attention -> (seq_len,)
+            cls_attention = avg_attention[0, 0, :].cpu().numpy()
+        else:
+            # attention을 가져올 수 없는 경우 균등 분포로 대체
+            seq_len = input_ids.shape[1]
+            cls_attention = np.ones(seq_len) / seq_len
 
         # pooler output으로 logits 계산
         pooled = getattr(encoder_outputs, "pooler_output", None)
