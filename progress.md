@@ -1,7 +1,9 @@
 # progress.md — 파이프라인 진행 상태
 
 > 마지막 업데이트: 2026-04-06
-> AI 에이전트는 작업 시작 전 이 파일을 읽고 현재 위치를 파악하세요.
+> 이 파일은 하네스 시스템에서 **Planner 역할의 현재 위치 파악 문서**입니다.
+> AI 에이전트는 작업 시작 전 반드시 이 파일을 읽고 현재 위치를 파악하세요.
+> 작업 완료 후 Evaluator 검증을 통과하면, 이 파일을 업데이트합니다.
 
 ---
 
@@ -64,6 +66,7 @@
 - [x] compat/ 래퍼 14개 삭제 + 호환 alias 제거
 - [x] 깨진 유니코드 수정, run.sh help 보완
 - [x] 하네스 시스템 구축 (CLAUDE.md, progress.md, architecture.md)
+- [x] 하네스 고도화: 4역할 구조 (Planner/Generator/Evaluator/Orchestrator) + 생성-검증-재생성 루프 + Adaptive 제어 수준
 
 ### 이전 세션
 - [x] EDA 모듈 신설 (`experiment_eda.py`)
