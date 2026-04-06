@@ -1,0 +1,2166 @@
+"""
+HateSpeachStudy -- FastAPI Dashboard
+=====================================
+단일 파일 FastAPI 앱으로, Chart.js 시각화와 함께 HTML 대시보드를 제공한다.
+outputs/ 디렉토리에서 데이터를 읽어 10개 탭으로 구성된 종합 대시보드를 표시한다.
+
+실행: python3 dashboard_app.py
+접속: http://localhost:8501
+"""
+
+from __future__ import annotations
+
+import csv
+import json
+import sys
+from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
+import uvicorn
+
+# ---------------------------------------------------------------------------
+# 경로 설정
+# ---------------------------------------------------------------------------
+BASE = Path(__file__).resolve().parent
+OUTPUTS = BASE / "outputs"
+CHECKPOINTS = BASE / "checkpoints"
+
+# experiment_core.py, experiment_xai.py를 임포트하기 위해 경로 추가
+if str(BASE) not in sys.path:
+    sys.path.insert(0, str(BASE))
+
+app = FastAPI(title="HateSpeachStudy Dashboard")
+
+# ---------------------------------------------------------------------------
+# Playground: 모델 로딩 + 추론 (lazy loading -- 최초 요청 시에만 로드)
+# ---------------------------------------------------------------------------
+_playground_models: dict = {}  # 캐시: 한 번 로드하면 재사용
+_playground_device = None
+
+
+def _get_device():
+    """MPS > CUDA > CPU 순으로 자동 감지"""
+    global _playground_device
+    if _playground_device is not None:
+        return _playground_device
+    import torch
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        _playground_device = torch.device("mps")
+    elif torch.cuda.is_available():
+        _playground_device = torch.device("cuda")
+    else:
+        _playground_device = torch.device("cpu")
+    print(f"[playground] device = {_playground_device}", flush=True)
+    return _playground_device
+
+
+def _load_playground_model(model_key: str):
+    """체크포인트에서 모델 로드 (lazy, 캐시됨)"""
+    if model_key in _playground_models:
+        return _playground_models[model_key]
+
+    import torch
+    from experiment_core import (
+        TransformerCLSClassifier,
+        TransformerMLPClassifier,
+        HybridSentimentClassifier,
+    )
+    from transformers import AutoTokenizer
+
+    device = _get_device()
+
+    # 모델별 설정 매핑
+    specs = {
+        "BERT-base": {
+            "cls": TransformerCLSClassifier,
+            "kwargs": {"model_name": "bert-base-uncased", "dropout": 0.1},
+            "checkpoint": CHECKPOINTS / "bert_base_seed_42.pt",
+            "tokenizer": "bert-base-uncased",
+            "model_type": "transformer",
+        },
+        "BERT+MLP": {
+            "cls": TransformerMLPClassifier,
+            "kwargs": {"model_name": "bert-base-uncased", "dropout": 0.1, "hidden_dim": 256},
+            "checkpoint": CHECKPOINTS / "bert_mlp_seed_42.pt",
+            "tokenizer": "bert-base-uncased",
+            "model_type": "transformer",
+        },
+        "BERT+VADER": {
+            "cls": HybridSentimentClassifier,
+            "kwargs": {"model_name": "bert-base-uncased", "dropout": 0.1, "hidden_dim": 256},
+            "checkpoint": CHECKPOINTS / "bert_vader_seed_42.pt",
+            "tokenizer": "bert-base-uncased",
+            "model_type": "hybrid",
+        },
+        "RoBERTa+VADER": {
+            "cls": HybridSentimentClassifier,
+            "kwargs": {"model_name": "roberta-base", "dropout": 0.1, "hidden_dim": 256},
+            "checkpoint": CHECKPOINTS / "roberta_vader_seed_42.pt",
+            "tokenizer": "roberta-base",
+            "model_type": "hybrid",
+        },
+    }
+
+    if model_key not in specs:
+        return None
+
+    spec = specs[model_key]
+    if not spec["checkpoint"].exists():
+        return None
+
+    print(f"[playground] Loading {model_key}...", flush=True)
+    ckpt = torch.load(spec["checkpoint"], map_location="cpu", weights_only=False)
+    model = spec["cls"](**spec["kwargs"])
+    model.load_state_dict(ckpt["model_state"])
+    model.eval()
+    model.to(device)
+    tokenizer = AutoTokenizer.from_pretrained(spec["tokenizer"], use_fast=True)
+
+    bundle = {
+        "model": model,
+        "tokenizer": tokenizer,
+        "model_type": spec["model_type"],
+        "device": device,
+    }
+    _playground_models[model_key] = bundle
+    print(f"[playground] {model_key} loaded on {device}", flush=True)
+    return bundle
+
+
+def _predict_single(bundle: dict, text: str) -> dict:
+    """단일 텍스트 추론 -> {label, probabilities, vader_scores}"""
+    import torch
+    import numpy as np
+
+    device = bundle["device"]
+    model = bundle["model"]
+    tokenizer = bundle["tokenizer"]
+
+    # 토크나이징
+    encoded = tokenizer(
+        [text], truncation=True, padding=True, max_length=128, return_tensors="pt"
+    )
+    input_ids = encoded["input_ids"].to(device)
+    attention_mask = encoded["attention_mask"].to(device)
+
+    # VADER 점수 (hybrid 모델용)
+    from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+    analyzer = SentimentIntensityAnalyzer()
+    vs = analyzer.polarity_scores(text)
+    vader_scores = {"pos": vs["pos"], "neg": vs["neg"], "neu": vs["neu"], "compound": vs["compound"]}
+
+    with torch.no_grad():
+        if bundle["model_type"] == "hybrid":
+            vader_tensor = torch.tensor(
+                [[vs["pos"], vs["neg"], vs["neu"], vs["compound"]]],
+                dtype=torch.float32,
+            ).to(device)
+            logits = model(input_ids, attention_mask, vader_tensor)
+        else:
+            logits = model(input_ids, attention_mask)
+
+        probs = torch.softmax(logits, dim=-1).cpu().numpy()[0]
+
+    label_names = ["hatespeech", "offensive", "normal"]
+    pred_idx = int(np.argmax(probs))
+
+    return {
+        "label": label_names[pred_idx],
+        "label_idx": pred_idx,
+        "probabilities": {name: round(float(probs[i]), 4) for i, name in enumerate(label_names)},
+        "vader_scores": {k: round(v, 4) for k, v in vader_scores.items()},
+    }
+
+# 정적 파일 마운트 -- 이미지 서빙용
+app.mount("/static/xai", StaticFiles(directory=str(OUTPUTS / "xai")), name="xai_static")
+app.mount("/static/eda", StaticFiles(directory=str(OUTPUTS / "reports" / "eda")), name="eda_static")
+app.mount("/static/runs", StaticFiles(directory=str(OUTPUTS / "runs")), name="runs_static")
+
+# ---------------------------------------------------------------------------
+# 데이터 로딩 헬퍼
+# ---------------------------------------------------------------------------
+
+def _read_csv(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    with open(path, newline="", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def _read_json(path: Path):
+    if not path.exists():
+        return {}
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+# ---------------------------------------------------------------------------
+# API 엔드포인트
+# ---------------------------------------------------------------------------
+
+@app.get("/api/learning_curves")
+def api_learning_curves():
+    """runs/*/seed_*/history.csv 데이터를 JSON으로 반환"""
+    result = {}
+    runs_dir = OUTPUTS / "runs"
+    if not runs_dir.exists():
+        return JSONResponse({})
+    for model_dir in sorted(runs_dir.iterdir()):
+        if not model_dir.is_dir():
+            continue
+        model_name = model_dir.name
+        result[model_name] = {}
+        for seed_dir in sorted(model_dir.iterdir()):
+            if not seed_dir.is_dir():
+                continue
+            history_path = seed_dir / "history.csv"
+            if history_path.exists():
+                rows = _read_csv(history_path)
+                for r in rows:
+                    for k, v in r.items():
+                        try:
+                            r[k] = float(v)
+                        except (ValueError, TypeError):
+                            pass
+                result[model_name][seed_dir.name] = rows
+    return JSONResponse(result)
+
+
+@app.get("/api/tuning_history")
+def api_tuning_history():
+    """tuning/transformer_tuning_log.csv 데이터를 JSON으로 반환"""
+    rows = _read_csv(OUTPUTS / "tuning" / "transformer_tuning_log.csv")
+    for r in rows:
+        try:
+            r["val_macro_f1"] = float(r["val_macro_f1"])
+        except (ValueError, TypeError, KeyError):
+            pass
+    return JSONResponse(rows)
+
+
+@app.post("/api/predict")
+async def api_predict(request: Request):
+    """텍스트를 받아 선택된 모델들로 추론 결과 반환"""
+    body = await request.json()
+    text = body.get("text", "").strip()
+    models = body.get("models", ["BERT-base", "BERT+VADER", "RoBERTa+VADER"])
+
+    if not text:
+        return JSONResponse({"error": "텍스트를 입력해주세요"}, status_code=400)
+
+    results = {}
+    device_name = str(_get_device())
+
+    for model_key in models:
+        try:
+            bundle = _load_playground_model(model_key)
+            if bundle is None:
+                results[model_key] = {"error": f"체크포인트 없음: {model_key}"}
+                continue
+            results[model_key] = _predict_single(bundle, text)
+        except Exception as e:
+            results[model_key] = {"error": str(e)}
+
+    return JSONResponse({"text": text, "device": device_name, "results": results})
+
+
+@app.get("/api/predict/status")
+def api_predict_status():
+    """Playground 상태: 로드된 모델, 디바이스"""
+    return JSONResponse({
+        "device": str(_get_device()),
+        "loaded_models": list(_playground_models.keys()),
+        "available_models": ["BERT-base", "BERT+MLP", "BERT+VADER", "RoBERTa+VADER"],
+    })
+
+
+# ---------------------------------------------------------------------------
+# 메인 대시보드 HTML
+# ---------------------------------------------------------------------------
+
+@app.get("/", response_class=HTMLResponse)
+def dashboard():
+    # 데이터 로딩
+    benchmark = _read_csv(OUTPUTS / "reports" / "benchmark_summary.csv")
+    significance = _read_csv(OUTPUTS / "reports" / "significance_tests.csv")
+    freeze = _read_csv(OUTPUTS / "reports" / "freeze_study.csv")
+    eda = _read_json(OUTPUTS / "reports" / "eda" / "eda_summary.json")
+    xai_summary = _read_json(OUTPUTS / "xai" / "xai_summary.json")
+    overlap = _read_csv(OUTPUTS / "xai" / "overlap_at_5.csv")
+    case_summary = _read_csv(OUTPUTS / "xai" / "case_summary.csv")
+    tuning_best = _read_json(OUTPUTS / "tuning" / "transformer_tuning_best.json")
+    tuning_log = _read_csv(OUTPUTS / "tuning" / "transformer_tuning_log.csv")
+
+    # 벤치마크 데이터 정렬 (F1 내림차순)
+    for row in benchmark:
+        try:
+            row["_f1"] = float(row.get("macro_f1_mean", 0))
+        except (ValueError, TypeError):
+            row["_f1"] = 0
+    benchmark.sort(key=lambda x: x["_f1"], reverse=True)
+
+    # 케이스 이미지 경로 수집
+    cases_dir = OUTPUTS / "xai" / "cases"
+    case_images = sorted(cases_dir.glob("case_*.png")) if cases_dir.exists() else []
+
+    # freeze 데이터 처리
+    frozen_rows = [r for r in freeze if "Frozen" in r.get("model", "")]
+    finetuned_rows = [r for r in freeze if "Fine-tuned" in r.get("model", "") or "Fine" in r.get("model", "")]
+    frozen_f1_vals = []
+    finetuned_f1_vals = []
+    for r in frozen_rows:
+        try:
+            frozen_f1_vals.append(float(r["macro_f1"]))
+        except (ValueError, KeyError):
+            pass
+    for r in finetuned_rows:
+        try:
+            finetuned_f1_vals.append(float(r["macro_f1"]))
+        except (ValueError, KeyError):
+            pass
+    frozen_mean = sum(frozen_f1_vals) / len(frozen_f1_vals) if frozen_f1_vals else 0
+    finetuned_mean = sum(finetuned_f1_vals) / len(finetuned_f1_vals) if finetuned_f1_vals else 0
+
+    # XAI summary 안전 접근
+    xai_baseline_f1 = xai_summary.get("baseline_macro_f1", 0)
+    xai_improved_f1 = xai_summary.get("improved_macro_f1", 0)
+    xai_baseline_overlap = xai_summary.get("baseline_overlap_mean", 0)
+    xai_improved_overlap = xai_summary.get("improved_overlap_mean", 0)
+    xai_baseline_ge60 = xai_summary.get("baseline_overlap_ge_60", 0)
+    xai_improved_ge60 = xai_summary.get("improved_overlap_ge_60", 0)
+    xai_fixed = xai_summary.get("fixed_error_count", 0)
+
+    # JSON 직렬화 헬퍼
+    def js(obj):
+        return json.dumps(obj, ensure_ascii=False)
+
+    # 벤치마크 JS 데이터
+    bm_slim = []
+    for row in benchmark:
+        bm_slim.append({
+            "model": row.get("model", ""),
+            "macro_f1_mean": row.get("macro_f1_mean", "0"),
+            "macro_f1_std": row.get("macro_f1_std", "0"),
+            "accuracy_mean": row.get("accuracy_mean", "0"),
+            "auroc_mean": row.get("auroc_mean", "0"),
+            "per_class_f1.hatespeech_mean": row.get("per_class_f1.hatespeech_mean", "0"),
+            "per_class_f1.offensive_mean": row.get("per_class_f1.offensive_mean", "0"),
+            "per_class_f1.normal_mean": row.get("per_class_f1.normal_mean", "0"),
+        })
+
+    sig_slim = []
+    for row in significance:
+        sig_slim.append({
+            "model_a": row.get("model_a", ""),
+            "model_b": row.get("model_b", ""),
+            "p_value": row.get("p_value", "1"),
+            "significant": row.get("significant", "False"),
+        })
+
+    tuning_slim = []
+    for row in tuning_log:
+        tuning_slim.append({
+            "model": row.get("model", ""),
+            "parameter": row.get("parameter", ""),
+            "candidate": row.get("candidate", ""),
+            "val_macro_f1": row.get("val_macro_f1", "0"),
+        })
+
+    overlap_slim = []
+    for row in overlap:
+        overlap_slim.append({
+            "model": row.get("model", ""),
+            "sample_id": row.get("sample_id", ""),
+            "overlap_at_5": row.get("overlap_at_5", "0"),
+        })
+
+    # ------------------------------------------------------------------
+    # 벤치마크 테이블 HTML 생성
+    # ------------------------------------------------------------------
+    benchmark_table_rows = ""
+    for row in benchmark:
+        model = row.get("model", "")
+        f1_d = row.get("macro_f1_display", "")
+        acc_d = row.get("accuracy_display", "")
+        auroc_d = row.get("auroc_display", "")
+        try:
+            hate_f1 = f"{float(row.get('per_class_f1.hatespeech_mean', 0)):.4f}"
+        except (ValueError, TypeError):
+            hate_f1 = "N/A"
+        try:
+            off_f1 = f"{float(row.get('per_class_f1.offensive_mean', 0)):.4f}"
+        except (ValueError, TypeError):
+            off_f1 = "N/A"
+        try:
+            nor_f1 = f"{float(row.get('per_class_f1.normal_mean', 0)):.4f}"
+        except (ValueError, TypeError):
+            nor_f1 = "N/A"
+        style = "style='color:var(--accent-green);font-weight:700'" if model == "RoBERTa+VADER" else ""
+        benchmark_table_rows += f"""<tr>
+            <td {style}>{model}</td>
+            <td {style}>{f1_d}</td>
+            <td>{acc_d}</td>
+            <td>{auroc_d}</td>
+            <td>{hate_f1}</td>
+            <td>{off_f1}</td>
+            <td>{nor_f1}</td>
+          </tr>"""
+
+    # ------------------------------------------------------------------
+    # 통계 검정 테이블 HTML 생성
+    # ------------------------------------------------------------------
+    sig_table_rows = ""
+    for row in significance:
+        sig = row.get("significant", "False") == "True"
+        badge_cls = "badge-green" if sig else "badge-gray"
+        badge_text = "Yes" if sig else "No"
+        try:
+            pval = float(row.get("p_value", 1))
+            pval_str = f"{pval:.6f}"
+        except (ValueError, TypeError):
+            pval_str = row.get("p_value", "")
+        try:
+            cd = float(row.get("cohens_d", 0))
+            cd_str = f"{cd:.4f}"
+        except (ValueError, TypeError):
+            cd_str = row.get("cohens_d", "")
+        sig_table_rows += f"""<tr>
+            <td>{row.get('model_a','')}</td>
+            <td>{row.get('model_b','')}</td>
+            <td>{row.get('mean_diff','')}</td>
+            <td>{row.get('t_statistic','')}</td>
+            <td>{pval_str}</td>
+            <td>{cd_str}</td>
+            <td><span class="badge {badge_cls}">{badge_text}</span></td>
+          </tr>"""
+
+    # ------------------------------------------------------------------
+    # 튜닝 최적 파라미터 테이블
+    # ------------------------------------------------------------------
+    tuning_best_rows = ""
+    for model_name, params in tuning_best.items():
+        tuning_best_rows += f"""<tr>
+          <td>{model_name}</td>
+          <td>{params.get('learning_rate','')}</td>
+          <td>{params.get('dropout','')}</td>
+          <td>{params.get('batch_size','')}</td>
+          <td>{params.get('epochs','')}</td>
+        </tr>"""
+
+    # ------------------------------------------------------------------
+    # Freeze 테이블
+    # ------------------------------------------------------------------
+    freeze_table_rows = ""
+    for row in freeze:
+        try:
+            f1_val = f"{float(row.get('macro_f1', 0)):.4f}"
+        except (ValueError, TypeError):
+            f1_val = row.get("macro_f1", "")
+        try:
+            acc_val = f"{float(row.get('accuracy', 0)):.4f}"
+        except (ValueError, TypeError):
+            acc_val = row.get("accuracy", "")
+        freeze_table_rows += f"""<tr>
+            <td>{row.get('model','')}</td>
+            <td>{row.get('seed','')}</td>
+            <td>{f1_val}</td>
+            <td>{acc_val}</td>
+          </tr>"""
+
+    # ------------------------------------------------------------------
+    # 어휘 중첩 테이블
+    # ------------------------------------------------------------------
+    vocab_table_rows = ""
+    for v in eda.get("vocabulary_overlap", []):
+        jac = v.get("jaccard_similarity", 0)
+        interp_ko = "매우 높은 중첩" if jac > 0.7 else ("높은 중첩" if jac > 0.6 else "중간 중첩")
+        interp_en = "Very high overlap" if jac > 0.7 else ("High overlap" if jac > 0.6 else "Moderate overlap")
+        color = "var(--accent-red)" if jac > 0.7 else ("var(--accent-orange)" if jac > 0.6 else "var(--text-secondary)")
+        vocab_table_rows += f"""<tr>
+            <td>{v.get('class_a','')}</td>
+            <td>{v.get('class_b','')}</td>
+            <td style="color:{color};font-weight:700">{jac:.4f}</td>
+            <td><span class="ko">{interp_ko}</span><span class="en">{interp_en}</span></td>
+          </tr>"""
+
+    # ------------------------------------------------------------------
+    # 텍스트 길이 테이블
+    # ------------------------------------------------------------------
+    textlen_table_rows = ""
+    for ts in eda.get("text_length_stats", []):
+        textlen_table_rows += f"""<tr>
+          <td>{ts.get('class','')}</td>
+          <td>{ts.get('n_samples','')}</td>
+          <td>{ts.get('word_mean','')}</td>
+          <td>{ts.get('word_median','')}</td>
+          <td>{ts.get('token_mean','')}</td>
+          <td>{ts.get('token_max','')}</td>
+        </tr>"""
+
+    # ------------------------------------------------------------------
+    # 케이스 요약 테이블
+    # ------------------------------------------------------------------
+    case_table_rows = ""
+    for cs in case_summary:
+        case_table_rows += f"""<tr>
+            <td>{cs.get('sample_id','')}</td>
+            <td>{cs.get('category','')}</td>
+            <td style="font-size:0.8rem">{cs.get('baseline_top_tokens','')}</td>
+            <td style="font-size:0.8rem">{cs.get('improved_top_tokens','')}</td>
+            <td>{cs.get('baseline_overlap_at_5','')}</td>
+            <td>{cs.get('improved_overlap_at_5','')}</td>
+          </tr>"""
+
+    # ------------------------------------------------------------------
+    # 케이스 이미지 갤러리
+    # ------------------------------------------------------------------
+    case_gallery_html = ""
+    for img_path in case_images:
+        case_num = img_path.stem.replace("case_", "")
+        case_gallery_html += f"""<div class="gallery-item">
+        <img src="/static/xai/cases/{img_path.name}" alt="Case {case_num}" loading="lazy">
+        <div class="caption">Case {case_num}</div>
+      </div>"""
+
+    # ------------------------------------------------------------------
+    # 완전한 HTML 조립
+    # ------------------------------------------------------------------
+    html = f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HateSpeachStudy Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* ================================================================
+   기본 리셋 및 다크 테마
+   ================================================================ */
+*, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+
+:root {{
+  --bg-darkest: #0a0b10;
+  --bg-dark: #12141f;
+  --bg-card: #1a1d2e;
+  --accent-blue: #7c8aff;
+  --accent-green: #00e5b0;
+  --accent-red: #ff6b7a;
+  --accent-orange: #ffb347;
+  --accent-purple: #b57aff;
+  --text-primary: #e8eaf6;
+  --text-secondary: #9ca3c4;
+  --border-subtle: rgba(124, 138, 255, 0.15);
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.4);
+}}
+
+body {{
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg-darkest);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+}}
+
+body.light-mode {{
+  --bg-darkest: #f0f2f5;
+  --bg-dark: #ffffff;
+  --bg-card: #ffffff;
+  --text-primary: #1a1a2e;
+  --text-secondary: #555;
+  --border-subtle: rgba(0,0,0,0.1);
+  --shadow-card: 0 2px 12px rgba(0,0,0,0.08);
+}}
+
+body .en {{ display: none; }}
+body .ko {{ display: inline; }}
+body.en-mode .en {{ display: inline; }}
+body.en-mode .ko {{ display: none; }}
+body .en-block {{ display: none; }}
+body .ko-block {{ display: block; }}
+body.en-mode .en-block {{ display: block; }}
+body.en-mode .ko-block {{ display: none; }}
+
+.top-bar {{
+  background: var(--bg-dark);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 12px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}}
+.top-bar h1 {{ font-size: 1.25rem; font-weight: 700; }}
+.top-bar h1 .brand {{ color: var(--accent-blue); }}
+.top-bar-actions {{ display: flex; gap: 8px; }}
+.top-bar-actions button {{
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}}
+.top-bar-actions button:hover {{ background: var(--accent-blue); color: #fff; }}
+
+.container {{ max-width: 1440px; margin: 0 auto; padding: 24px 32px; }}
+
+.tab-nav {{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 24px;
+  background: var(--bg-dark);
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+}}
+.tab-btn {{
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+}}
+.tab-btn:hover {{ background: rgba(124,138,255,0.1); color: var(--text-primary); }}
+.tab-btn.active {{ background: var(--accent-blue); color: #fff; font-weight: 600; }}
+
+.tab-content {{ display: none; animation: fadeIn 0.3s ease; }}
+.tab-content.active {{ display: block; }}
+@keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(8px); }} to {{ opacity: 1; transform: translateY(0); }} }}
+
+.card {{
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-card);
+}}
+.card h2 {{ font-size: 1.3rem; margin-bottom: 8px; color: var(--accent-blue); }}
+.card h3 {{ font-size: 1.1rem; margin-bottom: 6px; color: var(--accent-purple); }}
+
+.grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
+.grid-3 {{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }}
+.grid-4 {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }}
+@media (max-width: 1024px) {{
+  .grid-2, .grid-3, .grid-4 {{ grid-template-columns: 1fr; }}
+}}
+
+.kpi-card {{
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+}}
+.kpi-card .kpi-value {{ font-size: 2rem; font-weight: 700; margin: 8px 0; }}
+.kpi-card .kpi-label {{ font-size: 0.85rem; color: var(--text-secondary); }}
+
+.data-table {{ width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.9rem; }}
+.data-table th {{
+  background: rgba(124,138,255,0.1);
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--border-subtle);
+  font-weight: 600;
+  color: var(--accent-blue);
+}}
+.data-table td {{ padding: 8px 14px; border-bottom: 1px solid var(--border-subtle); }}
+.data-table tr:hover td {{ background: rgba(124,138,255,0.05); }}
+
+.insight {{
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  border-left: 4px solid;
+}}
+.insight-green {{ background: rgba(0,229,176,0.08); border-color: var(--accent-green); }}
+.insight-orange {{ background: rgba(255,179,71,0.08); border-color: var(--accent-orange); }}
+.insight-red {{ background: rgba(255,107,122,0.08); border-color: var(--accent-red); }}
+.insight-blue {{ background: rgba(124,138,255,0.08); border-color: var(--accent-blue); }}
+.insight strong {{ color: var(--accent-blue); }}
+
+.desc {{ color: var(--text-secondary); margin-bottom: 16px; font-size: 0.95rem; line-height: 1.7; }}
+
+.chart-container {{ position: relative; width: 100%; margin: 12px 0; }}
+.chart-container canvas {{ max-height: 500px; }}
+
+.pipeline {{
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: 20px 0;
+}}
+.pipeline-step {{
+  background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 14px 20px;
+  text-align: center;
+  min-width: 130px;
+  font-size: 0.85rem;
+}}
+.pipeline-step .step-title {{ font-weight: 700; color: var(--accent-blue); margin-bottom: 4px; }}
+.pipeline-step .step-desc {{ color: var(--text-secondary); font-size: 0.8rem; }}
+.pipeline-arrow {{ font-size: 1.5rem; color: var(--accent-blue); padding: 0 8px; }}
+
+.arch-diagram {{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+}}
+.arch-block {{
+  background: var(--bg-dark);
+  border: 2px solid var(--accent-blue);
+  border-radius: 10px;
+  padding: 12px 24px;
+  text-align: center;
+  min-width: 200px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}}
+.arch-block.highlight {{ border-color: var(--accent-green); background: rgba(0,229,176,0.08); }}
+.arch-block.vader {{ border-color: var(--accent-orange); background: rgba(255,179,71,0.08); }}
+.arch-block.output {{ border-color: var(--accent-purple); background: rgba(181,122,255,0.08); }}
+.arch-arrow {{ color: var(--accent-blue); font-size: 1.3rem; }}
+.arch-side {{ display: flex; gap: 16px; align-items: flex-end; }}
+.arch-col {{ display: flex; flex-direction: column; align-items: center; gap: 8px; }}
+
+.gallery {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }}
+.gallery-item {{ text-align: center; }}
+.gallery-item img {{ max-width: 100%; border-radius: 8px; border: 1px solid var(--border-subtle); }}
+.gallery-item .caption {{ margin-top: 8px; color: var(--text-secondary); font-size: 0.85rem; }}
+
+select {{
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 12px;
+}}
+
+.badge {{
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}}
+.badge-green {{ background: rgba(0,229,176,0.2); color: var(--accent-green); }}
+.badge-gray {{ background: rgba(156,163,196,0.2); color: var(--text-secondary); }}
+.badge-red {{ background: rgba(255,107,122,0.2); color: var(--accent-red); }}
+</style>
+</head>
+<body>
+
+<!-- ================================================================
+     상단바
+     ================================================================ -->
+<div class="top-bar">
+  <h1><span class="brand">HateSpeachStudy</span>
+    <span class="ko"> 종합 대시보드</span>
+    <span class="en"> Comprehensive Dashboard</span>
+  </h1>
+  <div class="top-bar-actions">
+    <button onclick="toggleLang()" id="langBtn">EN</button>
+    <button onclick="toggleTheme()" id="themeBtn">Light</button>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ================================================================
+     탭 내비게이션
+     ================================================================ -->
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="overview">
+    <span class="ko">Overview</span><span class="en">Overview</span>
+  </button>
+  <button class="tab-btn" data-tab="benchmark">
+    <span class="ko">Benchmark</span><span class="en">Benchmark</span>
+  </button>
+  <button class="tab-btn" data-tab="statistical">
+    <span class="ko">Statistical Tests</span><span class="en">Statistical Tests</span>
+  </button>
+  <button class="tab-btn" data-tab="tuning">
+    <span class="ko">Tuning</span><span class="en">Tuning</span>
+  </button>
+  <button class="tab-btn" data-tab="learning">
+    <span class="ko">Learning Curves</span><span class="en">Learning Curves</span>
+  </button>
+  <button class="tab-btn" data-tab="freeze">
+    <span class="ko">Freeze Study</span><span class="en">Freeze Study</span>
+  </button>
+  <button class="tab-btn" data-tab="eda">
+    <span class="ko">EDA</span><span class="en">EDA</span>
+  </button>
+  <button class="tab-btn" data-tab="xai">
+    <span class="ko">XAI Analysis</span><span class="en">XAI Analysis</span>
+  </button>
+  <button class="tab-btn" data-tab="xai_cases">
+    <span class="ko">XAI Cases</span><span class="en">XAI Cases</span>
+  </button>
+  <button class="tab-btn" data-tab="architecture">
+    <span class="ko">Model Architecture</span><span class="en">Model Architecture</span>
+  </button>
+  <button class="tab-btn" data-tab="playground">
+    <span class="ko">Playground</span><span class="en">Playground</span>
+  </button>
+</div>
+
+<!-- ================================================================
+     TAB 1: Overview
+     ================================================================ -->
+<div id="tab-overview" class="tab-content active">
+  <div class="card">
+    <h2><span class="ko">Executive Summary</span><span class="en">Executive Summary</span></h2>
+    <div class="ko-block desc">
+      <p>이 대시보드는 HateXplain 데이터셋 기반 혐오표현 탐지 연구의 전체 실험 결과를 종합적으로 보여준다.
+      6개의 모델(TF-IDF+LR, TF-IDF+SVM, BERT-base, BERT+MLP, BERT+VADER, RoBERTa+VADER)을
+      "가설 -> 실험 -> XAI 사후 검증"이라는 과학적 검증 프레임워크에 따라 평가하였다.</p>
+      <p>핵심 가설: VADER 감성 점수를 보조 특성으로 결합하면 혐오표현 탐지 성능이 향상될 것이다.
+      이 가설은 Cheng(2022)의 선행 연구에서 감성 분석이 혐오표현 분류에 유의미한 기여를 한다는 발견에 기반한다.</p>
+    </div>
+    <div class="en-block desc">
+      <p>This dashboard presents the comprehensive experimental results of hate speech detection research based on the HateXplain dataset.
+      Six models (TF-IDF+LR, TF-IDF+SVM, BERT-base, BERT+MLP, BERT+VADER, RoBERTa+VADER) were evaluated
+      following a scientific verification framework of "Hypothesis -> Experiment -> XAI Post-hoc Verification".</p>
+      <p>Core hypothesis: Combining VADER sentiment scores as auxiliary features will improve hate speech detection performance.
+      This hypothesis is grounded in Cheng (2022)'s finding that sentiment analysis contributes meaningfully to hate speech classification.</p>
+    </div>
+  </div>
+
+  <div class="grid-4">
+    <div class="kpi-card">
+      <div class="kpi-label"><span class="ko">최고 Macro F1</span><span class="en">Best Macro F1</span></div>
+      <div class="kpi-value" style="color:var(--accent-green)">0.6863</div>
+      <div class="kpi-label">RoBERTa+VADER</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label"><span class="ko">모델 수</span><span class="en">Models Tested</span></div>
+      <div class="kpi-value" style="color:var(--accent-blue)">6</div>
+      <div class="kpi-label"><span class="ko">+ Freeze Study 1</span><span class="en">+ 1 Freeze Study</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label"><span class="ko">Fine-tuning 향상</span><span class="en">Fine-tuning Gain</span></div>
+      <div class="kpi-value" style="color:var(--accent-orange)">+109%</div>
+      <div class="kpi-label">0.324 &rarr; 0.679</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label"><span class="ko">통계적 유의성</span><span class="en">Statistical Significance</span></div>
+      <div class="kpi-value" style="color:var(--accent-purple)">p=0.037</div>
+      <div class="kpi-label">RoBERTa vs BERT-base</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
+    <h3><span class="ko">과학적 검증 파이프라인</span><span class="en">Scientific Verification Pipeline</span></h3>
+    <div class="ko-block desc">이 연구의 전체 흐름을 나타내는 파이프라인이다. 각 단계에서 엄밀한 실험 설계와 통계 검정을 수행한다.</div>
+    <div class="en-block desc">The full pipeline of this study. Each stage involves rigorous experimental design and statistical testing.</div>
+    <div class="pipeline">
+      <div class="pipeline-step">
+        <div class="step-title"><span class="ko">가설 수립</span><span class="en">Hypothesis</span></div>
+        <div class="step-desc">VADER + Transformer</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-title">EDA</div>
+        <div class="step-desc"><span class="ko">19,192 텍스트 분석</span><span class="en">19,192 text analysis</span></div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-title"><span class="ko">베이스라인</span><span class="en">Baseline</span></div>
+        <div class="step-desc">TF-IDF + LR/SVM</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-title"><span class="ko">딥러닝</span><span class="en">Deep Learning</span></div>
+        <div class="step-desc">BERT / RoBERTa</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-title"><span class="ko">하이브리드</span><span class="en">Hybrid</span></div>
+        <div class="step-desc">+VADER Sentiment</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-title"><span class="ko">튜닝</span><span class="en">Tuning</span></div>
+        <div class="step-desc">LR / Dropout</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-title"><span class="ko">통계 검정</span><span class="en">Stat Test</span></div>
+        <div class="step-desc">Paired t-test</div>
+      </div>
+      <div class="pipeline-arrow">&rarr;</div>
+      <div class="pipeline-step">
+        <div class="step-title">XAI</div>
+        <div class="step-desc">SHAP + LIME</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">주요 발견 사항</span><span class="en">Key Findings</span></h3>
+    <div class="insight insight-green">
+      <span class="ko"><strong>RoBERTa+VADER가 최고 성능 달성:</strong> Macro F1 0.6863으로 BERT-base(0.6744) 대비 +1.19%p 향상.
+      이 차이는 통계적으로 유의미하다 (p=0.0366, Cohen's d=-2.93). RoBERTa의 강화된 사전학습과
+      VADER 감성 정보의 결합이 시너지를 이룸을 시사한다.</span>
+      <span class="en"><strong>RoBERTa+VADER achieved best performance:</strong> Macro F1 of 0.6863, a +1.19%p improvement over BERT-base (0.6744).
+      This difference is statistically significant (p=0.0366, Cohen's d=-2.93). This suggests synergy between
+      RoBERTa's enhanced pre-training and VADER sentiment information.</span>
+    </div>
+    <div class="insight insight-orange">
+      <span class="ko"><strong>VADER 단독 효과는 제한적:</strong> BERT+VADER(0.6794) vs BERT-base(0.6744)는 p=0.1384로 유의미하지 않다.
+      VADER 감성 점수가 같은 인코더 기반에서는 결정적 차이를 만들지 못했다. 인코더 품질이 더 핵심 변수임을 보여준다.</span>
+      <span class="en"><strong>VADER alone has limited effect:</strong> BERT+VADER (0.6794) vs BERT-base (0.6744) yields p=0.1384 (not significant).
+      VADER sentiment scores did not create a decisive difference on the same encoder base. Encoder quality is the more critical variable.</span>
+    </div>
+    <div class="insight insight-red">
+      <span class="ko"><strong>hate/offensive 분류 경계가 모호:</strong> 어휘 Jaccard 유사도 0.7094로 두 클래스가 상당히 중첩된다.
+      hate 클래스 F1은 최고 모델에서도 0.775로 양호하나, offensive(0.547)가 여전히 도전적이다.</span>
+      <span class="en"><strong>hate/offensive classification boundary is blurry:</strong> Vocabulary Jaccard similarity of 0.7094 indicates substantial overlap.
+      Hate F1 is decent at 0.775 for the best model, but offensive (0.547) remains challenging.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 2: Benchmark
+     ================================================================ -->
+<div id="tab-benchmark" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">모델 벤치마크 결과</span><span class="en">Model Benchmark Results</span></h2>
+    <div class="ko-block desc">
+      6개 모델의 성능을 3개 시드(42, 52, 62)에 걸쳐 평가한 결과이다.
+      Macro F1은 클래스 불균형 상황에서 각 클래스를 동등하게 반영하는 지표로, 이 연구의 주요 평가 메트릭이다.
+      표준편차가 작을수록 모델의 안정성이 높음을 의미한다.
+    </div>
+    <div class="en-block desc">
+      Performance of 6 models evaluated across 3 seeds (42, 52, 62).
+      Macro F1 equally weighs each class under class imbalance, serving as the primary evaluation metric.
+      Smaller standard deviation indicates higher model stability.
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3><span class="ko">Macro F1 비교 (오차 막대 포함)</span><span class="en">Macro F1 Comparison (with error bars)</span></h3>
+      <div class="ko-block desc">각 모델의 평균 Macro F1과 표준편차를 수평 바 차트로 나타낸다. 오차 막대가 짧을수록 시드 간 일관성이 높다.</div>
+      <div class="en-block desc">Horizontal bar chart showing mean Macro F1 with standard deviation error bars. Shorter bars indicate higher cross-seed consistency.</div>
+      <div class="chart-container"><canvas id="chartBenchmarkF1"></canvas></div>
+    </div>
+    <div class="card">
+      <h3><span class="ko">레이더 차트 - 상위 4개 모델</span><span class="en">Radar Chart - Top 4 Models</span></h3>
+      <div class="ko-block desc">상위 4개 Transformer 모델을 6개 지표(Macro F1, Accuracy, AUROC, Hate F1, Offensive F1, Normal F1)에서 비교한다.</div>
+      <div class="en-block desc">Compares top 4 Transformer models across 6 metrics. Larger area indicates better overall performance.</div>
+      <div class="chart-container"><canvas id="chartRadar"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">클래스별 F1 Score</span><span class="en">Per-Class F1 Score</span></h3>
+    <div class="ko-block desc">
+      각 모델이 3개 클래스(hatespeech, offensive, normal)를 각각 얼마나 잘 분류하는지 보여준다.
+      혐오표현 탐지에서 가장 중요한 것은 hate 클래스의 높은 F1이지만, offensive 클래스 분류가
+      모든 모델에서 공통적으로 어려운 과제이다.
+    </div>
+    <div class="en-block desc">
+      Shows how well each model classifies each of the 3 classes. While high hate F1 is most important,
+      offensive class classification remains a shared challenge across all models.
+    </div>
+    <div class="chart-container"><canvas id="chartPerClassF1"></canvas></div>
+  </div>
+
+  <div class="insight insight-green">
+    <span class="ko"><strong>RoBERTa+VADER가 hate F1에서 0.775로 최고 성적:</strong> BERT-base(0.766)보다 약 1%p 높다. RoBERTa의 사전학습이 혐오 맥락 파악에 유리하며, VADER가 부정적 감성 신호를 보강한다.</span>
+    <span class="en"><strong>RoBERTa+VADER leads with 0.775 hate F1:</strong> About 1%p higher than BERT-base (0.766). RoBERTa's pre-training is advantageous for hate context understanding, and VADER reinforces negative sentiment signals.</span>
+  </div>
+  <div class="insight insight-red">
+    <span class="ko"><strong>Offensive F1은 모든 모델에서 0.53~0.55:</strong> 이는 hate/offensive 간 어휘 Jaccard 유사도가 0.7094에 달하기 때문이다. 두 클래스의 언어적 특성이 매우 유사하여 구별이 본질적으로 어렵다.</span>
+    <span class="en"><strong>Offensive F1 is 0.53-0.55 across all models:</strong> Due to hate/offensive vocabulary Jaccard similarity of 0.7094. Linguistic characteristics are inherently similar.</span>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">상세 성능 테이블</span><span class="en">Detailed Performance Table</span></h3>
+    <div class="ko-block desc">모든 모델의 주요 평가 지표를 표로 정리하였다. 각 값은 3회 시드 평균 +/- 표준편차이다.</div>
+    <div class="en-block desc">All model evaluation metrics in tabular form. Each value is the mean +/- standard deviation across 3 seeds.</div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th><span class="ko">모델</span><span class="en">Model</span></th>
+            <th>Macro F1</th><th>Accuracy</th><th>AUROC</th>
+            <th>Hate F1</th><th>Offensive F1</th><th>Normal F1</th>
+          </tr>
+        </thead>
+        <tbody>{benchmark_table_rows}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 3: Statistical Tests
+     ================================================================ -->
+<div id="tab-statistical" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">통계적 유의성 검정</span><span class="en">Statistical Significance Tests</span></h2>
+    <div class="ko-block desc">
+      모든 모델 쌍에 대해 Paired t-test를 수행하여 성능 차이가 우연에 의한 것인지 검정하였다.
+      유의수준 alpha=0.05를 기준으로, p-value가 이보다 작으면 통계적으로 유의미하다고 판단한다.
+      Cohen's d는 효과 크기를 나타내며, |d| > 0.8이면 큰 효과로 해석한다.
+    </div>
+    <div class="en-block desc">
+      Paired t-tests for all model pairs. At alpha=0.05, lower p-values indicate significant differences.
+      Cohen's d measures effect size; |d| > 0.8 is a large effect.
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">유의성 검정 결과 테이블</span><span class="en">Significance Test Results Table</span></h3>
+    <div class="ko-block desc">녹색은 통계적으로 유의미한 차이(p &lt; 0.05), 회색은 유의미하지 않은 차이를 나타낸다.</div>
+    <div class="en-block desc">Green indicates significant (p &lt; 0.05), gray indicates non-significant.</div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th><span class="ko">모델 A</span><span class="en">Model A</span></th>
+            <th><span class="ko">모델 B</span><span class="en">Model B</span></th>
+            <th><span class="ko">평균 차이</span><span class="en">Mean Diff</span></th>
+            <th>t-statistic</th><th>p-value</th><th>Cohen's d</th>
+            <th><span class="ko">유의성</span><span class="en">Significant</span></th>
+          </tr>
+        </thead>
+        <tbody>{sig_table_rows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">P-value 히트맵</span><span class="en">P-value Heatmap</span></h3>
+    <div class="ko-block desc">모델 쌍 간 p-value를 색상으로 표현한다. 진한 녹색일수록 유의미한 차이(낮은 p-value)이다.</div>
+    <div class="en-block desc">P-values visualized as colors. Darker green = more significant difference.</div>
+    <div class="chart-container"><canvas id="chartPvalueHeatmap" width="660" height="420"></canvas></div>
+  </div>
+
+  <div class="insight insight-green">
+    <span class="ko"><strong>RoBERTa+VADER vs BERT-base: p=0.0366</strong> -- 통계적으로 유의미. Cohen's d=-2.93은 매우 큰 효과 크기로, RoBERTa+VADER의 우위가 실질적이다. 단 3개 시드로 인한 검정력 제한을 감안해야 한다.</span>
+    <span class="en"><strong>RoBERTa+VADER vs BERT-base: p=0.0366</strong> -- Statistically significant. Cohen's d=-2.93 is a very large effect size. Note the limited test power from only 3 seeds.</span>
+  </div>
+  <div class="insight insight-orange">
+    <span class="ko"><strong>BERT+VADER vs BERT-base: p=0.1384</strong> -- 유의미하지 않다. 같은 BERT 인코더에 VADER를 추가하는 것만으로는 유의미한 향상 불가. 인코더 자체의 표현력이 더 결정적이다.</span>
+    <span class="en"><strong>BERT+VADER vs BERT-base: p=0.1384</strong> -- Not significant. Adding VADER to the same BERT encoder alone is insufficient. Encoder quality is the decisive factor.</span>
+  </div>
+  <div class="insight insight-orange">
+    <span class="ko"><strong>BERT+MLP vs BERT+VADER: p=0.5666</strong> -- 유의미하지 않다. Ablation 통제로서 두 아키텍처의 성능이 거의 동일함을 확인.</span>
+    <span class="en"><strong>BERT+MLP vs BERT+VADER: p=0.5666</strong> -- Not significant. Confirms near-identical performance as ablation control.</span>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 4: Tuning
+     ================================================================ -->
+<div id="tab-tuning" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">하이퍼파라미터 튜닝</span><span class="en">Hyperparameter Tuning</span></h2>
+    <div class="ko-block desc">
+      3개 Transformer 모델에 대해 학습률과 드롭아웃을 체계적으로 탐색하였다.
+      그리드 서치로 학습률 [1e-5, 2e-5, 3e-5], 드롭아웃 [0.1, 0.2, 0.3]을 시드 42로 검증하였다.
+    </div>
+    <div class="en-block desc">
+      Systematic grid search over learning rates [1e-5, 2e-5, 3e-5] and dropouts [0.1, 0.2, 0.3] with seed 42.
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">최적 하이퍼파라미터</span><span class="en">Optimal Hyperparameters</span></h3>
+    <div class="ko-block desc">모든 모델에서 dropout=0.1이 최적이었다.</div>
+    <div class="en-block desc">Dropout=0.1 was optimal across all models.</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th><span class="ko">모델</span><span class="en">Model</span></th>
+          <th>Learning Rate</th><th>Dropout</th><th>Batch Size</th><th>Epochs</th>
+        </tr>
+      </thead>
+      <tbody>{tuning_best_rows}</tbody>
+    </table>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3><span class="ko">학습률 탐색 궤적</span><span class="en">Learning Rate Search Trajectory</span></h3>
+      <div class="ko-block desc">각 모델에서 학습률 후보별 검증 Macro F1. 최적 학습률은 모델마다 다를 수 있다.</div>
+      <div class="en-block desc">Validation Macro F1 for each learning rate candidate per model.</div>
+      <div class="chart-container"><canvas id="chartTuningLR"></canvas></div>
+    </div>
+    <div class="card">
+      <h3><span class="ko">드롭아웃 탐색 궤적</span><span class="en">Dropout Search Trajectory</span></h3>
+      <div class="ko-block desc">드롭아웃 비율에 따른 검증 성능 변화이다.</div>
+      <div class="en-block desc">Validation performance changes with dropout rate.</div>
+      <div class="chart-container"><canvas id="chartTuningDropout"></canvas></div>
+    </div>
+  </div>
+
+  <div class="insight insight-blue">
+    <span class="ko"><strong>RoBERTa+VADER는 lr=2e-5에서 F1=0.6833으로 최고:</strong> lr=1e-5(0.6716)과 lr=3e-5(0.6717) 대비 약 1.2%p 차이. 학습률 선택이 성능에 상당한 영향을 미친다.</span>
+    <span class="en"><strong>RoBERTa+VADER peaks at lr=2e-5 with F1=0.6833:</strong> ~1.2%p gap vs lr=1e-5 (0.6716) and lr=3e-5 (0.6717).</span>
+  </div>
+  <div class="insight insight-green">
+    <span class="ko"><strong>Dropout=0.1이 전 모델 최적:</strong> 5 에폭의 짧은 학습에서는 과적합 위험이 낮아 강한 정규화가 불필요하다.</span>
+    <span class="en"><strong>Dropout=0.1 optimal for all:</strong> Short 5-epoch training has low overfitting risk, making strong regularization unnecessary.</span>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 5: Learning Curves
+     ================================================================ -->
+<div id="tab-learning" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">학습 곡선</span><span class="en">Learning Curves</span></h2>
+    <div class="ko-block desc">
+      각 모델의 에폭별 학습 손실(train loss)과 검증 Macro F1의 변화를 추적한다.
+      학습 손실이 지속적으로 감소하면서 검증 F1이 정체되거나 하락하면 과적합의 신호이다.
+      3개 시드의 곡선을 겹쳐서 모델의 학습 안정성을 확인할 수 있다.
+    </div>
+    <div class="en-block desc">
+      Tracks per-epoch training loss and validation Macro F1. Overlapping curves from 3 seeds reveal training stability.
+    </div>
+    <label for="lcModelSelect">
+      <span class="ko">모델 선택: </span><span class="en">Select Model: </span>
+    </label>
+    <select id="lcModelSelect" onchange="updateLearningCurveChart()">
+      <option value="bert_base">BERT-base</option>
+      <option value="bert_mlp">BERT+MLP</option>
+      <option value="bert_vader">BERT+VADER</option>
+      <option value="roberta_vader" selected>RoBERTa+VADER</option>
+    </select>
+  </div>
+  <div class="card">
+    <div class="chart-container"><canvas id="chartLearningCurve"></canvas></div>
+  </div>
+  <div class="insight insight-blue">
+    <span class="ko"><strong>Transformer 모델들은 대부분 2~3 에폭에서 최고 F1 도달:</strong> 이후 검증 F1이 정체되거나 미세하게 하락한다. Early stopping patience=2가 적절한 설정이다.</span>
+    <span class="en"><strong>Most Transformers peak at epoch 2-3:</strong> Validation F1 then plateaus or slightly declines. Early stopping patience=2 is appropriate.</span>
+  </div>
+  <div class="insight insight-orange">
+    <span class="ko"><strong>학습 손실은 지속 하락, 검증 성능은 정체:</strong> 전형적 과적합 신호이나, 5 에폭이라는 짧은 학습 기간 덕분에 심각한 과적합은 방지되었다.</span>
+    <span class="en"><strong>Train loss keeps dropping while val performance plateaus:</strong> Classic overfitting signal, but the short 5-epoch training prevented severe overfitting.</span>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 6: Freeze Study
+     ================================================================ -->
+<div id="tab-freeze" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">Freeze Study: 인코더 동결 vs 미세조정</span><span class="en">Freeze Study: Frozen vs Fine-tuned Encoder</span></h2>
+    <div class="ko-block desc">
+      BERT+VADER 모델의 인코더 가중치를 동결했을 때와 미세조정했을 때의 성능 차이를 비교하는 절제 실험(ablation study)이다.
+      동결 시 인코더는 범용 언어 표현만 사용하고, 미세조정 시 혐오표현 도메인에 특화된다.
+    </div>
+    <div class="en-block desc">
+      Ablation study comparing frozen vs fine-tuned BERT+VADER encoder. Frozen uses general representations;
+      fine-tuned specializes for hate speech.
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3><span class="ko">동결 vs 미세조정 바 차트</span><span class="en">Frozen vs Fine-tuned Bar Chart</span></h3>
+      <div class="chart-container"><canvas id="chartFreeze"></canvas></div>
+    </div>
+    <div class="card">
+      <h3><span class="ko">시드별 상세 결과</span><span class="en">Per-Seed Details</span></h3>
+      <div class="ko-block desc">각 시드에서의 Macro F1과 Accuracy를 비교한다.</div>
+      <div class="en-block desc">Per-seed Macro F1 and Accuracy comparison.</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th><span class="ko">모델</span><span class="en">Model</span></th>
+            <th>Seed</th><th>Macro F1</th><th>Accuracy</th>
+          </tr>
+        </thead>
+        <tbody>{freeze_table_rows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="insight insight-green">
+    <span class="ko"><strong>미세조정 시 Macro F1이 약 109% 향상:</strong> 동결 평균 F1={frozen_mean:.4f}, 미세조정 평균 F1={finetuned_mean:.4f}.
+    사전학습 인코더가 범용 표현만으로는 혐오표현의 미묘한 뉘앙스를 포착하기 어려우며, 도메인 특화 미세조정이 필수적이다.</span>
+    <span class="en"><strong>Fine-tuning improves Macro F1 by ~109%:</strong> Frozen mean F1={frozen_mean:.4f}, fine-tuned mean F1={finetuned_mean:.4f}.
+    Pre-trained encoders need domain-specific fine-tuning to capture subtle hate speech nuances.</span>
+  </div>
+  <div class="insight insight-red">
+    <span class="ko"><strong>동결 인코더의 F1이 ~0.32 수준:</strong> random 수준(0.33)에 가까운 성능으로, MLP 헤드와 VADER 입력만으로는 분류가 거의 불가능하다. Transformer 인코더의 문맥적 표현 학습이 핵심 성능 요인이다.</span>
+    <span class="en"><strong>Frozen encoder F1 at ~0.32:</strong> Near random-level (0.33). MLP head and VADER alone are nearly incapable of classification, proving contextual representation learning is the critical factor.</span>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 7: EDA
+     ================================================================ -->
+<div id="tab-eda" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">탐색적 데이터 분석 (EDA)</span><span class="en">Exploratory Data Analysis (EDA)</span></h2>
+    <div class="ko-block desc">
+      HateXplain 데이터셋(총 19,192개 텍스트)의 특성을 다각도로 분석하였다.
+      데이터의 분포, 감성 패턴, 어휘 중첩도, 타겟 커뮤니티 등을 파악하여
+      모델 설계와 결과 해석에 필요한 기초 지식을 제공한다.
+    </div>
+    <div class="en-block desc">
+      Multi-faceted analysis of the HateXplain dataset (19,192 texts).
+      Provides foundational knowledge for model design and result interpretation.
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">VADER 감성 분포 (클래스별)</span><span class="en">VADER Sentiment Distribution (by class)</span></h3>
+    <div class="ko-block desc">VADER의 compound, negative, positive 평균값을 클래스별로 비교한다. 혐오표현이 더 부정적인 감성을 띨 것이라는 가설의 근거이다.</div>
+    <div class="en-block desc">VADER compound, negative, and positive mean scores by class, providing evidence for the sentiment hypothesis.</div>
+    <div class="chart-container"><canvas id="chartVader"></canvas></div>
+  </div>
+  <div class="insight insight-green">
+    <span class="ko"><strong>VADER compound 평균: hate=-0.358, offensive=-0.283, normal=-0.181</strong> -- 혐오표현일수록 부정적 감성이 강하다. 이 경향성이 VADER를 보조 특성으로 활용하는 근거이다. 다만, 세 클래스 모두 부정적 영역에 있어 VADER만으로는 분류가 어렵다.</span>
+    <span class="en"><strong>VADER compound: hate=-0.358, offensive=-0.283, normal=-0.181</strong> -- Stronger negative sentiment for hateful content. This gradient supports VADER as auxiliary feature, though all classes are negative.</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3><span class="ko">타겟 커뮤니티 분포</span><span class="en">Target Community Distribution</span></h3>
+      <div class="ko-block desc">혐오표현이 어떤 커뮤니티를 대상으로 하는지 보여준다. Women이 가장 많은 타겟이다.</div>
+      <div class="en-block desc">Shows which communities are targeted. Women is the most targeted group.</div>
+      <div class="chart-container"><canvas id="chartTargets"></canvas></div>
+    </div>
+    <div class="card">
+      <h3><span class="ko">어휘 중첩도 (Jaccard)</span><span class="en">Vocabulary Overlap (Jaccard)</span></h3>
+      <div class="ko-block desc">클래스 쌍의 상위 500 단어 간 Jaccard 유사도. 높을수록 분류가 어렵다.</div>
+      <div class="en-block desc">Jaccard similarity between top 500 words. Higher = harder to classify.</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th><span class="ko">클래스 A</span><span class="en">Class A</span></th>
+            <th><span class="ko">클래스 B</span><span class="en">Class B</span></th>
+            <th>Jaccard</th>
+            <th><span class="ko">해석</span><span class="en">Interpretation</span></th>
+          </tr>
+        </thead>
+        <tbody>{vocab_table_rows}</tbody>
+      </table>
+    </div>
+  </div>
+  <div class="insight insight-red">
+    <span class="ko"><strong>hate/offensive 간 Jaccard=0.7094:</strong> 상위 500 단어 중 71%가 공유된다. 어휘 기반 분류(TF-IDF)의 근본적 한계를 설명하며, 문맥적 Transformer 모델이 필요한 이유이다.</span>
+    <span class="en"><strong>hate/offensive Jaccard=0.7094:</strong> 71% shared among top 500 words. Explains fundamental TF-IDF limitations and the need for contextual Transformers.</span>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">텍스트 길이 통계</span><span class="en">Text Length Statistics</span></h3>
+    <div class="ko-block desc">클래스별 단어 수 및 토큰 수 통계. max_len=128 토큰으로 거의 모든 텍스트가 잘리지 않는다.</div>
+    <div class="en-block desc">Per-class word and token count statistics. With max_len=128, almost no truncation.</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th><span class="ko">클래스</span><span class="en">Class</span></th>
+          <th><span class="ko">샘플 수</span><span class="en">Samples</span></th>
+          <th><span class="ko">단어 평균</span><span class="en">Word Mean</span></th>
+          <th><span class="ko">단어 중앙값</span><span class="en">Word Median</span></th>
+          <th><span class="ko">토큰 평균</span><span class="en">Token Mean</span></th>
+          <th><span class="ko">토큰 최대</span><span class="en">Token Max</span></th>
+        </tr>
+      </thead>
+      <tbody>{textlen_table_rows}</tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">EDA 시각화</span><span class="en">EDA Visualizations</span></h3>
+    <div class="gallery">
+      <div class="gallery-item">
+        <img src="/static/eda/vader_by_class.png" alt="VADER by class" loading="lazy">
+        <div class="caption"><span class="ko">VADER 감성 점수 분포</span><span class="en">VADER Sentiment Score Distribution</span></div>
+      </div>
+      <div class="gallery-item">
+        <img src="/static/eda/target_distribution.png" alt="Target distribution" loading="lazy">
+        <div class="caption"><span class="ko">타겟 커뮤니티 분포</span><span class="en">Target Community Distribution</span></div>
+      </div>
+      <div class="gallery-item">
+        <img src="/static/eda/text_length_distribution.png" alt="Text length" loading="lazy">
+        <div class="caption"><span class="ko">텍스트 길이 분포</span><span class="en">Text Length Distribution</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 8: XAI Analysis
+     ================================================================ -->
+<div id="tab-xai" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">XAI 분석: 설명가능성 평가</span><span class="en">XAI Analysis: Explainability Evaluation</span></h2>
+    <div class="ko-block desc">
+      SHAP과 LIME을 활용하여 모델의 예측 근거를 분석한다.
+      Overlap@5는 SHAP과 LIME이 선정한 상위 5개 중요 토큰의 일치도를 측정한다.
+      높을수록 두 XAI 기법이 동의하며 설명이 일관적임을 의미한다.
+      BERT-base(베이스라인)와 RoBERTa+VADER(개선 모델) 간 설명가능성을 비교한다.
+    </div>
+    <div class="en-block desc">
+      Using SHAP and LIME to analyze model prediction rationale.
+      Overlap@5 measures agreement between top-5 tokens. Higher = more consistent explanations.
+      Compares BERT-base (baseline) vs RoBERTa+VADER (improved).
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3>Overlap@5</h3>
+      <div class="ko-block desc">각 샘플별 SHAP-LIME 상위 5개 토큰 일치도이다.</div>
+      <div class="en-block desc">Per-sample SHAP-LIME top-5 token agreement.</div>
+      <div class="chart-container"><canvas id="chartOverlap"></canvas></div>
+    </div>
+    <div class="card">
+      <h3><span class="ko">XAI 요약 지표</span><span class="en">XAI Summary Metrics</span></h3>
+      <div class="ko-block desc">두 모델의 XAI 지표를 비교한다.</div>
+      <div class="en-block desc">Compares XAI metrics between two models.</div>
+      <table class="data-table">
+        <thead>
+          <tr><th><span class="ko">지표</span><span class="en">Metric</span></th><th>BERT-base</th><th>RoBERTa+VADER</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Macro F1</td>
+            <td>{xai_baseline_f1:.4f}</td>
+            <td style="color:var(--accent-green);font-weight:700">{xai_improved_f1:.4f}</td>
+          </tr>
+          <tr>
+            <td>Overlap@5 Mean</td>
+            <td>{xai_baseline_overlap:.4f}</td>
+            <td>{xai_improved_overlap:.4f}</td>
+          </tr>
+          <tr>
+            <td><span class="ko">Overlap >= 60% 샘플 수</span><span class="en">Overlap >= 60% Samples</span></td>
+            <td>{xai_baseline_ge60}</td>
+            <td>{xai_improved_ge60}</td>
+          </tr>
+          <tr>
+            <td><span class="ko">오분류 수정 수</span><span class="en">Fixed Errors</span></td>
+            <td colspan="2" style="text-align:center;color:var(--accent-green);font-weight:700">{xai_fixed}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="insight insight-orange">
+    <span class="ko"><strong>Baseline Overlap@5 평균 71.7%, Improved 67.5%:</strong> RoBERTa+VADER의 overlap이 약간 낮다. 모델이 더 다양한 특성에 주목하기 때문일 수 있다. 성능 향상과 설명 일관성 사이의 트레이드오프가 존재한다.</span>
+    <span class="en"><strong>Baseline Overlap@5 mean 71.7%, Improved 67.5%:</strong> RoBERTa+VADER overlap is slightly lower, possibly attending to more diverse features. A performance-explanation consistency trade-off exists.</span>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">혼동 행렬 비교</span><span class="en">Confusion Matrix Comparison</span></h3>
+    <div class="ko-block desc">BERT-base와 RoBERTa+VADER의 혼동 행렬. 대각선 값이 높을수록 정확한 분류이다.</div>
+    <div class="en-block desc">Confusion matrices for both models. Higher diagonal values = more accurate.</div>
+    <div class="gallery">
+      <div class="gallery-item">
+        <img src="/static/xai/bert_base/confusion_matrix.png" alt="BERT-base CM" loading="lazy">
+        <div class="caption">BERT-base</div>
+      </div>
+      <div class="gallery-item">
+        <img src="/static/xai/roberta_vader/confusion_matrix.png" alt="RoBERTa+VADER CM" loading="lazy">
+        <div class="caption">RoBERTa+VADER</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 9: XAI Cases
+     ================================================================ -->
+<div id="tab-xai_cases" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">XAI 케이스 갤러리</span><span class="en">XAI Case Gallery</span></h2>
+    <div class="ko-block desc">
+      개별 샘플에 대한 SHAP/LIME 분석 결과이다.
+      각 케이스에서 모델이 어떤 토큰에 주목했는지, 베이스라인과 개선 모델 간 차이를 확인할 수 있다.
+    </div>
+    <div class="en-block desc">
+      SHAP/LIME analysis results for individual samples, showing token focus differences between models.
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">케이스 요약 테이블</span><span class="en">Case Summary Table</span></h3>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th><span class="ko">카테고리</span><span class="en">Category</span></th>
+            <th><span class="ko">Baseline 토큰</span><span class="en">Baseline Tokens</span></th>
+            <th><span class="ko">Improved 토큰</span><span class="en">Improved Tokens</span></th>
+            <th>Base O@5</th><th>Imp O@5</th>
+          </tr>
+        </thead>
+        <tbody>{case_table_rows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">케이스 시각화</span><span class="en">Case Visualizations</span></h3>
+    <div class="ko-block desc">각 케이스의 SHAP/LIME 속성 시각화이다. 빨간색은 해당 클래스 기여 토큰, 파란색은 반대 방향 기여 토큰이다.</div>
+    <div class="en-block desc">SHAP/LIME attribution visualizations. Red = contributing tokens, Blue = opposing tokens.</div>
+    <div class="gallery">{case_gallery_html}</div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 10: Model Architecture
+     ================================================================ -->
+<div id="tab-architecture" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">모델 아키텍처</span><span class="en">Model Architecture</span></h2>
+    <div class="ko-block desc">
+      3가지 Transformer 기반 아키텍처의 구조를 시각적으로 설명한다.
+      각 아키텍처의 입력 처리, 인코더, 분류 헤드 구성이 다르며, 이 차이가 성능에 영향을 미친다.
+    </div>
+    <div class="en-block desc">
+      Visual explanation of 3 Transformer-based architectures. Each differs in design, affecting performance.
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <h3>TransformerCLS</h3>
+      <div class="ko-block desc">BERT-base 모델. [CLS] 토큰 임베딩을 직접 분류에 사용하는 가장 기본적인 구조.</div>
+      <div class="en-block desc">BERT-base model. Most basic architecture using [CLS] directly for classification.</div>
+      <div class="arch-diagram">
+        <div class="arch-block">Input Text</div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block">BERT Tokenizer<br><span style="font-size:0.8rem;color:var(--text-secondary)">max_len=128</span></div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block highlight">BERT Encoder<br><span style="font-size:0.8rem;color:var(--text-secondary)">12 layers, 768 dim</span></div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block">[CLS] Embedding<br><span style="font-size:0.8rem;color:var(--text-secondary)">768 dim</span></div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block">Dropout (0.1)</div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block output">Linear (768 &rarr; 3)<br><span style="font-size:0.8rem;color:var(--text-secondary)">hate / offensive / normal</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>TransformerMLP</h3>
+      <div class="ko-block desc">BERT+MLP. Ablation 통제 모델로, VADER 없이 동일 MLP 구조를 사용하여 VADER 효과를 분리한다.</div>
+      <div class="en-block desc">BERT+MLP. Ablation control using identical MLP without VADER to isolate its effect.</div>
+      <div class="arch-diagram">
+        <div class="arch-block">Input Text</div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block">BERT Tokenizer<br><span style="font-size:0.8rem;color:var(--text-secondary)">max_len=128</span></div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block highlight">BERT Encoder<br><span style="font-size:0.8rem;color:var(--text-secondary)">12 layers, 768 dim</span></div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block">[CLS] Embedding<br><span style="font-size:0.8rem;color:var(--text-secondary)">768 dim</span></div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block">MLP Hidden<br><span style="font-size:0.8rem;color:var(--text-secondary)">768 &rarr; 256, ReLU</span></div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block">Dropout (0.1)</div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block output">Linear (256 &rarr; 3)<br><span style="font-size:0.8rem;color:var(--text-secondary)">hate / offensive / normal</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>HybridSentiment</h3>
+      <div class="ko-block desc">BERT+VADER / RoBERTa+VADER. [CLS]와 VADER 4차원을 연결(concat)하여 MLP에 입력. 핵심 가설 아키텍처.</div>
+      <div class="en-block desc">BERT+VADER / RoBERTa+VADER. Concatenates [CLS] with 4-dim VADER for MLP. Core hypothesis architecture.</div>
+      <div class="arch-diagram">
+        <div class="arch-side">
+          <div class="arch-col">
+            <div class="arch-block">Input Text</div>
+            <div class="arch-arrow">&darr;</div>
+            <div class="arch-block highlight">Transformer Encoder<br><span style="font-size:0.8rem;color:var(--text-secondary)">BERT or RoBERTa</span></div>
+            <div class="arch-arrow">&darr;</div>
+            <div class="arch-block">[CLS]<br><span style="font-size:0.8rem;color:var(--text-secondary)">768 dim</span></div>
+          </div>
+          <div class="arch-col">
+            <div class="arch-block vader">VADER<br><span style="font-size:0.8rem;color:var(--text-secondary)">Sentiment Analyzer</span></div>
+            <div class="arch-arrow">&darr;</div>
+            <div class="arch-block vader">4-dim<br><span style="font-size:0.8rem;color:var(--text-secondary)">comp/pos/neg/neu</span></div>
+          </div>
+        </div>
+        <div class="arch-arrow">&darr; Concatenate</div>
+        <div class="arch-block">Combined<br><span style="font-size:0.8rem;color:var(--text-secondary)">772 dim (768+4)</span></div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block">MLP Hidden<br><span style="font-size:0.8rem;color:var(--text-secondary)">772 &rarr; 256, ReLU</span></div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block">Dropout (0.1)</div>
+        <div class="arch-arrow">&darr;</div>
+        <div class="arch-block output">Linear (256 &rarr; 3)<br><span style="font-size:0.8rem;color:var(--text-secondary)">hate / offensive / normal</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight insight-blue">
+    <span class="ko"><strong>HybridSentiment의 핵심 설계:</strong> 768차원 [CLS] 벡터에 단 4차원 VADER 감성을 추가한다 (비율 0.5%).
+    RoBERTa와 결합 시 통계적으로 유의미한 성능 향상을 달성. "올바른 인코더 + 적절한 보조 정보"의 시너지를 보여준다.</span>
+    <span class="en"><strong>Core HybridSentiment design:</strong> Just 4 VADER dims added to 768-dim [CLS] (0.5% ratio).
+    Achieves significant improvement with RoBERTa, demonstrating "right encoder + right auxiliary" synergy.</span>
+  </div>
+  <div class="insight insight-orange">
+    <span class="ko"><strong>TransformerMLP은 ablation 통제:</strong> BERT+MLP(F1=0.6810) vs BERT+VADER(F1=0.6794), p=0.567로 유의미하지 않다.
+    같은 인코더 기반에서 VADER의 추가 효과가 미미하며, 인코더 사전학습 품질이 더 중요한 변수이다.</span>
+    <span class="en"><strong>TransformerMLP as ablation control:</strong> BERT+MLP (F1=0.6810) vs BERT+VADER (F1=0.6794), p=0.567.
+    Minimal VADER effect on same encoder, confirming pre-training quality as the more important variable.</span>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 11: Playground
+     ================================================================ -->
+<div id="tab-playground" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">Playground -- 모델 테스트</span><span class="en">Playground -- Model Testing</span></h2>
+    <div class="ko-block desc">
+      텍스트를 입력하면 학습된 모델들이 실시간으로 분류 결과를 보여줍니다.
+      각 모델의 예측 확률(hatespeech / offensive / normal)과 VADER 감성 점수를 함께 확인할 수 있습니다.
+      모델은 최초 요청 시 로드되므로 첫 번째 예측은 몇 초 걸릴 수 있습니다.
+    </div>
+    <div class="en-block desc">
+      Enter text and trained models will classify it in real-time.
+      See prediction probabilities (hatespeech / offensive / normal) and VADER sentiment scores.
+      Models are lazy-loaded on first request, so the first prediction may take a few seconds.
+    </div>
+
+    <!-- Device Info -->
+    <div id="pg-device" style="margin-bottom:16px;font-size:13px;color:var(--text-muted)">
+      <span class="ko">디바이스 감지 중...</span><span class="en">Detecting device...</span>
+    </div>
+
+    <!-- Input Area -->
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <textarea id="pg-input" rows="3" placeholder="Enter text to classify... (e.g., 'I hate all of them')"
+        style="flex:1;min-width:300px;background:var(--bg-dark);color:var(--text-primary);border:1px solid var(--border-color);border-radius:8px;padding:12px;font-size:14px;font-family:inherit;resize:vertical"></textarea>
+    </div>
+
+    <!-- Model Selection -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+      <label style="font-size:13px;color:var(--text-muted);margin-right:4px">
+        <span class="ko">모델 선택:</span><span class="en">Select models:</span>
+      </label>
+      <label class="pg-check"><input type="checkbox" value="BERT-base" checked> BERT-base</label>
+      <label class="pg-check"><input type="checkbox" value="BERT+MLP" checked> BERT+MLP</label>
+      <label class="pg-check"><input type="checkbox" value="BERT+VADER" checked> BERT+VADER</label>
+      <label class="pg-check"><input type="checkbox" value="RoBERTa+VADER" checked> RoBERTa+VADER</label>
+      <button id="pg-btn" onclick="pgPredict()"
+        style="margin-left:auto;padding:10px 28px;background:var(--accent-blue);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">
+        <span class="ko">분석하기</span><span class="en">Analyze</span>
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div id="pg-loading" style="display:none;text-align:center;padding:24px;color:var(--text-muted)">
+      <div style="font-size:24px;animation:spin 1s linear infinite;display:inline-block">&#x21bb;</div>
+      <div style="margin-top:8px"><span class="ko">모델 추론 중... (첫 요청은 모델 로딩으로 10-15초 소요)</span><span class="en">Running inference... (first request takes 10-15s to load models)</span></div>
+    </div>
+
+    <!-- Results -->
+    <div id="pg-results"></div>
+
+    <!-- VADER Detail -->
+    <div id="pg-vader" style="display:none" class="card" style="margin-top:16px">
+      <h3>VADER Sentiment Scores</h3>
+      <div id="pg-vader-content"></div>
+    </div>
+  </div>
+
+  <!-- Example Texts -->
+  <div class="card">
+    <h2><span class="ko">예시 텍스트</span><span class="en">Example Texts</span></h2>
+    <div class="ko-block desc">클릭하면 자동으로 입력됩니다.</div>
+    <div class="en-block desc">Click to auto-fill the input.</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="pg-example" onclick="pgFill(this.dataset.text)" data-text="I love spending time with my friends and family"
+        style="text-align:left;padding:10px 14px;background:var(--bg-dark);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);cursor:pointer;font-size:13px">
+        <span style="color:var(--accent-green);font-weight:600">[Normal]</span> I love spending time with my friends and family
+      </button>
+      <button class="pg-example" onclick="pgFill(this.dataset.text)" data-text="shut up you stupid idiot nobody cares about your opinion"
+        style="text-align:left;padding:10px 14px;background:var(--bg-dark);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);cursor:pointer;font-size:13px">
+        <span style="color:var(--accent-orange);font-weight:600">[Offensive]</span> shut up you stupid idiot nobody cares about your opinion
+      </button>
+      <button class="pg-example" onclick="pgFill(this.dataset.text)" data-text="all jews must be eliminated from this country they are destroying everything"
+        style="text-align:left;padding:10px 14px;background:var(--bg-dark);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);cursor:pointer;font-size:13px">
+        <span style="color:var(--accent-red);font-weight:600">[Hatespeech]</span> all jews must be eliminated from this country they are destroying everything
+      </button>
+      <button class="pg-example" onclick="pgFill(this.dataset.text)" data-text="these immigrants are ruining our country go back where you came from"
+        style="text-align:left;padding:10px 14px;background:var(--bg-dark);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);cursor:pointer;font-size:13px">
+        <span style="color:var(--accent-red);font-weight:600">[Hatespeech]</span> these immigrants are ruining our country go back where you came from
+      </button>
+      <button class="pg-example" onclick="pgFill(this.dataset.text)" data-text="lmao this dude is so dumb he can barely spell his own name"
+        style="text-align:left;padding:10px 14px;background:var(--bg-dark);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);cursor:pointer;font-size:13px">
+        <span style="color:var(--accent-orange);font-weight:600">[Offensive]</span> lmao this dude is so dumb he can barely spell his own name
+      </button>
+    </div>
+  </div>
+
+  <!-- Interpretation Guide -->
+  <div class="card">
+    <h2><span class="ko">해석 가이드</span><span class="en">Interpretation Guide</span></h2>
+    <div class="insight-box insight-blue">
+      <span class="ko">
+        <strong>확률 분포 읽는 법:</strong> 각 모델은 3개 클래스에 대한 확률을 출력합니다 (합계 = 100%).
+        가장 높은 확률의 클래스가 예측 결과입니다. 확률이 고르게 분포되면(예: 35/33/32) 모델이 확신하지 못하는 것이고,
+        한쪽으로 쏠리면(예: 85/10/5) 확신이 높은 것입니다.
+      </span>
+      <span class="en">
+        <strong>Reading probabilities:</strong> Each model outputs probabilities for 3 classes (sum = 100%).
+        Highest probability is the prediction. Even distribution (e.g., 35/33/32) means low confidence,
+        skewed distribution (e.g., 85/10/5) means high confidence.
+      </span>
+    </div>
+    <div class="insight-box insight-orange">
+      <span class="ko">
+        <strong>모델 간 불일치:</strong> 모델들이 다른 결과를 내면, 그 텍스트가 hate/offensive 경계에 있다는 뜻입니다.
+        이런 애매한 사례가 바로 XAI 분석이 필요한 지점입니다.
+      </span>
+      <span class="en">
+        <strong>Model disagreement:</strong> When models disagree, the text sits on the hate/offensive boundary.
+        These ambiguous cases are exactly where XAI analysis is most valuable.
+      </span>
+    </div>
+    <div class="insight-box insight-green">
+      <span class="ko">
+        <strong>VADER 점수:</strong> compound &lt; -0.5 이면 매우 부정적, &gt; 0.5 이면 매우 긍정적입니다.
+        Hybrid 모델(BERT+VADER, RoBERTa+VADER)은 이 점수를 추가 입력으로 사용합니다.
+      </span>
+      <span class="en">
+        <strong>VADER scores:</strong> compound &lt; -0.5 is very negative, &gt; 0.5 is very positive.
+        Hybrid models (BERT+VADER, RoBERTa+VADER) use these as additional input features.
+      </span>
+    </div>
+  </div>
+</div>
+
+</div><!-- /.container -->
+
+<!-- ================================================================
+     JavaScript
+     ================================================================ -->
+<script>
+// ---- 데이터 주입 ----
+const benchmarkData = {js(bm_slim)};
+const significanceData = {js(sig_slim)};
+const tuningLog = {js(tuning_slim)};
+const edaData = {js(eda)};
+const overlapData = {js(overlap_slim)};
+let learningCurveData = null;
+
+// ---- 테마 / 언어 토글 ----
+function toggleTheme() {{
+  document.body.classList.toggle('light-mode');
+  document.getElementById('themeBtn').textContent =
+    document.body.classList.contains('light-mode') ? 'Dark' : 'Light';
+}}
+
+function toggleLang() {{
+  document.body.classList.toggle('en-mode');
+  document.getElementById('langBtn').textContent =
+    document.body.classList.contains('en-mode') ? 'KO' : 'EN';
+}}
+
+// ---- 탭 전환 ----
+document.querySelectorAll('.tab-btn').forEach(btn => {{
+  btn.addEventListener('click', function() {{
+    const tabId = this.getAttribute('data-tab');
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    this.classList.add('active');
+    if (tabId === 'learning' && !learningCurveData) {{ fetchLearningCurves(); }}
+  }});
+}});
+
+// ---- Chart.js 기본 설정 ----
+Chart.defaults.color = '#9ca3c4';
+Chart.defaults.borderColor = 'rgba(124,138,255,0.15)';
+Chart.defaults.font.family = "'Inter', sans-serif";
+
+const COLORS = ['#7c8aff', '#00e5b0', '#ff6b7a', '#ffb347', '#b57aff', '#4ecdc4'];
+
+// ---- 벤치마크 수평 바 차트 ----
+(function() {{
+  const models = benchmarkData.map(r => r.model);
+  const f1s = benchmarkData.map(r => parseFloat(r.macro_f1_mean));
+  const stds = benchmarkData.map(r => parseFloat(r.macro_f1_std));
+  const bgColors = models.map((_, i) => COLORS[i % COLORS.length]);
+
+  new Chart(document.getElementById('chartBenchmarkF1'), {{
+    type: 'bar',
+    data: {{
+      labels: models,
+      datasets: [{{ label: 'Macro F1', data: f1s,
+        backgroundColor: bgColors.map(c => c + '99'),
+        borderColor: bgColors, borderWidth: 2 }}]
+    }},
+    options: {{
+      indexAxis: 'y', responsive: true,
+      plugins: {{ legend: {{ display: false }},
+        tooltip: {{ callbacks: {{
+          label: (ctx) => 'F1: ' + f1s[ctx.dataIndex].toFixed(4) + ' +/- ' + stds[ctx.dataIndex].toFixed(4)
+        }} }}
+      }},
+      scales: {{ x: {{ min: 0.60, max: 0.72, title: {{ display: true, text: 'Macro F1' }} }} }}
+    }},
+    plugins: [{{
+      id: 'errorBars',
+      afterDatasetsDraw(chart) {{
+        const meta = chart.getDatasetMeta(0);
+        const ctx2 = chart.ctx;
+        meta.data.forEach((bar, i) => {{
+          const xMin = chart.scales.x.getPixelForValue(f1s[i] - stds[i]);
+          const xMax = chart.scales.x.getPixelForValue(f1s[i] + stds[i]);
+          const y = bar.y;
+          ctx2.save(); ctx2.strokeStyle = bgColors[i]; ctx2.lineWidth = 2;
+          ctx2.beginPath();
+          ctx2.moveTo(xMin, y); ctx2.lineTo(xMax, y);
+          ctx2.moveTo(xMin, y-6); ctx2.lineTo(xMin, y+6);
+          ctx2.moveTo(xMax, y-6); ctx2.lineTo(xMax, y+6);
+          ctx2.stroke(); ctx2.restore();
+        }});
+      }}
+    }}]
+  }});
+}})();
+
+// ---- 레이더 차트 ----
+(function() {{
+  const top4 = benchmarkData.slice(0, 4);
+  const labels = ['Macro F1', 'Accuracy', 'AUROC', 'Hate F1', 'Offensive F1', 'Normal F1'];
+  const datasets = top4.map((r, i) => ({{
+    label: r.model,
+    data: [parseFloat(r.macro_f1_mean), parseFloat(r.accuracy_mean), parseFloat(r.auroc_mean),
+           parseFloat(r['per_class_f1.hatespeech_mean']), parseFloat(r['per_class_f1.offensive_mean']),
+           parseFloat(r['per_class_f1.normal_mean'])],
+    borderColor: COLORS[i], backgroundColor: COLORS[i] + '22',
+    borderWidth: 2, pointRadius: 4, pointBackgroundColor: COLORS[i]
+  }}));
+  new Chart(document.getElementById('chartRadar'), {{
+    type: 'radar', data: {{ labels, datasets }},
+    options: {{ responsive: true,
+      scales: {{ r: {{ min: 0.45, max: 0.90, ticks: {{ stepSize: 0.05 }}, grid: {{ color: 'rgba(124,138,255,0.1)' }} }} }},
+      plugins: {{ legend: {{ position: 'bottom', labels: {{ padding: 16 }} }} }}
+    }}
+  }});
+}})();
+
+// ---- 클래스별 F1 ----
+(function() {{
+  const models = benchmarkData.map(r => r.model);
+  const classes = ['hatespeech', 'offensive', 'normal'];
+  const cColors = ['#ff6b7a', '#ffb347', '#00e5b0'];
+  const datasets = classes.map((cls, ci) => ({{
+    label: cls,
+    data: benchmarkData.map(r => parseFloat(r['per_class_f1.' + cls + '_mean'])),
+    backgroundColor: cColors[ci] + '99', borderColor: cColors[ci], borderWidth: 2
+  }}));
+  new Chart(document.getElementById('chartPerClassF1'), {{
+    type: 'bar', data: {{ labels: models, datasets }},
+    options: {{ responsive: true, plugins: {{ legend: {{ position: 'top' }} }},
+      scales: {{ y: {{ min: 0.4, max: 0.85, title: {{ display: true, text: 'F1 Score' }} }} }}
+    }}
+  }});
+}})();
+
+// ---- P-value 히트맵 (Canvas 직접 그리기) ----
+(function() {{
+  const allModels = [...new Set(significanceData.flatMap(r => [r.model_a, r.model_b]))];
+  const n = allModels.length;
+  const matrix = Array.from({{length: n}}, () => Array(n).fill(null));
+  significanceData.forEach(r => {{
+    const i = allModels.indexOf(r.model_a), j = allModels.indexOf(r.model_b);
+    const p = parseFloat(r.p_value);
+    if (i >= 0 && j >= 0) {{ matrix[i][j] = p; matrix[j][i] = p; }}
+  }});
+  const canvas = document.getElementById('chartPvalueHeatmap');
+  const ctx = canvas.getContext('2d');
+  const cellW = 85, cellH = 50, offsetX = 130, offsetY = 35;
+  canvas.width = offsetX + n * cellW + 10;
+  canvas.height = offsetY + n * cellH + 10;
+  ctx.font = '11px Inter, sans-serif';
+  allModels.forEach((m, i) => {{
+    ctx.fillStyle = '#9ca3c4'; ctx.textAlign = 'right';
+    ctx.fillText(m, offsetX - 8, offsetY + i * cellH + cellH/2 + 4);
+    ctx.save(); ctx.translate(offsetX + i * cellW + cellW/2, offsetY - 6);
+    ctx.rotate(-0.4); ctx.textAlign = 'right';
+    ctx.fillText(m, 0, 0); ctx.restore();
+  }});
+  for (let i = 0; i < n; i++) {{
+    for (let j = 0; j < n; j++) {{
+      const v = i === j ? null : matrix[i][j];
+      const x = offsetX + j * cellW, y = offsetY + i * cellH;
+      if (v === null) {{
+        ctx.fillStyle = '#1a1d2e'; ctx.fillRect(x, y, cellW-2, cellH-2);
+        if (i === j) {{ ctx.fillStyle = '#555'; ctx.textAlign = 'center'; ctx.fillText('-', x+cellW/2, y+cellH/2+4); }}
+      }} else {{
+        const sig = v < 0.05;
+        ctx.fillStyle = sig ? 'rgba(0,229,176,' + (0.15 + 0.6*Math.max(0, 1-v/0.05)) + ')' : 'rgba(156,163,196,0.15)';
+        ctx.fillRect(x, y, cellW-2, cellH-2);
+        ctx.fillStyle = sig ? '#00e5b0' : '#9ca3c4';
+        ctx.textAlign = 'center';
+        ctx.fillText(v.toFixed(4), x+cellW/2, y+cellH/2+4);
+      }}
+    }}
+  }}
+}})();
+
+// ---- 튜닝 차트 ----
+(function() {{
+  const models = [...new Set(tuningLog.map(r => r.model))];
+  const mColors = {{ 'BERT-base': '#7c8aff', 'BERT+VADER': '#ffb347', 'RoBERTa+VADER': '#00e5b0' }};
+
+  // LR
+  const lrData = tuningLog.filter(r => r.parameter === 'learning_rate');
+  const lrLabels = [...new Set(lrData.map(r => r.candidate))];
+  const lrDatasets = models.map(m => {{
+    const rows = lrData.filter(r => r.model === m).sort((a,b) => parseFloat(a.candidate) - parseFloat(b.candidate));
+    return {{ label: m, data: rows.map(r => parseFloat(r.val_macro_f1)),
+      borderColor: mColors[m] || '#fff', backgroundColor: (mColors[m] || '#fff') + '33',
+      borderWidth: 2, tension: 0.3, pointRadius: 5, fill: false }};
+  }});
+  new Chart(document.getElementById('chartTuningLR'), {{
+    type: 'line', data: {{ labels: lrLabels, datasets: lrDatasets }},
+    options: {{ responsive: true, plugins: {{ legend: {{ position: 'bottom' }} }},
+      scales: {{ x: {{ title: {{ display: true, text: 'Learning Rate' }} }},
+               y: {{ min: 0.655, max: 0.69, title: {{ display: true, text: 'Val Macro F1' }} }} }}
+    }}
+  }});
+
+  // Dropout
+  const doData = tuningLog.filter(r => r.parameter === 'dropout');
+  const doLabels = [...new Set(doData.map(r => r.candidate))];
+  const doDatasets = models.map(m => {{
+    const rows = doData.filter(r => r.model === m).sort((a,b) => parseFloat(a.candidate) - parseFloat(b.candidate));
+    return {{ label: m, data: rows.map(r => parseFloat(r.val_macro_f1)),
+      borderColor: mColors[m] || '#fff', backgroundColor: (mColors[m] || '#fff') + '33',
+      borderWidth: 2, tension: 0.3, pointRadius: 5, fill: false }};
+  }});
+  new Chart(document.getElementById('chartTuningDropout'), {{
+    type: 'line', data: {{ labels: doLabels, datasets: doDatasets }},
+    options: {{ responsive: true, plugins: {{ legend: {{ position: 'bottom' }} }},
+      scales: {{ x: {{ title: {{ display: true, text: 'Dropout' }} }},
+               y: {{ min: 0.655, max: 0.69, title: {{ display: true, text: 'Val Macro F1' }} }} }}
+    }}
+  }});
+}})();
+
+// ---- 학습 곡선 (비동기) ----
+let lcChart = null;
+async function fetchLearningCurves() {{
+  const res = await fetch('/api/learning_curves');
+  learningCurveData = await res.json();
+  updateLearningCurveChart();
+}}
+
+function updateLearningCurveChart() {{
+  if (!learningCurveData) return;
+  const model = document.getElementById('lcModelSelect').value;
+  const modelData = learningCurveData[model];
+  if (!modelData) return;
+  if (lcChart) lcChart.destroy();
+
+  const seeds = Object.keys(modelData).sort();
+  const seedColors = ['#7c8aff', '#00e5b0', '#ff6b7a'];
+  const datasets = [];
+  seeds.forEach((seed, si) => {{
+    const rows = modelData[seed];
+    datasets.push({{
+      label: seed + ' train_loss', data: rows.map(r => r.train_loss),
+      borderColor: seedColors[si], borderWidth: 2, borderDash: [6,3],
+      yAxisID: 'y', pointRadius: 3, tension: 0.3
+    }});
+    datasets.push({{
+      label: seed + ' val_f1', data: rows.map(r => r.val_macro_f1),
+      borderColor: seedColors[si], borderWidth: 2,
+      yAxisID: 'y1', pointRadius: 4, tension: 0.3
+    }});
+  }});
+  const maxEp = Math.max(...seeds.map(s => modelData[s].length));
+  const labels = Array.from({{length: maxEp}}, (_, i) => i + 1);
+
+  lcChart = new Chart(document.getElementById('chartLearningCurve'), {{
+    type: 'line', data: {{ labels, datasets }},
+    options: {{
+      responsive: true, interaction: {{ mode: 'index', intersect: false }},
+      plugins: {{ legend: {{ position: 'bottom', labels: {{ padding: 12 }} }} }},
+      scales: {{
+        y: {{ type: 'linear', position: 'left', title: {{ display: true, text: 'Train Loss' }}, min: 0.2, max: 1.2 }},
+        y1: {{ type: 'linear', position: 'right', title: {{ display: true, text: 'Val Macro F1' }}, min: 0.55, max: 0.72, grid: {{ drawOnChartArea: false }} }}
+      }}
+    }}
+  }});
+}}
+
+// ---- Freeze 차트 ----
+(function() {{
+  const frozenMean = {round(frozen_mean, 6)};
+  const finetunedMean = {round(finetuned_mean, 6)};
+  const diff = ((finetunedMean - frozenMean) / frozenMean * 100).toFixed(1);
+  new Chart(document.getElementById('chartFreeze'), {{
+    type: 'bar',
+    data: {{
+      labels: ['Frozen Encoder', 'Fine-tuned Encoder'],
+      datasets: [{{ label: 'Macro F1', data: [frozenMean, finetunedMean],
+        backgroundColor: ['#ff6b7a99', '#00e5b099'], borderColor: ['#ff6b7a', '#00e5b0'], borderWidth: 2 }}]
+    }},
+    options: {{ responsive: true,
+      plugins: {{ legend: {{ display: false }},
+        tooltip: {{ callbacks: {{ afterLabel: () => '+' + diff + '% improvement' }} }}
+      }},
+      scales: {{ y: {{ min: 0, max: 0.8, title: {{ display: true, text: 'Macro F1' }} }} }}
+    }},
+    plugins: [{{
+      id: 'diffAnnotation',
+      afterDraw(chart) {{
+        const meta = chart.getDatasetMeta(0);
+        const ctx2 = chart.ctx;
+        const bar0 = meta.data[0], bar1 = meta.data[1];
+        ctx2.save(); ctx2.font = 'bold 16px Inter, sans-serif'; ctx2.fillStyle = '#00e5b0'; ctx2.textAlign = 'center';
+        ctx2.fillText('+' + diff + '%', (bar0.x + bar1.x) / 2, Math.min(bar0.y, bar1.y) - 12);
+        ctx2.restore();
+      }}
+    }}]
+  }});
+}})();
+
+// ---- VADER 차트 ----
+(function() {{
+  const vaderStats = (edaData.vader_by_class_stats || []).filter(v => v['class'] !== 'ALL');
+  const classes = vaderStats.map(v => v['class']);
+  const metrics = ['compound_mean', 'neg_mean', 'pos_mean'];
+  const mLabels = ['Compound', 'Negative', 'Positive'];
+  const mColors = ['#7c8aff', '#ff6b7a', '#00e5b0'];
+  const datasets = metrics.map((m, mi) => ({{
+    label: mLabels[mi], data: vaderStats.map(v => v[m]),
+    backgroundColor: mColors[mi] + '99', borderColor: mColors[mi], borderWidth: 2
+  }}));
+  new Chart(document.getElementById('chartVader'), {{
+    type: 'bar', data: {{ labels: classes, datasets }},
+    options: {{ responsive: true, plugins: {{ legend: {{ position: 'top' }} }},
+      scales: {{ y: {{ title: {{ display: true, text: 'VADER Score' }} }} }}
+    }}
+  }});
+}})();
+
+// ---- 타겟 커뮤니티 차트 ----
+(function() {{
+  const targets = (edaData.top_targets || []).slice(0, 13);
+  new Chart(document.getElementById('chartTargets'), {{
+    type: 'bar',
+    data: {{
+      labels: targets.map(t => t.target),
+      datasets: [{{ label: 'Count', data: targets.map(t => t.count),
+        backgroundColor: targets.map((_, i) => COLORS[i % COLORS.length] + '99'),
+        borderColor: targets.map((_, i) => COLORS[i % COLORS.length]), borderWidth: 1 }}]
+    }},
+    options: {{ indexAxis: 'y', responsive: true,
+      plugins: {{ legend: {{ display: false }} }},
+      scales: {{ x: {{ title: {{ display: true, text: 'Count' }} }} }}
+    }}
+  }});
+}})();
+
+// ---- Overlap@5 차트 ----
+(function() {{
+  const sampleIds = [...new Set(overlapData.map(r => r.sample_id))];
+  const baselineMap = {{}};
+  const improvedMap = {{}};
+  overlapData.forEach(r => {{
+    if (r.model === 'BERT-base') baselineMap[r.sample_id] = parseFloat(r.overlap_at_5);
+    else improvedMap[r.sample_id] = parseFloat(r.overlap_at_5);
+  }});
+  new Chart(document.getElementById('chartOverlap'), {{
+    type: 'bar',
+    data: {{
+      labels: sampleIds.map(id => '#' + id),
+      datasets: [
+        {{ label: 'BERT-base', data: sampleIds.map(id => baselineMap[id] || 0),
+          backgroundColor: '#7c8aff99', borderColor: '#7c8aff', borderWidth: 1 }},
+        {{ label: 'RoBERTa+VADER', data: sampleIds.map(id => improvedMap[id] || 0),
+          backgroundColor: '#00e5b099', borderColor: '#00e5b0', borderWidth: 1 }}
+      ]
+    }},
+    options: {{ responsive: true, plugins: {{ legend: {{ position: 'top' }} }},
+      scales: {{ y: {{ min: 0, max: 1.0, title: {{ display: true, text: 'Overlap@5' }} }} }}
+    }}
+  }});
+}})();
+
+// ===== Playground Functions =====
+// 디바이스 상태 확인
+fetch('/api/predict/status').then(r=>r.json()).then(d=>{{
+  const el=document.getElementById('pg-device');
+  if(el) el.innerHTML=`<span style="color:var(--accent-green)">Device: ${{d.device}}</span> | <span class="ko">사용 가능: </span><span class="en">Available: </span>${{d.available_models.join(', ')}}`;
+}}).catch(()=>{{}});
+
+function pgFill(text) {{
+  document.getElementById('pg-input').value = text;
+}}
+
+async function pgPredict() {{
+  const text = document.getElementById('pg-input').value.trim();
+  if (!text) return;
+
+  const models = [...document.querySelectorAll('.pg-check input:checked')].map(c=>c.value);
+  if (models.length === 0) return;
+
+  const btn = document.getElementById('pg-btn');
+  const loading = document.getElementById('pg-loading');
+  const resultsDiv = document.getElementById('pg-results');
+
+  btn.disabled = true;
+  loading.style.display = 'block';
+  resultsDiv.innerHTML = '';
+
+  try {{
+    const resp = await fetch('/api/predict', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{ text, models }})
+    }});
+    const data = await resp.json();
+
+    if (data.error) {{
+      resultsDiv.innerHTML = `<div class="insight-box insight-red">${{data.error}}</div>`;
+      return;
+    }}
+
+    const labelColors = {{ hatespeech: 'var(--accent-red)', offensive: 'var(--accent-orange)', normal: 'var(--accent-green)' }};
+    const labelEmoji = {{ hatespeech: '&#x26a0;', offensive: '&#x26a1;', normal: '&#x2714;' }};
+
+    let html = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Device: ${{data.device}}</div>`;
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">';
+
+    let vaderHtml = '';
+
+    for (const [modelName, result] of Object.entries(data.results)) {{
+      if (result.error) {{
+        html += `<div class="card" style="border-color:var(--accent-red)"><h3>${{modelName}}</h3><p style="color:var(--accent-red)">${{result.error}}</p></div>`;
+        continue;
+      }}
+
+      const probs = result.probabilities;
+      const label = result.label;
+      const color = labelColors[label] || 'var(--text-muted)';
+      const maxProb = Math.max(probs.hatespeech, probs.offensive, probs.normal);
+
+      html += `<div class="card" style="border-left:3px solid ${{color}}">`;
+      html += `<h3 style="margin-bottom:12px">${{modelName}}</h3>`;
+      html += `<div style="font-size:20px;font-weight:700;color:${{color}};margin-bottom:12px">${{labelEmoji[label] || ''}} ${{label.toUpperCase()}}</div>`;
+
+      // Probability bars
+      for (const cls of ['hatespeech', 'offensive', 'normal']) {{
+        const p = probs[cls];
+        const pct = (p * 100).toFixed(1);
+        const barColor = labelColors[cls];
+        const isMax = (p === maxProb);
+        html += `<div style="margin-bottom:6px">`;
+        html += `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px;${{isMax?'font-weight:700;color:var(--text-primary)':'color:var(--text-muted)'}}">`;
+        html += `<span>${{cls}}</span><span>${{pct}}%</span></div>`;
+        html += `<div style="background:var(--bg-dark);border-radius:4px;height:8px;overflow:hidden">`;
+        html += `<div style="width:${{pct}}%;height:100%;background:${{barColor}};border-radius:4px;transition:width 0.5s"></div>`;
+        html += `</div></div>`;
+      }}
+
+      // Confidence indicator
+      const confidence = maxProb > 0.7 ? 'High' : maxProb > 0.45 ? 'Medium' : 'Low';
+      const confColor = maxProb > 0.7 ? 'var(--accent-green)' : maxProb > 0.45 ? 'var(--accent-orange)' : 'var(--accent-red)';
+      html += `<div style="margin-top:10px;font-size:11px;color:${{confColor}}"><span class="ko">확신도: ${{confidence}} (${{(maxProb*100).toFixed(1)}}%)</span><span class="en">Confidence: ${{confidence}} (${{(maxProb*100).toFixed(1)}}%)</span></div>`;
+      html += `</div>`;
+
+      // VADER (only once)
+      if (result.vader_scores && !vaderHtml) {{
+        const vs = result.vader_scores;
+        vaderHtml = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px">`;
+        for (const [k, v] of Object.entries(vs)) {{
+          const vc = k === 'compound' ? (v < -0.3 ? 'var(--accent-red)' : v > 0.3 ? 'var(--accent-green)' : 'var(--accent-orange)') : 'var(--text-muted)';
+          vaderHtml += `<div style="text-align:center;background:var(--bg-dark);padding:12px;border-radius:8px">`;
+          vaderHtml += `<div style="font-size:20px;font-weight:700;color:${{vc}}">${{v.toFixed(4)}}</div>`;
+          vaderHtml += `<div style="font-size:11px;color:var(--text-muted)">${{k}}</div></div>`;
+        }}
+        vaderHtml += `</div>`;
+      }}
+    }}
+
+    html += '</div>';
+
+    // Model agreement analysis
+    const predictions = Object.entries(data.results).filter(([_,r])=>!r.error).map(([m,r])=>({{model:m,label:r.label}}));
+    const uniqueLabels = [...new Set(predictions.map(p=>p.label))];
+    if (predictions.length > 1) {{
+      if (uniqueLabels.length === 1) {{
+        html += `<div class="insight-box insight-green" style="margin-top:14px"><strong><span class="ko">모델 합의:</span><span class="en">Model consensus:</span></strong> <span class="ko">모든 모델이 <strong>${{uniqueLabels[0]}}</strong>으로 일치합니다. 높은 신뢰도의 예측입니다.</span><span class="en">All models agree on <strong>${{uniqueLabels[0]}}</strong>. High-confidence prediction.</span></div>`;
+      }} else {{
+        const disagreements = predictions.map(p=>`${{p.model}}=${{p.label}}`).join(', ');
+        html += `<div class="insight-box insight-orange" style="margin-top:14px"><strong><span class="ko">모델 불일치:</span><span class="en">Model disagreement:</span></strong> <span class="ko">${{disagreements}}. 이 텍스트는 hate/offensive 경계에 있을 수 있습니다.</span><span class="en">${{disagreements}}. This text may sit on the hate/offensive boundary.</span></div>`;
+      }}
+    }}
+
+    // VADER section
+    if (vaderHtml) {{
+      html += `<div class="card" style="margin-top:14px"><h3>VADER Sentiment Analysis</h3>`;
+      html += `<div class="ko-block desc" style="font-size:12px">compound가 -0.5 미만이면 매우 부정적, 0.5 초과이면 매우 긍정적입니다. Hybrid 모델은 이 값을 추가 입력으로 사용합니다.</div>`;
+      html += `<div class="en-block desc" style="font-size:12px">compound below -0.5 is very negative, above 0.5 is very positive. Hybrid models use these as additional input.</div>`;
+      html += vaderHtml + `</div>`;
+    }}
+
+    resultsDiv.innerHTML = html;
+
+  }} catch(e) {{
+    resultsDiv.innerHTML = `<div class="insight-box insight-red">Error: ${{e.message}}</div>`;
+  }} finally {{
+    btn.disabled = false;
+    loading.style.display = 'none';
+  }}
+}}
+</script>
+<style>
+/* Playground-specific styles */
+@keyframes spin {{ from {{transform:rotate(0deg)}} to {{transform:rotate(360deg)}} }}
+.pg-check {{ display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--text-muted);cursor:pointer;padding:4px 10px;background:var(--bg-dark);border-radius:6px;border:1px solid var(--border-color) }}
+.pg-check input {{ accent-color:var(--accent-blue) }}
+.pg-example:hover {{ border-color:var(--accent-blue) !important; }}
+</style>
+</body>
+</html>"""
+
+    return HTMLResponse(html)
+
+
+# ---------------------------------------------------------------------------
+# 엔트리포인트
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8501)
