@@ -1095,7 +1095,6 @@ def run_tfidf_baselines(
                 max_iter=2000,
                 class_weight=class_weight,
                 random_state=seed,
-                multi_class="auto",
             ),
             "candidates": [0.5, 1.0, 2.0],
         },
@@ -1561,6 +1560,12 @@ def _tune_single_model(
 def run_hyperparameter_tuning(config: ExperimentConfig | None = None) -> dict[str, dict[str, Any]]:
     """모든 모델의 하이퍼파라미터를 순차 탐색으로 최적화하고 결과를 저장해요."""
     config = config or get_config()
+
+    # 이미 튜닝 결과가 있으면 바로 반환 (시간 절약!)
+    if TUNING_SUMMARY_PATH.exists() and not getattr(config, "force_refresh", False):
+        print("[tuning] 기존 튜닝 결과를 불러올게요 (다시 하려면 --force를 써주세요)", flush=True)
+        return load_tuned_hyperparams()
+
     # 데이터와 VADER 피처가 준비되어 있는지 확인!
     prepare_data(config)
     extract_vader_features(force_refresh=False)
