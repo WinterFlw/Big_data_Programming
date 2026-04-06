@@ -394,6 +394,73 @@ def api_predict_status():
 
 
 # ---------------------------------------------------------------------------
+# Data Explorer API -- hatexplain_vader.csv 기반 페이지네이션 검색
+# ---------------------------------------------------------------------------
+_data_explorer_cache: list[dict] | None = None
+
+
+def _load_explorer_data() -> list[dict]:
+    """데이터 탐색기용 CSV를 한 번만 로드하여 캐싱한다."""
+    global _data_explorer_cache
+    if _data_explorer_cache is not None:
+        return _data_explorer_cache
+
+    # 여러 후보 경로를 순서대로 시도한다
+    candidates = [
+        BASE / "data" / "hatexplain_vader.csv",
+        BASE / "data" / "hatexplain_processed.csv",
+        BASE / "data" / "dataset.csv",
+    ]
+    for p in candidates:
+        if p.exists():
+            _data_explorer_cache = _read_csv(p)
+            return _data_explorer_cache
+    _data_explorer_cache = []
+    return _data_explorer_cache
+
+
+@app.get("/api/data_explorer")
+def api_data_explorer(q: str = "", label: str = "", page: int = 1, limit: int = 20):
+    """데이터 탐색기 -- 텍스트 검색 + 라벨 필터 + 페이지네이션"""
+    rows = _load_explorer_data()
+    filtered = rows
+
+    # 라벨 필터
+    if label and label.lower() != "all":
+        filtered = [r for r in filtered if r.get("label", "").lower() == label.lower()]
+
+    # 텍스트 검색 (대소문자 무시)
+    if q:
+        q_lower = q.lower()
+        filtered = [r for r in filtered if q_lower in r.get("text", "").lower()]
+
+    total = len(filtered)
+    start = (page - 1) * limit
+    end = start + limit
+    page_rows = filtered[start:end]
+
+    # 각 행에서 필요한 필드만 추출
+    results = []
+    for r in page_rows:
+        text = r.get("text", r.get("post_tokens", ""))
+        word_count = len(text.split()) if text else 0
+        results.append({
+            "text": text[:300],  # 미리보기용 300자 제한
+            "label": r.get("label", r.get("final_label", "unknown")),
+            "vader_compound": r.get("vader_compound", r.get("compound", "")),
+            "word_count": word_count,
+        })
+
+    return JSONResponse({
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": max(1, (total + limit - 1) // limit),
+        "results": results,
+    })
+
+
+# ---------------------------------------------------------------------------
 # 메인 대시보드 HTML
 # ---------------------------------------------------------------------------
 
@@ -887,9 +954,169 @@ select {{
 .badge-green {{ background: rgba(0,229,176,0.2); color: var(--accent-green); }}
 .badge-gray {{ background: rgba(156,163,196,0.2); color: var(--text-secondary); }}
 .badge-red {{ background: rgba(255,107,122,0.2); color: var(--accent-red); }}
+
+/* 이미지 라이트박스 */
+.lightbox-overlay {{ position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);z-index:9999;display:none;align-items:center;justify-content:center;cursor:zoom-out }}
+.lightbox-overlay.active {{ display:flex }}
+.lightbox-overlay img {{ max-width:92vw;max-height:90vh;border-radius:8px;box-shadow:0 0 40px rgba(0,0,0,0.6) }}
+.lightbox-close {{ position:fixed;top:20px;right:24px;color:white;font-size:2rem;cursor:pointer;z-index:10000;background:none;border:none }}
+.gallery-item img, .gallery img {{ cursor:zoom-in }}
+
+/* 데이터 탐색기 카드 */
+.explorer-card {{
+  background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}}
+.explorer-card .explorer-text {{
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  line-height: 1.6;
+  word-break: break-word;
+}}
+.explorer-card .explorer-meta {{
+  display: flex;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}}
+.explorer-search-bar {{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  align-items: center;
+}}
+.explorer-search-bar input {{
+  flex: 1;
+  min-width: 200px;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}}
+.explorer-search-bar select {{
+  min-width: 140px;
+}}
+.explorer-search-bar button {{
+  background: var(--accent-blue);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}}
+.explorer-grid {{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}}
+.explorer-pagination {{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}}
+.explorer-pagination button {{
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}}
+.explorer-pagination button:disabled {{
+  opacity: 0.4;
+  cursor: not-allowed;
+}}
+
+/* 비교 탭 */
+.comparison-selectors {{
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  align-items: center;
+}}
+.comparison-selectors label {{
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}}
+.comparison-side {{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}}
+@media (max-width: 768px) {{
+  .comparison-side {{ grid-template-columns: 1fr; }}
+}}
+.delta-row {{
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.9rem;
+}}
+.delta-positive {{ color: var(--accent-green); font-weight: 700; }}
+.delta-negative {{ color: var(--accent-red); font-weight: 700; }}
+.delta-neutral {{ color: var(--text-secondary); }}
+
+/* 리포트 탭 */
+.report-container {{
+  background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 28px;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}}
+.report-container h2 {{ color: var(--accent-blue); margin: 20px 0 10px; font-size: 1.2rem; }}
+.report-container h3 {{ color: var(--accent-purple); margin: 16px 0 8px; font-size: 1.05rem; }}
+.report-container table {{ width: 100%; border-collapse: collapse; margin: 12px 0; }}
+.report-container th {{ background: rgba(124,138,255,0.1); padding: 8px 12px; text-align: left; border-bottom: 2px solid var(--border-subtle); }}
+.report-container td {{ padding: 6px 12px; border-bottom: 1px solid var(--border-subtle); }}
+.report-actions {{
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}}
+.report-actions button {{
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+}}
+
+/* 인쇄 전용 스타일 */
+@media print {{
+  .top-bar, .tab-nav, .top-bar-actions, #tab-playground {{ display:none !important; }}
+  .tab-content {{ display:block !important; page-break-inside:avoid; }}
+  body {{ background:white !important; color:black !important; }}
+  .card {{ box-shadow:none !important; border:1px solid #ddd !important; }}
+  .lightbox-overlay {{ display:none !important; }}
+  .report-actions {{ display:none !important; }}
+}}
 </style>
 </head>
 <body>
+
+<!-- 이미지 라이트박스 오버레이 -->
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+  <img id="lightbox-img" src="" alt="Enlarged">
+</div>
 
 <!-- ================================================================
      상단바
@@ -900,6 +1127,7 @@ select {{
     <span class="en"> Comprehensive Dashboard</span>
   </h1>
   <div class="top-bar-actions">
+    <button onclick="window.print()" title="Export Report as PDF"><span class="ko">Export</span><span class="en">Export</span></button>
     <button onclick="toggleLang()" id="langBtn">EN</button>
     <button onclick="toggleTheme()" id="themeBtn">Light</button>
   </div>
@@ -940,6 +1168,15 @@ select {{
   </button>
   <button class="tab-btn" data-tab="architecture">
     <span class="ko">Model Architecture</span><span class="en">Model Architecture</span>
+  </button>
+  <button class="tab-btn" data-tab="explorer">
+    <span class="ko">Data Explorer</span><span class="en">Data Explorer</span>
+  </button>
+  <button class="tab-btn" data-tab="comparison">
+    <span class="ko">Comparison</span><span class="en">Comparison</span>
+  </button>
+  <button class="tab-btn" data-tab="report">
+    <span class="ko">Report</span><span class="en">Report</span>
   </button>
   <button class="tab-btn" data-tab="playground">
     <span class="ko">Playground</span><span class="en">Playground</span>
@@ -1656,6 +1893,109 @@ select {{
 </div>
 
 <!-- ================================================================
+     TAB 12: Data Explorer
+     ================================================================ -->
+<div id="tab-explorer" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">Data Explorer -- 데이터셋 탐색</span><span class="en">Data Explorer -- Dataset Browser</span></h2>
+    <div class="ko-block desc">
+      HateXplain 데이터셋의 개별 샘플을 검색하고 탐색할 수 있다.
+      텍스트 키워드 검색과 라벨 필터링을 지원한다.
+    </div>
+    <div class="en-block desc">
+      Browse and search individual samples from the HateXplain dataset.
+      Supports text keyword search and label filtering.
+    </div>
+
+    <div class="explorer-search-bar">
+      <input type="text" id="explorer-query" placeholder="Search text..." onkeydown="if(event.key==='Enter') explorerSearch(1)">
+      <select id="explorer-label">
+        <option value="all"><span class="ko">All</span></option>
+        <option value="hatespeech">hatespeech</option>
+        <option value="offensive">offensive</option>
+        <option value="normal">normal</option>
+      </select>
+      <button onclick="explorerSearch(1)"><span class="ko">검색</span><span class="en">Search</span></button>
+    </div>
+
+    <div id="explorer-status" style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:10px"></div>
+    <div id="explorer-results" class="explorer-grid"></div>
+    <div id="explorer-pagination" class="explorer-pagination"></div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 13: Model Comparison
+     ================================================================ -->
+<div id="tab-comparison" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">Model Comparison -- 모델 비교 분석</span><span class="en">Model Comparison -- Side-by-Side Analysis</span></h2>
+    <div class="ko-block desc">
+      두 모델을 선택하여 성능 지표를 나란히 비교할 수 있다.
+      레이더 차트와 상세 지표 카드를 통해 강점과 약점을 파악한다.
+    </div>
+    <div class="en-block desc">
+      Select two models for side-by-side performance comparison.
+      Radar chart and metric cards reveal strengths and weaknesses.
+    </div>
+
+    <div class="comparison-selectors">
+      <label><span class="ko">Model A:</span><span class="en">Model A:</span></label>
+      <select id="cmp-model-a" onchange="updateComparison()"></select>
+      <label><span class="ko">Model B:</span><span class="en">Model B:</span></label>
+      <select id="cmp-model-b" onchange="updateComparison()"></select>
+    </div>
+  </div>
+
+  <div class="comparison-side">
+    <div class="card">
+      <h3 id="cmp-title-a" style="color:var(--accent-blue)">Model A</h3>
+      <div id="cmp-metrics-a"></div>
+    </div>
+    <div class="card">
+      <h3 id="cmp-title-b" style="color:var(--accent-green)">Model B</h3>
+      <div id="cmp-metrics-b"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">레이더 차트 비교</span><span class="en">Radar Chart Comparison</span></h3>
+    <div class="chart-container"><canvas id="chartComparisonRadar"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ko">Delta 분석</span><span class="en">Delta Analysis</span></h3>
+    <div class="ko-block desc">Model A 대비 Model B의 성능 차이를 보여준다. 양수는 B가 우세, 음수는 A가 우세이다.</div>
+    <div class="en-block desc">Performance delta of Model B relative to Model A. Positive = B is better, Negative = A is better.</div>
+    <div id="cmp-delta"></div>
+  </div>
+</div>
+
+<!-- ================================================================
+     TAB 14: Report
+     ================================================================ -->
+<div id="tab-report" class="tab-content">
+  <div class="card">
+    <h2><span class="ko">Report -- 자동 생성 보고서</span><span class="en">Report -- Auto-Generated Summary</span></h2>
+    <div class="ko-block desc">실험 결과를 요약한 보고서가 자동으로 생성된다. 복사하거나 인쇄하여 활용할 수 있다.</div>
+    <div class="en-block desc">Auto-generated experiment summary report. Copy or print for further use.</div>
+
+    <div class="report-actions">
+      <button onclick="copyReport()" style="background:var(--accent-blue);color:#fff">
+        <span class="ko">클립보드에 복사</span><span class="en">Copy to Clipboard</span>
+      </button>
+      <button onclick="window.print()" style="background:var(--accent-green);color:#fff">
+        <span class="ko">인쇄</span><span class="en">Print</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="report-container" id="report-content"></div>
+  </div>
+</div>
+
+<!-- ================================================================
      TAB 11: Playground
      ================================================================ -->
 <div id="tab-playground" class="tab-content">
@@ -1822,6 +2162,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {{
     document.getElementById('tab-' + tabId).classList.add('active');
     this.classList.add('active');
     if (tabId === 'learning' && !learningCurveData) {{ fetchLearningCurves(); }}
+    if (tabId === 'report') {{ generateReport(); }}
+    if (tabId === 'comparison' && cmpChart === null) {{ initComparison(); }}
   }});
 }});
 
@@ -2321,6 +2663,254 @@ async function pgPredict(withLime=false) {{
     loading.style.display = 'none';
   }}
 }}
+
+// ===== 이미지 라이트박스 =====
+function openLightbox(src) {{
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}}
+function closeLightbox() {{
+  document.getElementById('lightbox').classList.remove('active');
+  document.body.style.overflow = '';
+}}
+document.addEventListener('keydown', e => {{ if(e.key==='Escape') closeLightbox(); }});
+// 모든 갤러리 이미지에 라이트박스 연결
+document.addEventListener('DOMContentLoaded', () => {{
+  document.querySelectorAll('.gallery-item img, .gallery img').forEach(img => {{
+    img.addEventListener('click', () => openLightbox(img.src));
+  }});
+}});
+
+// ===== Data Explorer =====
+let explorerCurrentPage = 1;
+async function explorerSearch(page) {{
+  explorerCurrentPage = page || 1;
+  const q = document.getElementById('explorer-query').value;
+  const label = document.getElementById('explorer-label').value;
+  const statusEl = document.getElementById('explorer-status');
+  const resultsEl = document.getElementById('explorer-results');
+  const paginationEl = document.getElementById('explorer-pagination');
+
+  statusEl.textContent = document.body.classList.contains('en-mode') ? 'Searching...' : '검색 중...';
+  resultsEl.innerHTML = '';
+  paginationEl.innerHTML = '';
+
+  try {{
+    const resp = await fetch(`/api/data_explorer?q=${{encodeURIComponent(q)}}&label=${{encodeURIComponent(label)}}&page=${{explorerCurrentPage}}&limit=20`);
+    const data = await resp.json();
+
+    const totalMsg = document.body.classList.contains('en-mode')
+      ? `${{data.total}} results found (Page ${{data.page}}/${{data.total_pages}})`
+      : `${{data.total}}건 검색됨 (${{data.page}}/${{data.total_pages}} 페이지)`;
+    statusEl.textContent = totalMsg;
+
+    if (data.results.length === 0) {{
+      resultsEl.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-secondary)"><span class="ko">검색 결과가 없습니다. 데이터 파일이 data/ 디렉토리에 있는지 확인하세요.</span><span class="en">No results found. Make sure data files are in the data/ directory.</span></div>`;
+      return;
+    }}
+
+    const labelColors = {{ hatespeech: 'var(--accent-red)', offensive: 'var(--accent-orange)', normal: 'var(--accent-green)' }};
+    const labelBg = {{ hatespeech: 'rgba(255,107,122,0.15)', offensive: 'rgba(255,179,71,0.15)', normal: 'rgba(0,229,176,0.15)' }};
+
+    let html = '';
+    for (const r of data.results) {{
+      const color = labelColors[r.label] || 'var(--text-secondary)';
+      const bg = labelBg[r.label] || 'rgba(156,163,196,0.1)';
+      const compound = r.vader_compound !== '' ? parseFloat(r.vader_compound).toFixed(4) : 'N/A';
+      html += `<div class="explorer-card">
+        <div class="explorer-text">${{r.text || '(empty)'}}</div>
+        <div class="explorer-meta">
+          <span style="background:${{bg}};color:${{color}};padding:2px 10px;border-radius:12px;font-weight:600">${{r.label}}</span>
+          <span>VADER: ${{compound}}</span>
+          <span><span class="ko">단어 수:</span><span class="en">Words:</span> ${{r.word_count}}</span>
+        </div>
+      </div>`;
+    }}
+    resultsEl.innerHTML = html;
+
+    // 페이지네이션 버튼
+    let pagHtml = '';
+    pagHtml += `<button onclick="explorerSearch(${{data.page - 1}})" ${{data.page <= 1 ? 'disabled' : ''}}>&laquo; <span class="ko">이전</span><span class="en">Prev</span></button>`;
+    pagHtml += `<span style="color:var(--text-secondary);font-size:0.9rem">${{data.page}} / ${{data.total_pages}}</span>`;
+    pagHtml += `<button onclick="explorerSearch(${{data.page + 1}})" ${{data.page >= data.total_pages ? 'disabled' : ''}}><span class="ko">다음</span><span class="en">Next</span> &raquo;</button>`;
+    paginationEl.innerHTML = pagHtml;
+
+  }} catch(e) {{
+    statusEl.textContent = 'Error: ' + e.message;
+  }}
+}}
+
+// ===== Model Comparison =====
+let cmpChart = null;
+function initComparison() {{
+  const selA = document.getElementById('cmp-model-a');
+  const selB = document.getElementById('cmp-model-b');
+  if (!selA || !selB || !benchmarkData.length) return;
+
+  // 드롭다운 채우기
+  benchmarkData.forEach((r, i) => {{
+    selA.innerHTML += `<option value="${{i}}" ${{i===0?'selected':''}}>${{r.model}}</option>`;
+    selB.innerHTML += `<option value="${{i}}" ${{i===1?'selected':''}}>${{r.model}}</option>`;
+  }});
+  updateComparison();
+}}
+
+function updateComparison() {{
+  const idxA = parseInt(document.getElementById('cmp-model-a').value);
+  const idxB = parseInt(document.getElementById('cmp-model-b').value);
+  const a = benchmarkData[idxA];
+  const b = benchmarkData[idxB];
+  if (!a || !b) return;
+
+  document.getElementById('cmp-title-a').textContent = a.model;
+  document.getElementById('cmp-title-b').textContent = b.model;
+
+  const metricKeys = [
+    ['macro_f1_mean', 'Macro F1'],
+    ['accuracy_mean', 'Accuracy'],
+    ['auroc_mean', 'AUROC'],
+    ['per_class_f1.hatespeech_mean', 'Hatespeech F1'],
+    ['per_class_f1.offensive_mean', 'Offensive F1'],
+    ['per_class_f1.normal_mean', 'Normal F1']
+  ];
+
+  // 지표 카드 렌더링
+  function renderMetrics(model, targetId) {{
+    let html = '';
+    for (const [key, label] of metricKeys) {{
+      const val = parseFloat(model[key]);
+      html += `<div class="delta-row"><span>${{label}}</span><span style="font-weight:700">${{isNaN(val) ? 'N/A' : val.toFixed(4)}}</span></div>`;
+    }}
+    document.getElementById(targetId).innerHTML = html;
+  }}
+  renderMetrics(a, 'cmp-metrics-a');
+  renderMetrics(b, 'cmp-metrics-b');
+
+  // Delta 분석
+  let deltaHtml = '';
+  for (const [key, label] of metricKeys) {{
+    const va = parseFloat(a[key]);
+    const vb = parseFloat(b[key]);
+    const diff = vb - va;
+    const cls = diff > 0.001 ? 'delta-positive' : (diff < -0.001 ? 'delta-negative' : 'delta-neutral');
+    const sign = diff > 0 ? '+' : '';
+    const winner = diff > 0.001 ? b.model : (diff < -0.001 ? a.model : '-');
+    deltaHtml += `<div class="delta-row">
+      <span>${{label}}</span>
+      <span class="${{cls}}">${{sign}}${{diff.toFixed(4)}}</span>
+      <span style="color:var(--text-secondary);font-size:0.8rem">${{winner}}</span>
+    </div>`;
+  }}
+  document.getElementById('cmp-delta').innerHTML = deltaHtml;
+
+  // 레이더 차트
+  const radarLabels = metricKeys.map(m => m[1]);
+  const dataA = metricKeys.map(([k]) => parseFloat(a[k]));
+  const dataB = metricKeys.map(([k]) => parseFloat(b[k]));
+
+  if (cmpChart) cmpChart.destroy();
+  cmpChart = new Chart(document.getElementById('chartComparisonRadar'), {{
+    type: 'radar',
+    data: {{
+      labels: radarLabels,
+      datasets: [
+        {{ label: a.model, data: dataA, borderColor: '#7c8aff', backgroundColor: '#7c8aff22', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#7c8aff' }},
+        {{ label: b.model, data: dataB, borderColor: '#00e5b0', backgroundColor: '#00e5b022', borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#00e5b0' }}
+      ]
+    }},
+    options: {{
+      responsive: true,
+      scales: {{ r: {{ min: 0.40, max: 0.90, ticks: {{ stepSize: 0.05 }}, grid: {{ color: 'rgba(124,138,255,0.1)' }} }} }},
+      plugins: {{ legend: {{ position: 'bottom', labels: {{ padding: 16 }} }} }}
+    }}
+  }});
+}}
+
+// 비교 탭 초기화
+document.addEventListener('DOMContentLoaded', () => {{ initComparison(); }});
+
+// ===== Report 자동 생성 =====
+function generateReport() {{
+  const isEn = document.body.classList.contains('en-mode');
+  const container = document.getElementById('report-content');
+  if (!container || !benchmarkData.length) return;
+
+  const best = benchmarkData[0]; // 이미 F1 기준 정렬됨
+  const worst = benchmarkData[benchmarkData.length - 1];
+
+  let html = '';
+
+  // Executive Summary
+  html += `<h2>${{isEn ? 'Executive Summary' : '요약 (Executive Summary)'}}</h2>`;
+  html += `<p>${{isEn
+    ? `This report summarizes the HateXplain hate speech detection experiment. ${{benchmarkData.length}} models were evaluated using 3-seed cross-validation. The best performing model is <strong>${{best.model}}</strong> with Macro F1 of <strong>${{parseFloat(best.macro_f1_mean).toFixed(4)}}</strong>.`
+    : `본 보고서는 HateXplain 혐오표현 탐지 실험 결과를 요약한다. ${{benchmarkData.length}}개 모델을 3-seed 교차검증으로 평가하였다. 최고 성능 모델은 <strong>${{best.model}}</strong>이며 Macro F1은 <strong>${{parseFloat(best.macro_f1_mean).toFixed(4)}}</strong>이다.`
+  }}</p>`;
+
+  // Key Metrics Table
+  html += `<h2>${{isEn ? 'Key Metrics' : '주요 지표'}}</h2>`;
+  html += `<table><thead><tr><th>Model</th><th>Macro F1</th><th>Accuracy</th><th>AUROC</th></tr></thead><tbody>`;
+  for (const r of benchmarkData) {{
+    const isBest = r === best;
+    const style = isBest ? ' style="color:var(--accent-green);font-weight:700"' : '';
+    html += `<tr${{style}}><td>${{r.model}}</td><td>${{parseFloat(r.macro_f1_mean).toFixed(4)}}</td><td>${{parseFloat(r.accuracy_mean).toFixed(4)}}</td><td>${{parseFloat(r.auroc_mean).toFixed(4)}}</td></tr>`;
+  }}
+  html += `</tbody></table>`;
+
+  // Statistical Findings
+  html += `<h2>${{isEn ? 'Statistical Findings' : '통계적 발견'}}</h2>`;
+  const sigPairs = significanceData.filter(r => r.significant === 'True' || r.significant === true);
+  if (sigPairs.length > 0) {{
+    html += `<p>${{isEn
+      ? `${{sigPairs.length}} model pairs showed statistically significant differences (p < 0.05):`
+      : `${{sigPairs.length}}개 모델 쌍에서 통계적으로 유의미한 차이가 확인되었다 (p < 0.05):`
+    }}</p><ul>`;
+    for (const s of sigPairs.slice(0, 8)) {{
+      html += `<li>${{s.model_a}} vs ${{s.model_b}} (p=${{parseFloat(s.p_value).toFixed(6)}})</li>`;
+    }}
+    html += `</ul>`;
+  }} else {{
+    html += `<p>${{isEn ? 'No statistically significant differences found among model pairs.' : '모델 쌍 간 통계적으로 유의미한 차이가 발견되지 않았다.'}}</p>`;
+  }}
+
+  // XAI Findings
+  html += `<h2>${{isEn ? 'XAI Findings' : 'XAI 분석 결과'}}</h2>`;
+  html += `<p>${{isEn
+    ? 'SHAP and LIME were used as post-hoc verification tools to analyze model prediction rationale. Overlap@5 measures agreement between SHAP and LIME top-5 important tokens.'
+    : 'SHAP과 LIME을 사후 검증 도구로 활용하여 모델의 예측 근거를 분석하였다. Overlap@5는 SHAP과 LIME 상위 5개 토큰의 일치도를 측정한다.'
+  }}</p>`;
+
+  // Limitations
+  html += `<h2>${{isEn ? 'Limitations' : '한계점'}}</h2>`;
+  html += `<ul>`;
+  html += `<li>${{isEn ? 'English-only dataset (HateXplain) -- results may not generalize to other languages' : '영어 전용 데이터셋(HateXplain) -- 다른 언어로의 일반화에 한계가 있다'}}</li>`;
+  html += `<li>${{isEn ? '3-seed evaluation may show variance; larger seed sets would improve reliability' : '3-seed 평가로 분산이 존재할 수 있다. 더 많은 seed로 신뢰성을 높일 수 있다'}}</li>`;
+  html += `<li>${{isEn ? 'VADER sentiment is lexicon-based and has known limitations with sarcasm and context' : 'VADER 감성 분석은 사전 기반으로, 풍자나 맥락 파악에 한계가 있다'}}</li>`;
+  html += `<li>${{isEn ? 'Hate/offensive boundary is inherently subjective and annotator-dependent' : '혐오/공격적 경계는 본질적으로 주관적이며 주석자에 의존한다'}}</li>`;
+  html += `</ul>`;
+
+  // 생성 시간 기록
+  html += `<hr style="margin:20px 0;border-color:var(--border-subtle)">`;
+  html += `<p style="font-size:0.8rem;color:var(--text-secondary)">${{isEn ? 'Report generated at' : '보고서 생성 시각'}}: ${{new Date().toLocaleString()}}</p>`;
+
+  container.innerHTML = html;
+}}
+
+function copyReport() {{
+  const container = document.getElementById('report-content');
+  if (!container) return;
+  const text = container.innerText;
+  navigator.clipboard.writeText(text).then(() => {{
+    const isEn = document.body.classList.contains('en-mode');
+    alert(isEn ? 'Report copied to clipboard!' : '보고서가 클립보드에 복사되었습니다!');
+  }}).catch(err => {{
+    alert('Copy failed: ' + err);
+  }});
+}}
+
+// 리포트 탭 접근 시 생성
+document.addEventListener('DOMContentLoaded', () => {{ generateReport(); }});
 </script>
 <style>
 /* Playground-specific styles */
