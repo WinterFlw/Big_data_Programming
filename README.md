@@ -85,7 +85,77 @@
 
 ---
 
-## 실행 방법
+## 빠른 시작 (Quick Start)
+
+### 1. 대시보드만 바로 보기 (실험 결과 포함됨)
+
+```bash
+git clone https://github.com/WinterFlw/Big_data_Programming.git
+cd Big_data_Programming
+pip install fastapi uvicorn
+python3 dashboard_app.py
+# 브라우저에서 http://localhost:8501 접속
+```
+
+> `outputs/`와 `data/`가 git에 포함되어 있어 **clone 직후 18개 탭 대시보드가 바로 작동**합니다.
+> Playground(실시간 모델 추론)만 체크포인트가 필요합니다 (아래 참조).
+
+---
+
+### 2. 모델 체크포인트 다운로드 (Playground용)
+
+체크포인트는 용량 문제(17GB)로 git에 포함되지 않습니다.
+Playground 탭(실시간 추론, Attention Heatmap, LIME)을 사용하려면 체크포인트를 다운로드하세요.
+
+**Google Drive 다운로드:**
+
+| 파일 | 크기 | 링크 |
+|------|------|------|
+| `checkpoints.zip` | ~5GB (압축) | [다운로드 링크 (추후 업데이트)](https://drive.google.com) |
+
+```bash
+# 1. Google Drive에서 checkpoints.zip 다운로드
+# 2. 프로젝트 루트에서 압축 해제
+cd Big_data_Programming
+unzip checkpoints.zip
+# checkpoints/ 디렉토리가 생성됩니다
+
+# 3. 확인 (최소 4개 파일 필요)
+ls checkpoints/bert_base_seed_42.pt          # BERT-base
+ls checkpoints/bert_mlp_seed_42.pt           # BERT+MLP
+ls checkpoints/bert_vader_seed_42.pt         # BERT+VADER
+ls checkpoints/roberta_vader_seed_42.pt      # RoBERTa+VADER
+```
+
+> Playground가 필요 없다면 이 단계는 건너뛸 수 있습니다.
+> 나머지 17개 탭은 체크포인트 없이 정상 작동합니다.
+
+<details>
+<summary><b>gdown으로 자동 다운로드 (선택)</b></summary>
+
+```bash
+pip install gdown
+# Google Drive 파일 ID를 넣어주세요
+gdown --id <GOOGLE_DRIVE_FILE_ID> -O checkpoints.zip
+unzip checkpoints.zip && rm checkpoints.zip
+```
+
+</details>
+
+<details>
+<summary><b>체크포인트 직접 생성 (4-5시간 소요)</b></summary>
+
+```bash
+pip install -r requirements.txt
+./run.sh full    # data → vader → eda → tune → benchmark → freeze → xai → dashboard
+# checkpoints/ 디렉토리에 41개 .pt 파일 생성
+```
+
+</details>
+
+---
+
+### 3. 전체 파이프라인 재실행 (처음부터)
 
 ```bash
 # 의존성 설치
@@ -109,6 +179,9 @@ pip install -r requirements.txt
 ./run.sh status        # 파이프라인 진행 상태 확인
 ./run.sh clean         # 산출물 초기화
 ```
+
+> 전체 파이프라인 소요 시간: **약 4-5시간** (M3 Max 64GB, MPS 기준)
+> 튜닝(~2h)과 벤치마크(~2.5h)가 전체의 90%를 차지합니다.
 
 ---
 
@@ -143,7 +216,8 @@ HateSpeachStudy/
 ├── experiment_core.py         # 핵심 실험 로직 (모델, 학습, 벤치마크, 튜닝)
 ├── experiment_eda.py          # 탐색적 데이터 분석 (텍스트 길이, VADER 분포, 타겟)
 ├── experiment_xai.py          # XAI 분석 (SHAP, LIME, Overlap@5)
-├── experiment_dashboard.py    # 인터랙티브 HTML 대시보드 생성기
+├── experiment_dashboard.py    # 정적 HTML 대시보드 생성기
+├── dashboard_app.py           # FastAPI 대시보드 서버 (18탭, 실시간 Playground)
 ├── utils.py                   # 공통 유틸리티 (시드, 디바이스, 시각화, I/O)
 ├── requirements.txt           # Python 의존성
 ├── README.md                  # 이 문서
@@ -161,9 +235,9 @@ HateSpeachStudy/
 │   └── 수행계획서.docx / .pdf
 │
 │
-├── data/                      # HateXplain 원본 (자동 다운로드)
-├── checkpoints/               # 모델 체크포인트 (.pt)
-└── outputs/
+├── data/                      # HateXplain 원본 (git 포함, 12MB)
+├── checkpoints/               # 모델 체크포인트 (git 제외, 17GB -- Google Drive)
+└── outputs/                   # 실험 결과 (git 포함, 38MB)
     ├── experiment_config.json # 실험 설정 (재현용)
     ├── data_splits.pkl        # 전처리된 분할 데이터
     ├── vader_features.pkl     # VADER 피처 캐시
@@ -192,6 +266,35 @@ HateSpeachStudy/
 | XAI | `xai/overlap_at_5.png` | Overlap@5 분포 시각화 |
 | XAI | `xai/cases/` | 케이스별 SHAP attribution 비교 |
 | 시각화 | `dashboard/index.html` | 인터랙티브 대시보드 (브라우저에서 바로 열기) |
+
+---
+
+## 대시보드 (18탭)
+
+`python3 dashboard_app.py`로 실행하면 http://localhost:8501 에서 아래 탭을 볼 수 있습니다.
+
+| # | 탭 | 내용 | 체크포인트 필요 |
+|---|-----|------|:---:|
+| 1 | Overview | KPI 카드, 파이프라인 흐름도, 주요 발견 | |
+| 2 | Pipeline Deep-Dive | 8단계 연구 방법론 스토리 (가설→XAI) | |
+| 3 | E2E Pipeline | 기술적 데이터 흐름, 차원 변환, 시간 프로파일링 | |
+| 4 | Benchmark | F1 바 차트, 레이더, 클래스별 성능 | |
+| 5 | Statistical Tests | P-value 히트맵, 유의성 테이블 | |
+| 6 | Tuning | LR/Dropout 탐색 궤적 차트 | |
+| 7 | Learning Curves | 에폭별 학습곡선 (모델/시드 선택) | |
+| 8 | Freeze Study | Frozen vs Fine-tuned 비교 | |
+| 9 | EDA | VADER 분포, 타겟 커뮤니티, 어휘 중첩 | |
+| 10 | XAI Analysis | Overlap@5, 혼동행렬 비교 | |
+| 11 | XAI Cases | 개별 샘플 SHAP/LIME 갤러리 | |
+| 12 | Error Analysis | 오분류 패턴, VADER 맹점, Ablation 다이어그램 | |
+| 13 | Architecture | 3개 모델 구조 시각화 | |
+| 14 | Data Explorer | 데이터셋 검색/필터 브라우저 | |
+| 15 | Comparison | 2모델 레이더 차트 + Delta 분석 | |
+| 16 | Report | 자동 보고서 생성 + 클립보드 복사 | |
+| 17 | References | 7개 핵심 문헌 + 재현성 가이드 | |
+| 18 | **Playground** | **Attention Heatmap + LIME + 4모델 실시간 추론** | **필요** |
+
+> 한국어/영어 전환, 다크/라이트 테마, 이미지 클릭 확대, PDF Export 지원
 
 ---
 
