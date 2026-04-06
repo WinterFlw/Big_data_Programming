@@ -25,7 +25,10 @@ import uvicorn
 # ---------------------------------------------------------------------------
 BASE = Path(__file__).resolve().parent
 OUTPUTS = BASE / "outputs"
-CHECKPOINTS = BASE / "checkpoints"
+# models/에 Playground용 최적 체크포인트 4개만 보관 (1.7GB)
+# checkpoints/는 전체 41개(17GB)로 git 제외 대상
+MODELS_DIR = BASE / "models"
+CHECKPOINTS = MODELS_DIR if MODELS_DIR.exists() else BASE / "checkpoints"
 
 # experiment_core.py, experiment_xai.py를 임포트하기 위해 경로 추가
 if str(BASE) not in sys.path:

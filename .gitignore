@@ -9,8 +9,9 @@ __pycache__/
 ~$*
 .~lock.*
 
-# Large files (모델 체크포인트 -- 파일당 418~476MB, 총 17GB)
+# Large files (모델 체크포인트)
 checkpoints/
+models/
 *.pt
 
 # outputs/ 내 바이너리/대용량 파일 제외 (CSV, JSON, PNG만 유지)

@@ -104,51 +104,67 @@ python3 dashboard_app.py
 
 ### 2. 모델 체크포인트 다운로드 (Playground용)
 
-체크포인트는 용량 문제(17GB)로 git에 포함되지 않습니다.
-Playground 탭(실시간 추론, Attention Heatmap, LIME)을 사용하려면 체크포인트를 다운로드하세요.
+체크포인트는 용량 문제로 git에 포함되지 않습니다.
+Playground 탭(실시간 추론, Attention Heatmap, LIME 분석)을 사용하려면 아래 절차를 따르세요.
+
+> **Playground가 필요 없다면 이 단계는 건너뛰세요.**
+> 나머지 17개 탭은 체크포인트 없이 정상 작동합니다.
 
 **Google Drive 다운로드:**
 
-| 파일 | 크기 | 링크 |
+| 파일 | 내용 | 크기 |
 |------|------|------|
-| `checkpoints.zip` | ~5GB (압축) | [다운로드 링크 (추후 업데이트)](https://drive.google.com) |
+| `models.zip` | 최적 모델 4개 (BERT-base, BERT+MLP, BERT+VADER, RoBERTa+VADER) | ~1.7GB |
+
+> 다운로드 링크: **[Google Drive](https://drive.google.com)** (추후 업데이트)
+
+**압축 해제 방법:**
 
 ```bash
-# 1. Google Drive에서 checkpoints.zip 다운로드
-# 2. 프로젝트 루트에서 압축 해제
 cd Big_data_Programming
-unzip checkpoints.zip
-# checkpoints/ 디렉토리가 생성됩니다
 
-# 3. 확인 (최소 4개 파일 필요)
-ls checkpoints/bert_base_seed_42.pt          # BERT-base
-ls checkpoints/bert_mlp_seed_42.pt           # BERT+MLP
-ls checkpoints/bert_vader_seed_42.pt         # BERT+VADER
-ls checkpoints/roberta_vader_seed_42.pt      # RoBERTa+VADER
+# 1. 다운로드한 models.zip을 프로젝트 루트에 복사
+# 2. 압축 해제
+unzip models.zip -d models/
+
+# 3. 확인 — 아래 4개 파일이 있으면 OK
+ls -lh models/
+# bert_base_seed_42.pt      (418MB)  BERT-base
+# bert_mlp_seed_42.pt       (418MB)  BERT+MLP (Ablation)
+# bert_vader_seed_42.pt     (418MB)  BERT+VADER
+# roberta_vader_seed_42.pt  (476MB)  RoBERTa+VADER (Best)
+
+# 4. 대시보드 실행 — Playground 포함 전체 작동
+python3 dashboard_app.py
 ```
 
-> Playground가 필요 없다면 이 단계는 건너뛸 수 있습니다.
-> 나머지 17개 탭은 체크포인트 없이 정상 작동합니다.
+**폴더 구조 (압축 해제 후):**
 
-<details>
-<summary><b>gdown으로 자동 다운로드 (선택)</b></summary>
-
-```bash
-pip install gdown
-# Google Drive 파일 ID를 넣어주세요
-gdown --id <GOOGLE_DRIVE_FILE_ID> -O checkpoints.zip
-unzip checkpoints.zip && rm checkpoints.zip
+```
+Big_data_Programming/
+├── models/                          ← 여기에 압축 해제
+│   ├── bert_base_seed_42.pt
+│   ├── bert_mlp_seed_42.pt
+│   ├── bert_vader_seed_42.pt
+│   └── roberta_vader_seed_42.pt
+├── outputs/                         ← git에 포함됨
+├── data/                            ← git에 포함됨
+├── dashboard_app.py
+└── ...
 ```
 
-</details>
+> `models/` 폴더가 없으면 `checkpoints/` 폴더를 자동으로 탐색합니다.
+> 전체 파이프라인을 처음부터 돌린 경우(`./run.sh full`) `checkpoints/`에 자동 생성되므로
+> 별도 다운로드가 필요 없습니다.
 
 <details>
-<summary><b>체크포인트 직접 생성 (4-5시간 소요)</b></summary>
+<summary><b>체크포인트 직접 생성하는 방법 (4-5시간 소요)</b></summary>
 
 ```bash
 pip install -r requirements.txt
 ./run.sh full    # data → vader → eda → tune → benchmark → freeze → xai → dashboard
-# checkpoints/ 디렉토리에 41개 .pt 파일 생성
+# checkpoints/ 디렉토리에 41개 .pt 파일이 자동 생성됩니다
+# dashboard_app.py가 checkpoints/를 자동으로 찾습니다
 ```
 
 </details>
@@ -236,7 +252,8 @@ HateSpeachStudy/
 │
 │
 ├── data/                      # HateXplain 원본 (git 포함, 12MB)
-├── checkpoints/               # 모델 체크포인트 (git 제외, 17GB -- Google Drive)
+├── models/                    # Playground용 최적 체크포인트 4개 (git 제외, 1.7GB -- Google Drive)
+├── checkpoints/               # 전체 체크포인트 41개 (git 제외, 17GB -- ./run.sh full로 생성)
 └── outputs/                   # 실험 결과 (git 포함, 38MB)
     ├── experiment_config.json # 실험 설정 (재현용)
     ├── data_splits.pkl        # 전처리된 분할 데이터
