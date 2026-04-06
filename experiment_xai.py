@@ -452,12 +452,18 @@ def run_lime_explanations(
         explanation = explainer.explain_instance(
             text_instance=text,
             classifier_fn=predict_fn,
+            labels=[0, 1, 2],  # hatespeech, offensive, normal
             num_features=config.lime_num_features,
             num_samples=config.lime_num_samples,
         )
 
         # 예측 라벨에 대한 피처 가중치를 추출 (어떤 단어가 얼마나 기여했는지!)
-        feature_weights = explanation.as_list(label=int(predicted_label))
+        pred_label = int(predicted_label)
+        # LIME이 해당 라벨의 설명을 생성하지 못한 경우 안전하게 처리
+        available_labels = list(explanation.local_exp.keys())
+        if pred_label not in available_labels and available_labels:
+            pred_label = available_labels[0]
+        feature_weights = explanation.as_list(label=pred_label)
         results.append(
             {
                 "text": text,
