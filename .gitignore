@@ -9,13 +9,19 @@ __pycache__/
 ~$*
 .~lock.*
 
-# Large files
+# Large files (모델 체크포인트 -- 파일당 418~476MB, 총 17GB)
 checkpoints/
 *.pt
 
-# Generated outputs (재생성 가능: ./run.sh all)
-outputs/
-data/
+# outputs/ 내 바이너리/대용량 파일 제외 (CSV, JSON, PNG만 유지)
+outputs/runs/**/model_*.pt
+outputs/runs/**/model_bundle.pkl
+outputs/runs/**/predictions.pkl
+outputs/data_splits.pkl
+outputs/vader_features.pkl
+
+# data/는 포함 (12MB, 대시보드 Data Explorer에 필요)
+# outputs/는 포함 (38MB, 대시보드 시각화에 필요)
 
 # Matplotlib cache
 .mplconfig/

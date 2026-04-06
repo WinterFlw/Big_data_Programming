@@ -1,0 +1,194 @@
+{
+  "text_length_stats": [
+    {
+      "class": "hatespeech",
+      "n_samples": 5930,
+      "word_mean": 24.58,
+      "word_median": 22.0,
+      "word_max": 165,
+      "token_mean": 31.42,
+      "token_median": 29.0,
+      "token_max": 179,
+      "exceed_max_len_count": 1,
+      "exceed_max_len_pct": 0.02
+    },
+    {
+      "class": "offensive",
+      "n_samples": 5473,
+      "word_mean": 22.38,
+      "word_median": 19.0,
+      "word_max": 76,
+      "token_mean": 28.41,
+      "token_median": 25.0,
+      "token_max": 92,
+      "exceed_max_len_count": 0,
+      "exceed_max_len_pct": 0.0
+    },
+    {
+      "class": "normal",
+      "n_samples": 7789,
+      "word_mean": 23.37,
+      "word_median": 20.0,
+      "word_max": 70,
+      "token_mean": 29.67,
+      "token_median": 26.0,
+      "token_max": 110,
+      "exceed_max_len_count": 0,
+      "exceed_max_len_pct": 0.0
+    },
+    {
+      "class": "ALL",
+      "n_samples": 19192,
+      "word_mean": 23.46,
+      "word_median": 21.0,
+      "word_max": 165,
+      "token_mean": 29.85,
+      "token_median": 27.0,
+      "token_max": 179,
+      "exceed_max_len_count": 1,
+      "exceed_max_len_pct": 0.01
+    }
+  ],
+  "exceed_max_len_total_pct": 0.01,
+  "vader_by_class_stats": [
+    {
+      "class": "hatespeech",
+      "n_samples": 5930,
+      "pos_mean": 0.0907,
+      "pos_std": 0.1013,
+      "pos_median": 0.07,
+      "neg_mean": 0.2216,
+      "neg_std": 0.1772,
+      "neg_median": 0.2005,
+      "neu_mean": 0.6876,
+      "neu_std": 0.1818,
+      "neu_median": 0.696,
+      "compound_mean": -0.358,
+      "compound_std": 0.5184,
+      "compound_median": -0.5423
+    },
+    {
+      "class": "offensive",
+      "n_samples": 5473,
+      "pos_mean": 0.0962,
+      "pos_std": 0.108,
+      "pos_median": 0.072,
+      "neg_mean": 0.2088,
+      "neg_std": 0.1745,
+      "neg_median": 0.186,
+      "neu_mean": 0.6951,
+      "neu_std": 0.1803,
+      "neu_median": 0.702,
+      "compound_mean": -0.283,
+      "compound_std": 0.5203,
+      "compound_median": -0.4404
+    },
+    {
+      "class": "normal",
+      "n_samples": 7789,
+      "pos_mean": 0.1054,
+      "pos_std": 0.1188,
+      "pos_median": 0.078,
+      "neg_mean": 0.1617,
+      "neg_std": 0.1532,
+      "neg_median": 0.143,
+      "neu_mean": 0.733,
+      "neu_std": 0.1692,
+      "neu_median": 0.735,
+      "compound_mean": -0.1811,
+      "compound_std": 0.5452,
+      "compound_median": -0.2105
+    }
+  ],
+  "compound_mean_hate": -0.358,
+  "compound_mean_offensive": -0.283,
+  "compound_mean_normal": -0.1811,
+  "top_targets": [
+    {
+      "target": "None",
+      "count": 10149
+    },
+    {
+      "target": "African",
+      "count": 4253
+    },
+    {
+      "target": "Women",
+      "count": 3722
+    },
+    {
+      "target": "Other",
+      "count": 3477
+    },
+    {
+      "target": "Islam",
+      "count": 2986
+    },
+    {
+      "target": "Homosexual",
+      "count": 2472
+    },
+    {
+      "target": "Jewish",
+      "count": 2394
+    },
+    {
+      "target": "Arab",
+      "count": 1661
+    },
+    {
+      "target": "Caucasian",
+      "count": 1594
+    },
+    {
+      "target": "Men",
+      "count": 1536
+    },
+    {
+      "target": "Refugee",
+      "count": 1533
+    },
+    {
+      "target": "Asian",
+      "count": 674
+    },
+    {
+      "target": "Hispanic",
+      "count": 662
+    },
+    {
+      "target": "Christian",
+      "count": 190
+    },
+    {
+      "target": "Minority",
+      "count": 188
+    }
+  ],
+  "unique_targets": 25,
+  "vocabulary_overlap": [
+    {
+      "class_a": "hatespeech",
+      "class_b": "offensive",
+      "top_500_intersection": 415,
+      "top_500_union": 585,
+      "jaccard_similarity": 0.7094
+    },
+    {
+      "class_a": "hatespeech",
+      "class_b": "normal",
+      "top_500_intersection": 394,
+      "top_500_union": 606,
+      "jaccard_similarity": 0.6502
+    },
+    {
+      "class_a": "offensive",
+      "class_b": "normal",
+      "top_500_intersection": 436,
+      "top_500_union": 564,
+      "jaccard_similarity": 0.773
+    }
+  ],
+  "top_k": 500,
+  "elapsed_seconds": 2.9
+}

@@ -1,0 +1,91 @@
+{
+  "display_name": "BERT-base Tuning [dropout=0.1]",
+  "model_name": "bert-base-uncased",
+  "seed": 42,
+  "best_epoch": 2,
+  "best_val_macro_f1": 0.6631653301542536,
+  "elapsed_seconds": 278.2133481502533,
+  "class_weight": {
+    "counts": {
+      "hatespeech": 4151,
+      "offensive": 3830,
+      "normal": 5452
+    },
+    "ratios": {
+      "hatespeech": 0.3090151120375195,
+      "offensive": 0.28511873743765354,
+      "normal": 0.40586615052482694
+    },
+    "minority_ratio": 0.28511873743765354,
+    "use_class_weight": false,
+    "threshold": 0.1
+  },
+  "hyperparams": {
+    "split_train": 0.7,
+    "split_val": 0.1,
+    "split_test": 0.2,
+    "max_len": 128,
+    "batch_size": 64,
+    "epochs": 5,
+    "learning_rate": 3e-05,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "dropout": 0.1,
+    "mlp_hidden": 256,
+    "early_stopping_patience": 2,
+    "early_stopping_min_delta": 0.0001,
+    "imbalance_threshold": 0.1,
+    "seeds": [
+      42,
+      52,
+      62
+    ],
+    "tune_learning_rates": [
+      1e-05,
+      2e-05,
+      3e-05
+    ],
+    "tune_batch_sizes": [
+      64
+    ],
+    "tune_dropouts": [
+      0.1,
+      0.2,
+      0.3
+    ],
+    "tune_epochs": [
+      5
+    ],
+    "tuning_seed": 42,
+    "tuning_max_epochs": 5,
+    "xai_sample_size": 24,
+    "lime_num_features": 5,
+    "lime_num_samples": 500,
+    "shap_max_evals": 300,
+    "shap_batch_size": 32
+  },
+  "metrics": {
+    "accuracy": null,
+    "macro_f1": null,
+    "macro_precision": null,
+    "macro_recall": null,
+    "auroc": null,
+    "per_class_precision": {
+      "hatespeech": null,
+      "offensive": null,
+      "normal": null
+    },
+    "per_class_recall": {
+      "hatespeech": null,
+      "offensive": null,
+      "normal": null
+    },
+    "per_class_f1": {
+      "hatespeech": null,
+      "offensive": null,
+      "normal": null
+    },
+    "confusion_matrix": null
+  },
+  "prediction_artifact": null
+}

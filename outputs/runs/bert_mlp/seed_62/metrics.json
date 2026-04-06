@@ -1,0 +1,108 @@
+{
+  "display_name": "BERT+MLP",
+  "model_name": "bert-base-uncased",
+  "seed": 62,
+  "best_epoch": 4,
+  "best_val_macro_f1": 0.6747083393723069,
+  "elapsed_seconds": 346.0488131046295,
+  "class_weight": {
+    "counts": {
+      "hatespeech": 4151,
+      "offensive": 3830,
+      "normal": 5452
+    },
+    "ratios": {
+      "hatespeech": 0.3090151120375195,
+      "offensive": 0.28511873743765354,
+      "normal": 0.40586615052482694
+    },
+    "minority_ratio": 0.28511873743765354,
+    "use_class_weight": false,
+    "threshold": 0.1
+  },
+  "hyperparams": {
+    "split_train": 0.7,
+    "split_val": 0.1,
+    "split_test": 0.2,
+    "max_len": 128,
+    "batch_size": 64,
+    "epochs": 5,
+    "learning_rate": 2e-05,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "dropout": 0.1,
+    "mlp_hidden": 256,
+    "early_stopping_patience": 2,
+    "early_stopping_min_delta": 0.0001,
+    "imbalance_threshold": 0.1,
+    "seeds": [
+      42,
+      52,
+      62
+    ],
+    "tune_learning_rates": [
+      1e-05,
+      2e-05,
+      3e-05
+    ],
+    "tune_batch_sizes": [
+      64
+    ],
+    "tune_dropouts": [
+      0.1,
+      0.2,
+      0.3
+    ],
+    "tune_epochs": [
+      5
+    ],
+    "tuning_seed": 42,
+    "tuning_max_epochs": 5,
+    "xai_sample_size": 24,
+    "lime_num_features": 5,
+    "lime_num_samples": 500,
+    "shap_max_evals": 300,
+    "shap_batch_size": 32
+  },
+  "metrics": {
+    "accuracy": 0.6934097421203438,
+    "macro_f1": 0.6835617210507169,
+    "macro_precision": 0.68248638236768,
+    "macro_recall": 0.6849262551052898,
+    "auroc": 0.8514653364355472,
+    "per_class_precision": {
+      "hatespeech": 0.7609400324149108,
+      "offensive": 0.543661971830986,
+      "normal": 0.7428571428571429
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7917369308600337,
+      "offensive": 0.5287671232876713,
+      "normal": 0.7342747111681643
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7760330578512397,
+      "offensive": 0.5361111111111111,
+      "normal": 0.7385409941897999
+    },
+    "confusion_matrix": [
+      [
+        939,
+        162,
+        85
+      ],
+      [
+        205,
+        579,
+        311
+      ],
+      [
+        90,
+        324,
+        1144
+      ]
+    ],
+    "loss": 0.7688806096712748
+  },
+  "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/bert_mlp/seed_62/predictions.pkl"
+}

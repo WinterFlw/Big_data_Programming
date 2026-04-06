@@ -1,0 +1,321 @@
+Fresh full pipeline started at 2026년  4월  1일 수요일 18시 52분 04초 KST
+Workspace: /Users/winterflw/HateSpeachStudy
+[CMD] python3 -u run_experiments.py data --force
+Saved prepared splits under /Users/winterflw/HateSpeachStudy/outputs
+Dashboard updated: /Users/winterflw/HateSpeachStudy/outputs/dashboard/index.html
+[CMD] python3 -u run_experiments.py vader --force
+Saved VADER features to /Users/winterflw/HateSpeachStudy/outputs/vader_features.pkl
+Dashboard updated: /Users/winterflw/HateSpeachStudy/outputs/dashboard/index.html
+[CMD] python3 -u run_experiments.py tune
+[tuning] Running sequential search for BERT-base
+[tuning-model] BERT-base | start
+[tuning-param] BERT-base | parameter=learning_rate | candidates=[1e-05, 2e-05, 3e-05] | current=2e-05
+[tuning-candidate] BERT-base | parameter=learning_rate | candidate=1e-05
+[train] BERT-base Tuning [learning_rate=1e-05] | seed=42 | batch=16 | lr=1e-05 | dropout=0.1 | epochs=5
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 23656.34it/s]
+[1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+[epoch] BERT-base Tuning [learning_rate=1e-05] | seed=42 | epoch=1/5 | train_loss=0.9083 | val_loss=0.7680 | val_macro_f1=0.6161
+[best] BERT-base Tuning [learning_rate=1e-05] | seed=42 | epoch=1 | best_val_macro_f1=0.6161
+[epoch] BERT-base Tuning [learning_rate=1e-05] | seed=42 | epoch=2/5 | train_loss=0.6923 | val_loss=0.7431 | val_macro_f1=0.6632
+[best] BERT-base Tuning [learning_rate=1e-05] | seed=42 | epoch=2 | best_val_macro_f1=0.6632
+[epoch] BERT-base Tuning [learning_rate=1e-05] | seed=42 | epoch=3/5 | train_loss=0.5860 | val_loss=0.7628 | val_macro_f1=0.6572
+[epoch] BERT-base Tuning [learning_rate=1e-05] | seed=42 | epoch=4/5 | train_loss=0.4968 | val_loss=0.8243 | val_macro_f1=0.6505
+[early-stop] BERT-base Tuning [learning_rate=1e-05] | seed=42 | epoch=4 | best_epoch=2 | best_val_macro_f1=0.6632
+[done] BERT-base Tuning [learning_rate=1e-05] | seed=42 | tuning-only run complete | best_val_macro_f1=0.6632
+[tuning-score] BERT-base | parameter=learning_rate | candidate=1e-05 | val_macro_f1=0.6632
+[tuning-candidate] BERT-base | parameter=learning_rate | candidate=2e-05
+[train] BERT-base Tuning [learning_rate=2e-05] | seed=42 | batch=16 | lr=2e-05 | dropout=0.1 | epochs=5
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 13724.00it/s]
+[1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+[epoch] BERT-base Tuning [learning_rate=2e-05] | seed=42 | epoch=1/5 | train_loss=0.8698 | val_loss=0.7449 | val_macro_f1=0.6208
+[best] BERT-base Tuning [learning_rate=2e-05] | seed=42 | epoch=1 | best_val_macro_f1=0.6208
+[epoch] BERT-base Tuning [learning_rate=2e-05] | seed=42 | epoch=2/5 | train_loss=0.6558 | val_loss=0.7356 | val_macro_f1=0.6568
+[best] BERT-base Tuning [learning_rate=2e-05] | seed=42 | epoch=2 | best_val_macro_f1=0.6568
+[epoch] BERT-base Tuning [learning_rate=2e-05] | seed=42 | epoch=3/5 | train_loss=0.4889 | val_loss=0.8193 | val_macro_f1=0.6582
+[best] BERT-base Tuning [learning_rate=2e-05] | seed=42 | epoch=3 | best_val_macro_f1=0.6582
+[epoch] BERT-base Tuning [learning_rate=2e-05] | seed=42 | epoch=4/5 | train_loss=0.3336 | val_loss=1.0196 | val_macro_f1=0.6468
+[early-stop] BERT-base Tuning [learning_rate=2e-05] | seed=42 | epoch=4 | best_epoch=3 | best_val_macro_f1=0.6582
+[done] BERT-base Tuning [learning_rate=2e-05] | seed=42 | tuning-only run complete | best_val_macro_f1=0.6582
+[tuning-score] BERT-base | parameter=learning_rate | candidate=2e-05 | val_macro_f1=0.6582
+[tuning-candidate] BERT-base | parameter=learning_rate | candidate=3e-05
+[train] BERT-base Tuning [learning_rate=3e-05] | seed=42 | batch=16 | lr=3e-05 | dropout=0.1 | epochs=5
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 26870.98it/s]
+[1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+[epoch] BERT-base Tuning [learning_rate=3e-05] | seed=42 | epoch=1/5 | train_loss=0.8574 | val_loss=0.7435 | val_macro_f1=0.6145
+[best] BERT-base Tuning [learning_rate=3e-05] | seed=42 | epoch=1 | best_val_macro_f1=0.6145
+[epoch] BERT-base Tuning [learning_rate=3e-05] | seed=42 | epoch=2/5 | train_loss=0.6450 | val_loss=0.7459 | val_macro_f1=0.6564
+[best] BERT-base Tuning [learning_rate=3e-05] | seed=42 | epoch=2 | best_val_macro_f1=0.6564
+[epoch] BERT-base Tuning [learning_rate=3e-05] | seed=42 | epoch=3/5 | train_loss=0.4362 | val_loss=0.8759 | val_macro_f1=0.6508
+[early-stop] BERT-base Tuning [learning_rate=3e-05] | seed=42 | epoch=3 | best_epoch=2 | best_val_macro_f1=0.6564
+[done] BERT-base Tuning [learning_rate=3e-05] | seed=42 | tuning-only run complete | best_val_macro_f1=0.6564
+[tuning-score] BERT-base | parameter=learning_rate | candidate=3e-05 | val_macro_f1=0.6564
+[tuning-best] BERT-base | parameter=learning_rate | best_candidate=1e-05 | best_val_macro_f1=0.6632
+[tuning-param] BERT-base | parameter=batch_size | candidates=[16, 32] | current=16
+[tuning-candidate] BERT-base | parameter=batch_size | candidate=16
+[train] BERT-base Tuning [batch_size=16] | seed=42 | batch=16 | lr=1e-05 | dropout=0.1 | epochs=5
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 19189.94it/s]
+[1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+[epoch] BERT-base Tuning [batch_size=16] | seed=42 | epoch=1/5 | train_loss=0.9081 | val_loss=0.7704 | val_macro_f1=0.6081
+[best] BERT-base Tuning [batch_size=16] | seed=42 | epoch=1 | best_val_macro_f1=0.6081
+[epoch] BERT-base Tuning [batch_size=16] | seed=42 | epoch=2/5 | train_loss=0.6937 | val_loss=0.7449 | val_macro_f1=0.6719
+[best] BERT-base Tuning [batch_size=16] | seed=42 | epoch=2 | best_val_macro_f1=0.6719
+[epoch] BERT-base Tuning [batch_size=16] | seed=42 | epoch=3/5 | train_loss=0.5881 | val_loss=0.7585 | val_macro_f1=0.6616
+[epoch] BERT-base Tuning [batch_size=16] | seed=42 | epoch=4/5 | train_loss=0.5002 | val_loss=0.8228 | val_macro_f1=0.6556
+[early-stop] BERT-base Tuning [batch_size=16] | seed=42 | epoch=4 | best_epoch=2 | best_val_macro_f1=0.6719
+[done] BERT-base Tuning [batch_size=16] | seed=42 | tuning-only run complete | best_val_macro_f1=0.6719
+[tuning-score] BERT-base | parameter=batch_size | candidate=16 | val_macro_f1=0.6719
+[tuning-candidate] BERT-base | parameter=batch_size | candidate=32
+[train] BERT-base Tuning [batch_size=32] | seed=42 | batch=32 | lr=1e-05 | dropout=0.1 | epochs=5
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 6602.54it/s]
+[1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+[epoch] BERT-base Tuning [batch_size=32] | seed=42 | epoch=1/5 | train_loss=0.9387 | val_loss=0.8040 | val_macro_f1=0.5782
+[best] BERT-base Tuning [batch_size=32] | seed=42 | epoch=1 | best_val_macro_f1=0.5782
+[epoch] BERT-base Tuning [batch_size=32] | seed=42 | epoch=2/5 | train_loss=0.7234 | val_loss=0.7493 | val_macro_f1=0.6513
+[best] BERT-base Tuning [batch_size=32] | seed=42 | epoch=2 | best_val_macro_f1=0.6513
+[epoch] BERT-base Tuning [batch_size=32] | seed=42 | epoch=3/5 | train_loss=0.6318 | val_loss=0.7353 | val_macro_f1=0.6684
+[best] BERT-base Tuning [batch_size=32] | seed=42 | epoch=3 | best_val_macro_f1=0.6684
+[epoch] BERT-base Tuning [batch_size=32] | seed=42 | epoch=4/5 | train_loss=0.5595 | val_loss=0.7588 | val_macro_f1=0.6612
+[epoch] BERT-base Tuning [batch_size=32] | seed=42 | epoch=5/5 | train_loss=0.5092 | val_loss=0.7759 | val_macro_f1=0.6610
+[early-stop] BERT-base Tuning [batch_size=32] | seed=42 | epoch=5 | best_epoch=3 | best_val_macro_f1=0.6684
+[done] BERT-base Tuning [batch_size=32] | seed=42 | tuning-only run complete | best_val_macro_f1=0.6684
+[tuning-score] BERT-base | parameter=batch_size | candidate=32 | val_macro_f1=0.6684
+[tuning-best] BERT-base | parameter=batch_size | best_candidate=16 | best_val_macro_f1=0.6719
+[tuning-param] BERT-base | parameter=dropout | candidates=[0.1, 0.2, 0.3] | current=0.1
+[tuning-candidate] BERT-base | parameter=dropout | candidate=0.1
+[train] BERT-base Tuning [dropout=0.1] | seed=42 | batch=16 | lr=1e-05 | dropout=0.1 | epochs=5
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 6451.43it/s]
+[1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+[epoch] BERT-base Tuning [dropout=0.1] | seed=42 | epoch=1/5 | train_loss=0.9080 | val_loss=0.7681 | val_macro_f1=0.6107
+[best] BERT-base Tuning [dropout=0.1] | seed=42 | epoch=1 | best_val_macro_f1=0.6107
+[epoch] BERT-base Tuning [dropout=0.1] | seed=42 | epoch=2/5 | train_loss=0.6930 | val_loss=0.7421 | val_macro_f1=0.6610
+[best] BERT-base Tuning [dropout=0.1] | seed=42 | epoch=2 | best_val_macro_f1=0.6610
+[epoch] BERT-base Tuning [dropout=0.1] | seed=42 | epoch=3/5 | train_loss=0.5857 | val_loss=0.7624 | val_macro_f1=0.6586
+[epoch] BERT-base Tuning [dropout=0.1] | seed=42 | epoch=4/5 | train_loss=0.4975 | val_loss=0.8202 | val_macro_f1=0.6497
+[early-stop] BERT-base Tuning [dropout=0.1] | seed=42 | epoch=4 | best_epoch=2 | best_val_macro_f1=0.6610
+[done] BERT-base Tuning [dropout=0.1] | seed=42 | tuning-only run complete | best_val_macro_f1=0.6610
+[tuning-score] BERT-base | parameter=dropout | candidate=0.1 | val_macro_f1=0.6610
+[tuning-candidate] BERT-base | parameter=dropout | candidate=0.2
+[train] BERT-base Tuning [dropout=0.2] | seed=42 | batch=16 | lr=1e-05 | dropout=0.2 | epochs=5
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 6659.11it/s]
+[1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+[epoch] BERT-base Tuning [dropout=0.2] | seed=42 | epoch=1/5 | train_loss=0.9164 | val_loss=0.7593 | val_macro_f1=0.6167
+[best] BERT-base Tuning [dropout=0.2] | seed=42 | epoch=1 | best_val_macro_f1=0.6167
+[epoch] BERT-base Tuning [dropout=0.2] | seed=42 | epoch=2/5 | train_loss=0.6983 | val_loss=0.7403 | val_macro_f1=0.6669
+[best] BERT-base Tuning [dropout=0.2] | seed=42 | epoch=2 | best_val_macro_f1=0.6669
+[epoch] BERT-base Tuning [dropout=0.2] | seed=42 | epoch=3/5 | train_loss=0.5935 | val_loss=0.7531 | val_macro_f1=0.6680
+[best] BERT-base Tuning [dropout=0.2] | seed=42 | epoch=3 | best_val_macro_f1=0.6680
+[epoch] BERT-base Tuning [dropout=0.2] | seed=42 | epoch=4/5 | train_loss=0.5023 | val_loss=0.8115 | val_macro_f1=0.6552
+[early-stop] BERT-base Tuning [dropout=0.2] | seed=42 | epoch=4 | best_epoch=3 | best_val_macro_f1=0.6680
+[done] BERT-base Tuning [dropout=0.2] | seed=42 | tuning-only run complete | best_val_macro_f1=0.6680
+[tuning-score] BERT-base | parameter=dropout | candidate=0.2 | val_macro_f1=0.6680
+[tuning-candidate] BERT-base | parameter=dropout | candidate=0.3
+[train] BERT-base Tuning [dropout=0.3] | seed=42 | batch=16 | lr=1e-05 | dropout=0.3 | epochs=5
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 18220.18it/s]
+[1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+[epoch] BERT-base Tuning [dropout=0.3] | seed=42 | epoch=1/5 | train_loss=0.9262 | val_loss=0.7658 | val_macro_f1=0.6067
+[best] BERT-base Tuning [dropout=0.3] | seed=42 | epoch=1 | best_val_macro_f1=0.6067
+[epoch] BERT-base Tuning [dropout=0.3] | seed=42 | epoch=2/5 | train_loss=0.7057 | val_loss=0.7433 | val_macro_f1=0.6626
+[best] BERT-base Tuning [dropout=0.3] | seed=42 | epoch=2 | best_val_macro_f1=0.6626
+[epoch] BERT-base Tuning [dropout=0.3] | seed=42 | epoch=3/5 | train_loss=0.6015 | val_loss=0.7512 | val_macro_f1=0.6585
+[epoch] BERT-base Tuning [dropout=0.3] | seed=42 | epoch=4/5 | train_loss=0.5160 | val_loss=0.8059 | val_macro_f1=0.6625
+[early-stop] BERT-base Tuning [dropout=0.3] | seed=42 | epoch=4 | best_epoch=2 | best_val_macro_f1=0.6626
+[done] BERT-base Tuning [dropout=0.3] | seed=42 | tuning-only run complete | best_val_macro_f1=0.6626
+[tuning-score] BERT-base | parameter=dropout | candidate=0.3 | val_macro_f1=0.6626
+[tuning-best] BERT-base | parameter=dropout | best_candidate=0.2 | best_val_macro_f1=0.6680
+[tuning-param] BERT-base | parameter=epochs | candidates=[3, 4, 5] | current=5
+[tuning-candidate] BERT-base | parameter=epochs | candidate=3
+[train] BERT-base Tuning [epochs=3] | seed=42 | batch=16 | lr=1e-05 | dropout=0.2 | epochs=3
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 6234.90it/s]
+[1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+[epoch] BERT-base Tuning [epochs=3] | seed=42 | epoch=1/3 | train_loss=0.8919 | val_loss=0.7611 | val_macro_f1=0.6084
+[best] BERT-base Tuning [epochs=3] | seed=42 | epoch=1 | best_val_macro_f1=0.6084
+[epoch] BERT-base Tuning [epochs=3] | seed=42 | epoch=2/3 | train_loss=0.6892 | val_loss=0.7485 | val_macro_f1=0.6570
+[best] BERT-base Tuning [epochs=3] | seed=42 | epoch=2 | best_val_macro_f1=0.6570
+[epoch] BERT-base Tuning [epochs=3] | seed=42 | epoch=3/3 | train_loss=0.6038 | val_loss=0.7488 | val_macro_f1=0.6660
+[best] BERT-base Tuning [epochs=3] | seed=42 | epoch=3 | best_val_macro_f1=0.6660
+[done] BERT-base Tuning [epochs=3] | seed=42 | tuning-only run complete | best_val_macro_f1=0.6660
+[tuning-score] BERT-base | parameter=epochs | candidate=3 | val_macro_f1=0.6660
+[tuning-candidate] BERT-base | parameter=epochs | candidate=4
+[train] BERT-base Tuning [epochs=4] | seed=42 | batch=16 | lr=1e-05 | dropout=0.2 | epochs=4
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 14244.91it/s]
+[1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+[epoch] BERT-base Tuning [epochs=4] | seed=42 | epoch=1/4 | train_loss=0.9075 | val_loss=0.7576 | val_macro_f1=0.6133
+[best] BERT-base Tuning [epochs=4] | seed=42 | epoch=1 | best_val_macro_f1=0.6133
+[epoch] BERT-base Tuning [epochs=4] | seed=42 | epoch=2/4 | train_loss=0.6935 | val_loss=0.7425 | val_macro_f1=0.6568
+[best] BERT-base Tuning [epochs=4] | seed=42 | epoch=2 | best_val_macro_f1=0.6568
+[epoch] BERT-base Tuning [epochs=4] | seed=42 | epoch=3/4 | train_loss=0.5975 | val_loss=0.7552 | val_macro_f1=0.6537
+[epoch] BERT-base Tuning [epochs=4] | seed=42 | epoch=4/4 | train_loss=0.5227 | val_loss=0.7835 | val_macro_f1=0.6635
+[best] BERT-base Tuning [epochs=4] | seed=42 | epoch=4 | best_val_macro_f1=0.6635
+[early-stop] BERT-base Tuning [epochs=4] | seed=42 | epoch=4 | best_epoch=4 | best_val_macro_f1=0.6635
+[done] BERT-base Tuning [epochs=4] | seed=42 | tuning-only run complete | best_val_macro_f1=0.6635
+[tuning-score] BERT-base | parameter=epochs | candidate=4 | val_macro_f1=0.6635
+[tuning-candidate] BERT-base | parameter=epochs | candidate=5
+[train] BERT-base Tuning [epochs=5] | seed=42 | batch=16 | lr=1e-05 | dropout=0.2 | epochs=5
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 15765.98it/s]
+[1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+[epoch] BERT-base Tuning [epochs=5] | seed=42 | epoch=1/5 | train_loss=0.9161 | val_loss=0.7649 | val_macro_f1=0.6119
+[best] BERT-base Tuning [epochs=5] | seed=42 | epoch=1 | best_val_macro_f1=0.6119
+[epoch] BERT-base Tuning [epochs=5] | seed=42 | epoch=2/5 | train_loss=0.6987 | val_loss=0.7430 | val_macro_f1=0.6615
+[best] BERT-base Tuning [epochs=5] | seed=42 | epoch=2 | best_val_macro_f1=0.6615
+[epoch] BERT-base Tuning [epochs=5] | seed=42 | epoch=3/5 | train_loss=0.5943 | val_loss=0.7533 | val_macro_f1=0.6624
+[best] BERT-base Tuning [epochs=5] | seed=42 | epoch=3 | best_val_macro_f1=0.6624
+[epoch] BERT-base Tuning [epochs=5] | seed=42 | epoch=4/5 | train_loss=0.5060 | val_loss=0.8132 | val_macro_f1=0.6597
+[early-stop] BERT-base Tuning [epochs=5] | seed=42 | epoch=4 | best_epoch=3 | best_val_macro_f1=0.6624
+[done] BERT-base Tuning [epochs=5] | seed=42 | tuning-only run complete | best_val_macro_f1=0.6624
+[tuning-score] BERT-base | parameter=epochs | candidate=5 | val_macro_f1=0.6624
+[tuning-best] BERT-base | parameter=epochs | best_candidate=3 | best_val_macro_f1=0.6660
+[tuning-model] BERT-base | done | selected={'learning_rate': 1e-05, 'batch_size': 16, 'dropout': 0.2, 'epochs': 3}
+[tuning] Running sequential search for BERT+VADER
+[tuning-model] BERT+VADER | start
+[tuning-param] BERT+VADER | parameter=learning_rate | candidates=[1e-05, 2e-05, 3e-05] | current=2e-05
+[tuning-candidate] BERT+VADER | parameter=learning_rate | candidate=1e-05
+[train] BERT+VADER Tuning [learning_rate=1e-05] | seed=42 | batch=16 | lr=1e-05 | dropout=0.1 | epochs=5
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 22673.15it/s]
+[1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+[epoch] BERT+VADER Tuning [learning_rate=1e-05] | seed=42 | epoch=1/5 | train_loss=0.9161 | val_loss=0.7701 | val_macro_f1=0.6293
+[best] BERT+VADER Tuning [learning_rate=1e-05] | seed=42 | epoch=1 | best_val_macro_f1=0.6293

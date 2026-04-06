@@ -1,0 +1,44 @@
+{
+  "split_train": 0.7,
+  "split_val": 0.1,
+  "split_test": 0.2,
+  "max_len": 128,
+  "batch_size": 64,
+  "epochs": 5,
+  "learning_rate": 2e-05,
+  "warmup_ratio": 0.1,
+  "weight_decay": 0.01,
+  "dropout": 0.1,
+  "mlp_hidden": 256,
+  "early_stopping_patience": 2,
+  "early_stopping_min_delta": 0.0001,
+  "imbalance_threshold": 0.1,
+  "seeds": [
+    42,
+    52,
+    62
+  ],
+  "tune_learning_rates": [
+    1e-05,
+    2e-05,
+    3e-05
+  ],
+  "tune_batch_sizes": [
+    64
+  ],
+  "tune_dropouts": [
+    0.1,
+    0.2,
+    0.3
+  ],
+  "tune_epochs": [
+    5
+  ],
+  "tuning_seed": 42,
+  "tuning_max_epochs": 5,
+  "xai_sample_size": 24,
+  "lime_num_features": 5,
+  "lime_num_samples": 500,
+  "shap_max_evals": 300,
+  "shap_batch_size": 32
+}

@@ -1,0 +1,60 @@
+{
+  "display_name": "TF-IDF + SVM",
+  "seed": 42,
+  "best_c": 0.5,
+  "best_val_macro_f1": 0.624337584191175,
+  "class_weight": {
+    "counts": {
+      "hatespeech": 4151,
+      "offensive": 3830,
+      "normal": 5452
+    },
+    "ratios": {
+      "hatespeech": 0.3090151120375195,
+      "offensive": 0.28511873743765354,
+      "normal": 0.40586615052482694
+    },
+    "minority_ratio": 0.28511873743765354,
+    "use_class_weight": false,
+    "threshold": 0.1
+  },
+  "metrics": {
+    "accuracy": 0.6590257879656161,
+    "macro_f1": 0.6392904415776645,
+    "macro_precision": 0.6498938772448074,
+    "macro_recall": 0.6405859206624082,
+    "auroc": 0.813871707009444,
+    "per_class_precision": {
+      "hatespeech": 0.7287145242070117,
+      "offensive": 0.5681818181818182,
+      "normal": 0.6527852893455922
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7360876897133221,
+      "offensive": 0.410958904109589,
+      "normal": 0.7747111681643132
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7323825503355704,
+      "offensive": 0.4769475357710652,
+      "normal": 0.7085412386263575
+    },
+    "confusion_matrix": [
+      [
+        873,
+        121,
+        192
+      ],
+      [
+        195,
+        450,
+        450
+      ],
+      [
+        130,
+        221,
+        1207
+      ]
+    ]
+  }
+}

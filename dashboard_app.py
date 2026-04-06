@@ -400,21 +400,54 @@ _data_explorer_cache: list[dict] | None = None
 
 
 def _load_explorer_data() -> list[dict]:
-    """데이터 탐색기용 CSV를 한 번만 로드하여 캐싱한다."""
+    """데이터 탐색기용 데��터를 한 번만 로드하여 캐싱한다.
+    CSV가 있으면 CSV를 쓰고, 없으면 dataset.json에서 직접 구성한다."""
     global _data_explorer_cache
     if _data_explorer_cache is not None:
         return _data_explorer_cache
 
-    # 여러 후보 경로를 순서대로 시도한다
-    candidates = [
+    # 1) CSV 후보 시도
+    csv_candidates = [
         BASE / "data" / "hatexplain_vader.csv",
         BASE / "data" / "hatexplain_processed.csv",
         BASE / "data" / "dataset.csv",
     ]
-    for p in candidates:
+    for p in csv_candidates:
         if p.exists():
             _data_explorer_cache = _read_csv(p)
             return _data_explorer_cache
+
+    # 2) dataset.json에서 직접 구성 (majority vote 포함)
+    json_path = BASE / "data" / "dataset.json"
+    if json_path.exists():
+        raw = _read_json(json_path)
+        rows = []
+        for post_id, entry in raw.items():
+            tokens = entry.get("post_tokens", [])
+            text = " ".join(tokens)
+            # majority vote로 라벨 결정
+            labels = [a.get("label", "") for a in entry.get("annotators", [])]
+            from collections import Counter
+            label_counts = Counter(labels)
+            majority_label, majority_count = label_counts.most_common(1)[0] if label_counts else ("unknown", 0)
+            if majority_count < 2:
+                continue  # 합의 안 된 샘플�� 제외
+            # 타겟 수집
+            targets = set()
+            for a in entry.get("annotators", []):
+                for t in a.get("target", []):
+                    if t != "None":
+                        targets.add(t)
+            rows.append({
+                "post_id": post_id,
+                "text": text,
+                "label": majority_label,
+                "target": ", ".join(sorted(targets)) if targets else "None",
+                "word_count": str(len(tokens)),
+            })
+        _data_explorer_cache = rows
+        return _data_explorer_cache
+
     _data_explorer_cache = []
     return _data_explorer_cache
 
@@ -443,12 +476,13 @@ def api_data_explorer(q: str = "", label: str = "", page: int = 1, limit: int = 
     results = []
     for r in page_rows:
         text = r.get("text", r.get("post_tokens", ""))
-        word_count = len(text.split()) if text else 0
+        word_count = r.get("word_count", len(text.split()) if text else 0)
         results.append({
             "text": text[:300],  # 미리보기용 300자 제한
             "label": r.get("label", r.get("final_label", "unknown")),
             "vader_compound": r.get("vader_compound", r.get("compound", "")),
-            "word_count": word_count,
+            "target": r.get("target", ""),
+            "word_count": int(word_count) if word_count else 0,
         })
 
     return JSONResponse({

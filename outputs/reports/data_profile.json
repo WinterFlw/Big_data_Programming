@@ -1,0 +1,30 @@
+{
+  "total_samples": 19192,
+  "splits": {
+    "train": 13433,
+    "val": 1920,
+    "test": 3839
+  },
+  "label_distribution": {
+    "train": {
+      "hatespeech": 4151,
+      "offensive": 3830,
+      "normal": 5452
+    },
+    "val": {
+      "hatespeech": 593,
+      "offensive": 548,
+      "normal": 779
+    },
+    "test": {
+      "hatespeech": 1186,
+      "offensive": 1095,
+      "normal": 1558
+    }
+  },
+  "split_ratio": {
+    "train": 0.7,
+    "val": 0.1,
+    "test": 0.2
+  }
+}

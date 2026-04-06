@@ -1,0 +1,4 @@
+class_a,class_b,top_500_intersection,top_500_union,jaccard_similarity
+hatespeech,offensive,415,585,0.7094
+hatespeech,normal,394,606,0.6502
+offensive,normal,436,564,0.773

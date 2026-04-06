@@ -1,0 +1,9 @@
+sample_id,category,baseline_top_tokens,improved_top_tokens,baseline_overlap_at_5,improved_overlap_at_5
+27,fixed_error,"facebook , hillary , everything , law , leftist","leftists , immigrants , illegal , swamp , the ",0.2,0.6
+39,fixed_error,"gg, fa, you , user, <","bitch, would , azi , ute , even ",1.0,0.4
+45,fixed_error,"trash , di, african , pe, it","ghetto , it, trash , rican , af",0.8,0.6
+57,fixed_error,"ghetto , boot, w, hine, s ","ghetto , dark , constantly , the , friend ",1.0,0.8
+71,fixed_error,"negro , wouldn , ain , dad , us","the , negro , claim , i , look ",0.6,0.6
+74,fixed_error,"bitch, wit , pretty , es, fat","ches, bit, wit , uated , at",1.0,1.0
+76,fixed_error,"immigrants , post, jews , are , whites ","immigrants , ists , that , whites , alt ",0.6,0.6
+79,fixed_error,"immigrants , user, > , blamed, be ","immigrants , > , user, will , <",1.0,1.0

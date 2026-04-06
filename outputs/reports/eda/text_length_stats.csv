@@ -1,0 +1,5 @@
+class,n_samples,word_mean,word_median,word_max,token_mean,token_median,token_max,exceed_max_len_count,exceed_max_len_pct
+hatespeech,5930,24.58,22.0,165,31.42,29.0,179,1,0.02
+offensive,5473,22.38,19.0,76,28.41,25.0,92,0,0.0
+normal,7789,23.37,20.0,70,29.67,26.0,110,0,0.0
+ALL,19192,23.46,21.0,165,29.85,27.0,179,1,0.01

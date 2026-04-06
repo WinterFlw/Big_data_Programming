@@ -1,0 +1,12 @@
+{
+  "baseline_model": "BERT-base",
+  "improved_model": "RoBERTa+VADER",
+  "baseline_macro_f1": 0.6770078314177924,
+  "improved_macro_f1": 0.6845801681065109,
+  "baseline_overlap_mean": 0.7166666666666667,
+  "improved_overlap_mean": 0.6750000000000002,
+  "baseline_overlap_ge_60": 18,
+  "improved_overlap_ge_60": 20,
+  "sample_count": 24,
+  "fixed_error_count": 12
+}

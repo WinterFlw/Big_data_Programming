@@ -1,0 +1,60 @@
+{
+  "display_name": "TF-IDF + LR",
+  "seed": 52,
+  "best_c": 2.0,
+  "best_val_macro_f1": 0.6228113435039204,
+  "class_weight": {
+    "counts": {
+      "hatespeech": 4151,
+      "offensive": 3830,
+      "normal": 5452
+    },
+    "ratios": {
+      "hatespeech": 0.3090151120375195,
+      "offensive": 0.28511873743765354,
+      "normal": 0.40586615052482694
+    },
+    "minority_ratio": 0.28511873743765354,
+    "use_class_weight": false,
+    "threshold": 0.1
+  },
+  "metrics": {
+    "accuracy": 0.6540765824433447,
+    "macro_f1": 0.6369528521978277,
+    "macro_precision": 0.645561830864895,
+    "macro_recall": 0.6365824165870313,
+    "auroc": 0.8133466006807178,
+    "per_class_precision": {
+      "hatespeech": 0.7387152777777778,
+      "offensive": 0.5474794841735052,
+      "normal": 0.6504907306434023
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7175379426644182,
+      "offensive": 0.42648401826484017,
+      "normal": 0.7657252888318357
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7279726261762189,
+      "offensive": 0.4794661190965092,
+      "normal": 0.7034198113207547
+    },
+    "confusion_matrix": [
+      [
+        851,
+        136,
+        199
+      ],
+      [
+        186,
+        467,
+        442
+      ],
+      [
+        115,
+        250,
+        1193
+      ]
+    ]
+  }
+}
