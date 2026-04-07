@@ -1,8 +1,8 @@
 {
   "display_name": "TF-IDF + LR",
   "seed": 52,
-  "best_c": 2.0,
-  "best_val_macro_f1": 0.6228113435039204,
+  "best_c": 0.5,
+  "best_val_macro_f1": 0.6314146081515185,
   "class_weight": {
     "counts": {
       "hatespeech": 4151,
@@ -15,45 +15,50 @@
       "normal": 0.40586615052482694
     },
     "minority_ratio": 0.28511873743765354,
-    "use_class_weight": false,
-    "threshold": 0.1
+    "use_class_weight": true,
+    "threshold": 0.4,
+    "weights": {
+      "hatespeech": 1.0786958965711073,
+      "offensive": 1.1691035683202784,
+      "normal": 0.8212888236732697
+    }
   },
   "metrics": {
-    "accuracy": 0.6540765824433447,
-    "macro_f1": 0.6369528521978277,
-    "macro_precision": 0.645561830864895,
-    "macro_recall": 0.6365824165870313,
-    "auroc": 0.8133466006807178,
+    "accuracy": 0.648866892419901,
+    "macro_f1": 0.6400258937794545,
+    "macro_precision": 0.640251262638038,
+    "macro_recall": 0.6401590153889675,
+    "auroc": 0.8158285211669067,
     "per_class_precision": {
-      "hatespeech": 0.7387152777777778,
-      "offensive": 0.5474794841735052,
-      "normal": 0.6504907306434023
+      "hatespeech": 0.7270450751252087,
+      "offensive": 0.5197685631629702,
+      "normal": 0.6739401496259352
     },
     "per_class_recall": {
-      "hatespeech": 0.7175379426644182,
-      "offensive": 0.42648401826484017,
-      "normal": 0.7657252888318357
+      "hatespeech": 0.7344013490725126,
+      "offensive": 0.4922374429223744,
+      "normal": 0.6938382541720154
     },
     "per_class_f1": {
-      "hatespeech": 0.7279726261762189,
-      "offensive": 0.4794661190965092,
-      "normal": 0.7034198113207547
+      "hatespeech": 0.7307046979865772,
+      "offensive": 0.5056285178236398,
+      "normal": 0.6837444655281467
     },
     "confusion_matrix": [
       [
-        851,
-        136,
-        199
+        871,
+        161,
+        154
       ],
       [
-        186,
-        467,
-        442
+        187,
+        539,
+        369
       ],
       [
-        115,
-        250,
-        1193
+        140,
+        337,
+        1081
       ]
     ]
   }

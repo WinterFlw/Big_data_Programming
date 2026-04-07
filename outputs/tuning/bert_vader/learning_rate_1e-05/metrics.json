@@ -3,8 +3,8 @@
   "model_name": "bert-base-uncased",
   "seed": 42,
   "best_epoch": 4,
-  "best_val_macro_f1": 0.6626730399249419,
-  "elapsed_seconds": 348.6999397277832,
+  "best_val_macro_f1": 0.6701266089507428,
+  "elapsed_seconds": 351.2259521484375,
   "class_weight": {
     "counts": {
       "hatespeech": 4151,
@@ -17,8 +17,13 @@
       "normal": 0.40586615052482694
     },
     "minority_ratio": 0.28511873743765354,
-    "use_class_weight": false,
-    "threshold": 0.1
+    "use_class_weight": true,
+    "threshold": 0.4,
+    "weights": {
+      "hatespeech": 1.0786958965711073,
+      "offensive": 1.1691035683202784,
+      "normal": 0.8212888236732697
+    }
   },
   "hyperparams": {
     "split_train": 0.7,
@@ -34,7 +39,7 @@
     "mlp_hidden": 256,
     "early_stopping_patience": 2,
     "early_stopping_min_delta": 0.0001,
-    "imbalance_threshold": 0.1,
+    "imbalance_threshold": 0.4,
     "seeds": [
       42,
       52,
@@ -58,7 +63,7 @@
     ],
     "tuning_seed": 42,
     "tuning_max_epochs": 5,
-    "xai_sample_size": 24,
+    "xai_sample_size": 50,
     "lime_num_features": 5,
     "lime_num_samples": 500,
     "shap_max_evals": 300,

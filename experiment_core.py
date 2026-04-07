@@ -139,7 +139,9 @@ class ExperimentConfig:
     early_stopping_min_delta: float = 1e-4  # 이 정도는 되어야 "개선됐다"고 인정해요
 
     # ── 클래스 가중치 — 불균형한 데이터를 공정하게! ──
-    imbalance_threshold: float = 0.10  # 소수 클래스가 10% 미만이면 가중치를 줘요
+    # HateXplain에서 offensive(28.5%)가 normal(40.6%) 대비 중간 불균형이에요.
+    # threshold를 0.40으로 설정해서 balanced class weight가 적용되도록 합니다.
+    imbalance_threshold: float = 0.40
 
     # ── 반복 실험 시드 — 3번 돌려서 평균 ± 표준편차로 신뢰도를 높여요 ──
     seeds: list[int] = field(default_factory=lambda: [42, 52, 62])
@@ -153,7 +155,7 @@ class ExperimentConfig:
     tuning_max_epochs: int = 5    # 튜닝 시 최대 에포크
 
     # ── XAI(설명가능 AI) 분석 설정 — 모델의 판단 이유를 들여다봐요 ──
-    xai_sample_size: int = 24     # SHAP/LIME 분석할 샘플 수 (너무 많으면 느려요)
+    xai_sample_size: int = 50     # SHAP/LIME 분석할 샘플 수 (50개면 일반화 가능성 확보)
     lime_num_features: int = 5    # LIME이 보여줄 중요 단어 Top-K개
     lime_num_samples: int = 500   # LIME이 텍스트를 얼마나 변형해볼지
     shap_max_evals: int = 300     # SHAP 최대 평가 횟수
@@ -837,7 +839,9 @@ def train_neural_model(
     )
     if class_weight_tensor is not None:
         class_weight_tensor = class_weight_tensor.to(device)
-    criterion = nn.CrossEntropyLoss(weight=class_weight_tensor)  # 가중 교차 엔트로피 손실
+    # label_smoothing=0.1: hate/offensive 경계가 모호한 샘플에서
+    # hard label(0 또는 1)보다 soft label이 일반화에 도움돼요.
+    criterion = nn.CrossEntropyLoss(weight=class_weight_tensor, label_smoothing=0.1)
 
     # ── Step 3: 옵티마이저 & 스케줄러 세팅 ──────
     # AdamW: Adam에 L2 정규화(weight decay)를 올바르게 적용한 버전이에요

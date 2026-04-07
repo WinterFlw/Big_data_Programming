@@ -5,18 +5,18 @@ Paired t-test on macro F1 across seeds (alpha=0.05).
 
 | model_a | model_b | metric | n_seeds | mean_diff | t_statistic | p_value | significant | cohens_d |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| BERT+MLP | BERT+VADER | macro_f1 | 3 | 0.0016 | 0.6801 | 0.5666 | False | 0.3927 |
-| BERT+MLP | BERT-base | macro_f1 | 3 | 0.0065 | 2.5750 | 0.1235 | False | 1.4867 |
-| BERT+MLP | RoBERTa+VADER | macro_f1 | 3 | -0.0054 | -8.2034 | 0.0145 | True | -4.7363 |
-| BERT+MLP | TF-IDF + LR | macro_f1 | 3 | 0.0440 | 30.2029 | 0.0011 | True | 17.4376 |
-| BERT+MLP | TF-IDF + SVM | macro_f1 | 3 | 0.0417 | 28.5990 | 0.0012 | True | 16.5116 |
-| BERT+VADER | BERT-base | macro_f1 | 3 | 0.0049 | 2.4004 | 0.1384 | False | 1.3859 |
-| BERT+VADER | RoBERTa+VADER | macro_f1 | 3 | -0.0070 | -3.9875 | 0.0575 | False | -2.3022 |
-| BERT+VADER | TF-IDF + LR | macro_f1 | 3 | 0.0424 | 17.6055 | 0.0032 | True | 10.1645 |
-| BERT+VADER | TF-IDF + SVM | macro_f1 | 3 | 0.0401 | 16.6351 | 0.0036 | True | 9.6043 |
-| BERT-base | RoBERTa+VADER | macro_f1 | 3 | -0.0119 | -5.0792 | 0.0366 | True | -2.9325 |
-| BERT-base | TF-IDF + LR | macro_f1 | 3 | 0.0375 | 27.6485 | 0.0013 | True | 15.9629 |
-| BERT-base | TF-IDF + SVM | macro_f1 | 3 | 0.0351 | 25.9242 | 0.0015 | True | 14.9674 |
-| RoBERTa+VADER | TF-IDF + LR | macro_f1 | 3 | 0.0494 | 30.9800 | 0.0010 | True | 17.8863 |
-| RoBERTa+VADER | TF-IDF + SVM | macro_f1 | 3 | 0.0470 | 29.5132 | 0.0011 | True | 17.0394 |
-| TF-IDF + LR | TF-IDF + SVM | macro_f1 | 3 | -0.0023 | -inf | 0.0000 | True | 0.0000 |
+| BERT+MLP | BERT+VADER | macro_f1 | 3 | 0.0022 | 0.4857 | 0.6752 | False | 0.2804 |
+| BERT+MLP | BERT-base | macro_f1 | 3 | 0.0086 | 1.8764 | 0.2014 | False | 1.0833 |
+| BERT+MLP | RoBERTa+VADER | macro_f1 | 3 | -0.0010 | -0.1213 | 0.9145 | False | -0.0700 |
+| BERT+MLP | TF-IDF + LR | macro_f1 | 3 | 0.0424 | 10.3965 | 0.0091 | True | 6.0024 |
+| BERT+MLP | TF-IDF + SVM | macro_f1 | 3 | 0.0442 | 10.8341 | 0.0084 | True | 6.2551 |
+| BERT+VADER | BERT-base | macro_f1 | 3 | 0.0064 | 0.9529 | 0.4412 | False | 0.5502 |
+| BERT+VADER | RoBERTa+VADER | macro_f1 | 3 | -0.0031 | -0.6899 | 0.5615 | False | -0.3983 |
+| BERT+VADER | TF-IDF + LR | macro_f1 | 3 | 0.0402 | 23.3140 | 0.0018 | True | 13.4603 |
+| BERT+VADER | TF-IDF + SVM | macro_f1 | 3 | 0.0420 | 24.3485 | 0.0017 | True | 14.0576 |
+| BERT-base | RoBERTa+VADER | macro_f1 | 3 | -0.0096 | -0.8559 | 0.4822 | False | -0.4941 |
+| BERT-base | TF-IDF + LR | macro_f1 | 3 | 0.0338 | 6.5121 | 0.0228 | True | 3.7597 |
+| BERT-base | TF-IDF + SVM | macro_f1 | 3 | 0.0356 | 6.8559 | 0.0206 | True | 3.9583 |
+| RoBERTa+VADER | TF-IDF + LR | macro_f1 | 3 | 0.0434 | 6.9261 | 0.0202 | True | 3.9988 |
+| RoBERTa+VADER | TF-IDF + SVM | macro_f1 | 3 | 0.0452 | 7.2112 | 0.0187 | True | 4.1634 |
+| TF-IDF + LR | TF-IDF + SVM | macro_f1 | 3 | 0.0018 | inf | 0.0000 | True | 0.0000 |

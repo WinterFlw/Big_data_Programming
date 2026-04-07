@@ -178,8 +178,8 @@ pip install -r requirements.txt
 |------|------|
 | 출처 | Twitter + Gab, 20,148건 영어 텍스트 |
 | 분류 | 3-class: `hatespeech` / `offensive` / `normal` |
-| 라벨링 | 3인 다수결 투표, undecided 제외 → **~13,433건** 사용 |
-| 분할 | **60 / 20 / 20** stratified split (train / val / test) |
+| 라벨링 | 3인 다수결 투표, undecided 제외 → **19,192건** 사용 |
+| 분할 | **70 / 10 / 20** stratified split (train / val / test) |
 | 시드 | 42, 52, 62 (3회 반복) |
 
 ---

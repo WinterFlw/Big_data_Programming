@@ -2,9 +2,9 @@
   "display_name": "BERT+VADER (Fine-tuned Encoder)",
   "model_name": "bert-base-uncased",
   "seed": 52,
-  "best_epoch": 2,
-  "best_val_macro_f1": 0.6603827690300048,
-  "elapsed_seconds": 329.1710000038147,
+  "best_epoch": 4,
+  "best_val_macro_f1": 0.6607445716877413,
+  "elapsed_seconds": 361.62122225761414,
   "class_weight": {
     "counts": {
       "hatespeech": 4151,
@@ -17,8 +17,13 @@
       "normal": 0.40586615052482694
     },
     "minority_ratio": 0.28511873743765354,
-    "use_class_weight": false,
-    "threshold": 0.1
+    "use_class_weight": true,
+    "threshold": 0.4,
+    "weights": {
+      "hatespeech": 1.0786958965711073,
+      "offensive": 1.1691035683202784,
+      "normal": 0.8212888236732697
+    }
   },
   "hyperparams": {
     "split_train": 0.7,
@@ -27,14 +32,14 @@
     "max_len": 128,
     "batch_size": 64,
     "epochs": 5,
-    "learning_rate": 2e-05,
+    "learning_rate": 1e-05,
     "warmup_ratio": 0.1,
     "weight_decay": 0.01,
     "dropout": 0.1,
     "mlp_hidden": 256,
     "early_stopping_patience": 2,
     "early_stopping_min_delta": 0.0001,
-    "imbalance_threshold": 0.1,
+    "imbalance_threshold": 0.4,
     "seeds": [
       42,
       52,
@@ -58,51 +63,51 @@
     ],
     "tuning_seed": 42,
     "tuning_max_epochs": 5,
-    "xai_sample_size": 24,
+    "xai_sample_size": 50,
     "lime_num_features": 5,
     "lime_num_samples": 500,
     "shap_max_evals": 300,
     "shap_batch_size": 32
   },
   "metrics": {
-    "accuracy": 0.683511331075801,
-    "macro_f1": 0.6691194343076466,
-    "macro_precision": 0.6684105968818734,
-    "macro_recall": 0.6728913783980945,
-    "auroc": 0.8429572893802848,
+    "accuracy": 0.6887210210992446,
+    "macro_f1": 0.6750140553970221,
+    "macro_precision": 0.6753232841389117,
+    "macro_recall": 0.6773835480457757,
+    "auroc": 0.8417007204455625,
     "per_class_precision": {
-      "hatespeech": 0.73206106870229,
-      "offensive": 0.54957805907173,
-      "normal": 0.7235926628716003
+      "hatespeech": 0.7442958300550747,
+      "offensive": 0.5634249471458774,
+      "normal": 0.718249075215783
     },
     "per_class_recall": {
-      "hatespeech": 0.8086003372681282,
-      "offensive": 0.4757990867579909,
-      "normal": 0.7342747111681643
+      "hatespeech": 0.7976391231028668,
+      "offensive": 0.4867579908675799,
+      "normal": 0.7477535301668806
     },
     "per_class_f1": {
-      "hatespeech": 0.7684294871794872,
-      "offensive": 0.5100342633382281,
-      "normal": 0.7288945524052246
+      "hatespeech": 0.77004477004477,
+      "offensive": 0.5222929936305732,
+      "normal": 0.7327044025157232
     },
     "confusion_matrix": [
       [
-        959,
-        131,
-        96
+        946,
+        137,
+        103
       ],
       [
-        233,
-        521,
-        341
+        208,
+        533,
+        354
       ],
       [
-        118,
-        296,
-        1144
+        117,
+        276,
+        1165
       ]
     ],
-    "loss": 0.7320606539646785
+    "loss": 0.833728555838267
   },
   "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/bert_vader_fine_tuned_encoder/seed_52/predictions.pkl"
 }

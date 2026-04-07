@@ -2,9 +2,9 @@
   "display_name": "RoBERTa+VADER",
   "model_name": "roberta-base",
   "seed": 42,
-  "best_epoch": 5,
-  "best_val_macro_f1": 0.6813994520180087,
-  "elapsed_seconds": 397.9771509170532,
+  "best_epoch": 4,
+  "best_val_macro_f1": 0.6797807100872602,
+  "elapsed_seconds": 311.7166349887848,
   "class_weight": {
     "counts": {
       "hatespeech": 4151,
@@ -17,8 +17,13 @@
       "normal": 0.40586615052482694
     },
     "minority_ratio": 0.28511873743765354,
-    "use_class_weight": false,
-    "threshold": 0.1
+    "use_class_weight": true,
+    "threshold": 0.4,
+    "weights": {
+      "hatespeech": 1.0786958965711073,
+      "offensive": 1.1691035683202784,
+      "normal": 0.8212888236732697
+    }
   },
   "hyperparams": {
     "split_train": 0.7,
@@ -30,11 +35,11 @@
     "learning_rate": 2e-05,
     "warmup_ratio": 0.1,
     "weight_decay": 0.01,
-    "dropout": 0.1,
+    "dropout": 0.3,
     "mlp_hidden": 256,
     "early_stopping_patience": 2,
     "early_stopping_min_delta": 0.0001,
-    "imbalance_threshold": 0.1,
+    "imbalance_threshold": 0.4,
     "seeds": [
       42,
       52,
@@ -58,51 +63,51 @@
     ],
     "tuning_seed": 42,
     "tuning_max_epochs": 5,
-    "xai_sample_size": 24,
+    "xai_sample_size": 50,
     "lime_num_features": 5,
     "lime_num_samples": 500,
     "shap_max_evals": 300,
     "shap_batch_size": 32
   },
   "metrics": {
-    "accuracy": 0.6962750716332379,
-    "macro_f1": 0.6845801681065109,
-    "macro_precision": 0.6831831831831833,
-    "macro_recall": 0.6886099873107071,
-    "auroc": 0.854557545214421,
+    "accuracy": 0.6902839281062777,
+    "macro_f1": 0.6821524644799583,
+    "macro_precision": 0.6806255173435843,
+    "macro_recall": 0.6880166222789024,
+    "auroc": 0.853231241101485,
     "per_class_precision": {
-      "hatespeech": 0.7319819819819819,
-      "offensive": 0.5675675675675675,
-      "normal": 0.75
+      "hatespeech": 0.7289377289377289,
+      "offensive": 0.5484460694698354,
+      "normal": 0.7644927536231884
     },
     "per_class_recall": {
-      "hatespeech": 0.8220910623946037,
-      "offensive": 0.5178082191780822,
-      "normal": 0.7259306803594352
+      "hatespeech": 0.8389544688026982,
+      "offensive": 0.547945205479452,
+      "normal": 0.6771501925545571
     },
     "per_class_f1": {
-      "hatespeech": 0.7744241461477362,
-      "offensive": 0.5415472779369628,
-      "normal": 0.7377690802348337
+      "hatespeech": 0.7800862406899255,
+      "offensive": 0.5481955230698949,
+      "normal": 0.7181756296800544
     },
     "confusion_matrix": [
       [
-        975,
-        121,
-        90
+        995,
+        122,
+        69
       ],
       [
-        241,
-        567,
-        287
+        239,
+        600,
+        256
       ],
       [
-        116,
-        311,
-        1131
+        131,
+        372,
+        1055
       ]
     ],
-    "loss": 0.7730566099286079
+    "loss": 0.8527751435836156
   },
   "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/roberta_vader/seed_42/predictions.pkl"
 }

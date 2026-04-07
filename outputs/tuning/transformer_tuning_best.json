@@ -1,12 +1,12 @@
 {
   "BERT-base": {
-    "learning_rate": 3e-05,
+    "learning_rate": 1e-05,
     "batch_size": 64,
     "dropout": 0.1,
     "epochs": 5
   },
   "BERT+VADER": {
-    "learning_rate": 2e-05,
+    "learning_rate": 1e-05,
     "batch_size": 64,
     "dropout": 0.1,
     "epochs": 5
@@ -14,7 +14,7 @@
   "RoBERTa+VADER": {
     "learning_rate": 2e-05,
     "batch_size": 64,
-    "dropout": 0.1,
+    "dropout": 0.3,
     "epochs": 5
   }
 }

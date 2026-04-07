@@ -12,7 +12,7 @@
   "mlp_hidden": 256,
   "early_stopping_patience": 2,
   "early_stopping_min_delta": 0.0001,
-  "imbalance_threshold": 0.1,
+  "imbalance_threshold": 0.4,
   "seeds": [
     42,
     52,
@@ -36,7 +36,7 @@
   ],
   "tuning_seed": 42,
   "tuning_max_epochs": 5,
-  "xai_sample_size": 24,
+  "xai_sample_size": 50,
   "lime_num_features": 5,
   "lime_num_samples": 500,
   "shap_max_evals": 300,
