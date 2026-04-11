@@ -18140,5 +18140,3651 @@
         }
       ]
     }
+  ],
+  "baseline_rationale_shap": [
+    {
+      "post_id": "19449874_gab",
+      "model_top_tokens": [
+        "smart",
+        "then",
+        "e",
+        "people",
+        "other"
+      ],
+      "human_rationale_tokens": [
+        "but",
+        "in",
+        "asia",
+        "they",
+        "have",
+        "other",
+        "then",
+        "aspartame",
+        "or",
+        "fluoride",
+        "asians",
+        "seem",
+        "smart",
+        "because",
+        "they",
+        "have",
+        "<number>",
+        "billion",
+        "people",
+        "the",
+        "more",
+        "people",
+        "the",
+        "more",
+        "smart",
+        "people"
+      ],
+      "matched_tokens": [
+        "seem",
+        "because",
+        "smart",
+        "<number>",
+        "more",
+        "aspartame",
+        "then",
+        "have",
+        "people",
+        "they",
+        "other",
+        "the",
+        "fluoride"
+      ],
+      "overlap": 0.6842,
+      "human_rationale_count": 19
+    },
+    {
+      "post_id": "1174186731006042114_twitter",
+      "model_top_tokens": [
+        "made",
+        "hits",
+        ">",
+        "e",
+        "number"
+      ],
+      "human_rationale_tokens": [
+        "hoe"
+      ],
+      "matched_tokens": [
+        "hoe"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "1179080158340407297_twitter",
+      "model_top_tokens": [
+        "am",
+        "🤡",
+        "ho",
+        "myself",
+        "never"
+      ],
+      "human_rationale_tokens": [
+        "hoe",
+        "hoe"
+      ],
+      "matched_tokens": [
+        "hoe"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "18152238_gab",
+      "model_top_tokens": [
+        "😂",
+        "homosexual",
+        "next"
+      ],
+      "human_rationale_tokens": [
+        "😂",
+        "😂",
+        "😂",
+        "straight",
+        "cancer",
+        "homosexual",
+        "cancer"
+      ],
+      "matched_tokens": [
+        "😂",
+        "homosexual"
+      ],
+      "overlap": 0.5,
+      "human_rationale_count": 4
+    },
+    {
+      "post_id": "1176631691479322624_twitter",
+      "model_top_tokens": [
+        "mine",
+        "user",
+        "do",
+        "<",
+        "but"
+      ],
+      "human_rationale_tokens": [
+        "gay"
+      ],
+      "matched_tokens": [],
+      "overlap": 0.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "1087571270605131776_twitter",
+      "model_top_tokens": [
+        "a",
+        "na",
+        "pot",
+        "yo",
+        "wall"
+      ],
+      "human_rationale_tokens": [
+        "hoes",
+        "wishy",
+        "washy",
+        "they",
+        "will",
+        "fuck",
+        "yo",
+        "potna",
+        "and",
+        "take",
+        "all",
+        "of",
+        "yo",
+        "gwalla"
+      ],
+      "matched_tokens": [
+        "potna",
+        "take",
+        "washy",
+        "gwalla",
+        "all",
+        "yo",
+        "and"
+      ],
+      "overlap": 0.5385,
+      "human_rationale_count": 13
+    },
+    {
+      "post_id": "1076286149310730240_twitter",
+      "model_top_tokens": [
+        "gga",
+        "bitch",
+        "🏾 ‍",
+        "♀ ️",
+        "ni"
+      ],
+      "human_rationale_tokens": [
+        "niggas",
+        "bitch"
+      ],
+      "matched_tokens": [
+        "niggas",
+        "bitch"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "27692892_gab",
+      "model_top_tokens": [
+        "need",
+        "squad",
+        "germany",
+        "wet",
+        "jersey"
+      ],
+      "human_rationale_tokens": [
+        "wetback",
+        "squad"
+      ],
+      "matched_tokens": [
+        "squad",
+        "wetback"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "11983952_gab",
+      "model_top_tokens": [
+        "about",
+        "am",
+        "means",
+        "outcome",
+        "and"
+      ],
+      "human_rationale_tokens": [
+        "pretty",
+        "soon",
+        "the",
+        "ivy",
+        "league",
+        "will",
+        "be",
+        "synonymous",
+        "with",
+        "the",
+        "china",
+        "league",
+        "because",
+        "a",
+        "foolish",
+        "and",
+        "stubborn",
+        "insistence",
+        "on",
+        "open",
+        "borders",
+        "in",
+        "perpetuity",
+        "means",
+        "studygrind",
+        "cheating",
+        "asians",
+        "gradually",
+        "taking",
+        "over",
+        "all",
+        "white",
+        "western",
+        "schools"
+      ],
+      "matched_tokens": [
+        "a",
+        "means",
+        "and"
+      ],
+      "overlap": 0.0938,
+      "human_rationale_count": 32
+    },
+    {
+      "post_id": "1177392985471934464_twitter",
+      "model_top_tokens": [
+        "l",
+        "that",
+        "lil",
+        "post",
+        "anybody"
+      ],
+      "human_rationale_tokens": [
+        "dyke"
+      ],
+      "matched_tokens": [],
+      "overlap": 0.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "9555286_gab",
+      "model_top_tokens": [
+        "play",
+        "everyday",
+        "times",
+        "of",
+        "ghetto"
+      ],
+      "human_rationale_tokens": [
+        "crazy",
+        "oh",
+        "no",
+        "she",
+        "is",
+        "black",
+        "that",
+        "ishwat",
+        "they",
+        "do",
+        "<number>",
+        "of",
+        "times",
+        "everyday",
+        "ghetto",
+        "lotto",
+        "you",
+        "can",
+        "not",
+        "win",
+        "if",
+        "you",
+        "do",
+        "not",
+        "play"
+      ],
+      "matched_tokens": [
+        "play",
+        "everyday",
+        "times",
+        "of",
+        "ghetto"
+      ],
+      "overlap": 0.2273,
+      "human_rationale_count": 22
+    },
+    {
+      "post_id": "1178024109655171073_twitter",
+      "model_top_tokens": [
+        "z",
+        "trash",
+        "t",
+        "normally",
+        "you"
+      ],
+      "human_rationale_tokens": [
+        "trailer",
+        "trash",
+        "pink",
+        "dick"
+      ],
+      "matched_tokens": [
+        "trash",
+        "trailer"
+      ],
+      "overlap": 0.5,
+      "human_rationale_count": 4
+    },
+    {
+      "post_id": "1178755558544936966_twitter",
+      "model_top_tokens": [
+        "president",
+        "she",
+        "rag",
+        "head",
+        "be"
+      ],
+      "human_rationale_tokens": [
+        "rag",
+        "head",
+        "club"
+      ],
+      "matched_tokens": [
+        "rag",
+        "head"
+      ],
+      "overlap": 0.6667,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "26516753_gab",
+      "model_top_tokens": [
+        "illegal",
+        "dawn",
+        "stronger",
+        "together",
+        "immigrants"
+      ],
+      "human_rationale_tokens": [
+        "illegal",
+        "immigrants",
+        "are",
+        "stronger",
+        "together",
+        "deport",
+        "mom",
+        "and",
+        "her",
+        "spawn",
+        "by",
+        "dawn"
+      ],
+      "matched_tokens": [
+        "her",
+        "illegal",
+        "dawn",
+        "stronger",
+        "together",
+        "immigrants"
+      ],
+      "overlap": 0.5,
+      "human_rationale_count": 12
+    },
+    {
+      "post_id": "1178629960837275649_twitter",
+      "model_top_tokens": [
+        "ots",
+        "gg",
+        "fa",
+        "these",
+        "🏾 ‍"
+      ],
+      "human_rationale_tokens": [
+        "hate",
+        "these",
+        "faggots"
+      ],
+      "matched_tokens": [
+        "these",
+        "faggots"
+      ],
+      "overlap": 0.6667,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "1179033197201494018_twitter",
+      "model_top_tokens": [
+        "a",
+        "user",
+        "really",
+        "or",
+        "i"
+      ],
+      "human_rationale_tokens": [
+        "immigrant",
+        "from",
+        "a",
+        "shithole",
+        "country"
+      ],
+      "matched_tokens": [
+        "a",
+        "immigrant",
+        "shithole"
+      ],
+      "overlap": 0.6,
+      "human_rationale_count": 5
+    },
+    {
+      "post_id": "25001491_gab",
+      "model_top_tokens": [
+        "rd",
+        "tu",
+        "gger",
+        "whose",
+        "ni"
+      ],
+      "human_rationale_tokens": [
+        "perhaps",
+        "because",
+        "she",
+        "a",
+        "screaming",
+        "ugly",
+        "overweight",
+        "retarded",
+        "black",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "retarded",
+        "nigger"
+      ],
+      "overlap": 0.2,
+      "human_rationale_count": 10
+    },
+    {
+      "post_id": "22161097_gab",
+      "model_top_tokens": [
+        "a",
+        "sand",
+        "time",
+        "gger",
+        "ni"
+      ],
+      "human_rationale_tokens": [
+        "sand",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "sand",
+        "nigger"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "5167719_gab",
+      "model_top_tokens": [
+        "mu",
+        "some",
+        "e",
+        "zzi",
+        "but"
+      ],
+      "human_rationale_tokens": [
+        "muzzie"
+      ],
+      "matched_tokens": [
+        "muzzie"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "20602248_gab",
+      "model_top_tokens": [
+        "gger",
+        "cu",
+        "good",
+        "hollywood",
+        "ni"
+      ],
+      "human_rationale_tokens": [
+        "cunts",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "cunts",
+        "nigger"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "13713469_gab",
+      "model_top_tokens": [
+        "re",
+        "ded",
+        "tar",
+        "are",
+        "this"
+      ],
+      "human_rationale_tokens": [
+        "this",
+        "is",
+        "the",
+        "most",
+        "retarded",
+        "thing",
+        "you",
+        "will",
+        "see",
+        "today"
+      ],
+      "matched_tokens": [
+        "is",
+        "retarded",
+        "this"
+      ],
+      "overlap": 0.3,
+      "human_rationale_count": 10
+    },
+    {
+      "post_id": "21531589_gab",
+      "model_top_tokens": [
+        "twitter",
+        "ni",
+        "gger",
+        "can",
+        "onga"
+      ],
+      "human_rationale_tokens": [
+        "nigger"
+      ],
+      "matched_tokens": [
+        "nigger"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "23659865_gab",
+      "model_top_tokens": [
+        "apologize",
+        "talmud",
+        "you",
+        "the"
+      ],
+      "human_rationale_tokens": [
+        "i",
+        "will",
+        "apologize",
+        "for",
+        "calling",
+        "you",
+        "a",
+        "muslim",
+        "if",
+        "you",
+        "are",
+        "not",
+        "one",
+        "but",
+        "the",
+        "talmud",
+        "does",
+        "not",
+        "represent",
+        "traditional",
+        "judaism",
+        "anyway",
+        "it",
+        "represents",
+        "the",
+        "mongrelization",
+        "that",
+        "occurred",
+        "in",
+        "babylon",
+        "and",
+        "yes",
+        "the",
+        "arabs",
+        "were",
+        "infected",
+        "by",
+        "the",
+        "same"
+      ],
+      "matched_tokens": [
+        "apologize",
+        "a",
+        "talmud",
+        "i",
+        "the",
+        "you"
+      ],
+      "overlap": 0.1765,
+      "human_rationale_count": 34
+    },
+    {
+      "post_id": "19089112_gab",
+      "model_top_tokens": [
+        "whites",
+        "gger",
+        "killed",
+        "should",
+        "ni"
+      ],
+      "human_rationale_tokens": [
+        "nigger",
+        "whites",
+        "use",
+        "it",
+        "they",
+        "should",
+        "be",
+        "killed"
+      ],
+      "matched_tokens": [
+        "nigger",
+        "whites",
+        "killed",
+        "should",
+        "it"
+      ],
+      "overlap": 0.625,
+      "human_rationale_count": 8
+    },
+    {
+      "post_id": "27902074_gab",
+      "model_top_tokens": [
+        "hate",
+        "jews",
+        "knows"
+      ],
+      "human_rationale_tokens": [
+        "nobody",
+        "who",
+        "knows",
+        "jews",
+        "likes",
+        "jews",
+        "even",
+        "jews",
+        "hate",
+        "jews"
+      ],
+      "matched_tokens": [
+        "hate",
+        "jews",
+        "knows"
+      ],
+      "overlap": 0.4286,
+      "human_rationale_count": 7
+    },
+    {
+      "post_id": "11498486_gab",
+      "model_top_tokens": [
+        "sp",
+        "bean",
+        "ic",
+        "er",
+        "you"
+      ],
+      "human_rationale_tokens": [
+        "fucking",
+        "spic",
+        "beaner"
+      ],
+      "matched_tokens": [
+        "spic",
+        "beaner"
+      ],
+      "overlap": 0.6667,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "26871375_gab",
+      "model_top_tokens": [
+        "ke",
+        "ll",
+        "ki",
+        "shall",
+        "dumb"
+      ],
+      "human_rationale_tokens": [
+        "boomer",
+        "kike"
+      ],
+      "matched_tokens": [
+        "kike"
+      ],
+      "overlap": 0.5,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "19930942_gab",
+      "model_top_tokens": [
+        "gger",
+        "i",
+        "will",
+        "ni",
+        "muslim"
+      ],
+      "human_rationale_tokens": [
+        "anti",
+        "semites",
+        "also",
+        "muslime",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "muslime",
+        "semites",
+        "anti",
+        "nigger"
+      ],
+      "overlap": 0.8,
+      "human_rationale_count": 5
+    },
+    {
+      "post_id": "21925689_gab",
+      "model_top_tokens": [
+        "ke",
+        "ki",
+        "gger",
+        "did",
+        "ni"
+      ],
+      "human_rationale_tokens": [
+        "niggers",
+        "kike",
+        "whore"
+      ],
+      "matched_tokens": [
+        "kike",
+        "niggers"
+      ],
+      "overlap": 0.6667,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "20126138_gab",
+      "model_top_tokens": [
+        "ke",
+        "ki",
+        "you"
+      ],
+      "human_rationale_tokens": [
+        "kike",
+        "vermin",
+        "kike",
+        "vermin"
+      ],
+      "matched_tokens": [
+        "kike"
+      ],
+      "overlap": 0.5,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "27832444_gab",
+      "model_top_tokens": [
+        "wished",
+        ">",
+        "user",
+        "bitch",
+        "<"
+      ],
+      "human_rationale_tokens": [
+        "wished",
+        "you",
+        "would",
+        "unmute",
+        "me",
+        "nazi",
+        "faggot",
+        "you",
+        "are",
+        "not",
+        "even",
+        "trying",
+        "anymore",
+        "bitch"
+      ],
+      "matched_tokens": [
+        "wished",
+        "bitch"
+      ],
+      "overlap": 0.1538,
+      "human_rationale_count": 13
+    },
+    {
+      "post_id": "15422594_gab",
+      "model_top_tokens": [
+        "t",
+        "murdering",
+        "wat",
+        "skins",
+        "white"
+      ],
+      "human_rationale_tokens": [
+        "low",
+        "iq",
+        "shit",
+        "skins",
+        "murdering",
+        "white",
+        "women",
+        "and",
+        "this",
+        "fucking",
+        "useless",
+        "twat",
+        "wants"
+      ],
+      "matched_tokens": [
+        "murdering",
+        "twat",
+        "wants",
+        "skins",
+        "white",
+        "shit",
+        "this"
+      ],
+      "overlap": 0.5385,
+      "human_rationale_count": 13
+    },
+    {
+      "post_id": "12789757_gab",
+      "model_top_tokens": [
+        "black",
+        "while",
+        "sr",
+        "ghetto",
+        "ct"
+      ],
+      "human_rationale_tokens": [
+        "while",
+        "black",
+        "african",
+        "ghetto",
+        "trash",
+        "disrespect",
+        "it"
+      ],
+      "matched_tokens": [
+        "black",
+        "while",
+        "disrespect",
+        "ghetto"
+      ],
+      "overlap": 0.5714,
+      "human_rationale_count": 7
+    }
+  ],
+  "improved_rationale_shap": [
+    {
+      "post_id": "19449874_gab",
+      "model_top_tokens": [
+        "fluoride",
+        "or",
+        "smart",
+        "ians"
+      ],
+      "human_rationale_tokens": [
+        "but",
+        "in",
+        "asia",
+        "they",
+        "have",
+        "other",
+        "then",
+        "aspartame",
+        "or",
+        "fluoride",
+        "asians",
+        "seem",
+        "smart",
+        "because",
+        "they",
+        "have",
+        "<number>",
+        "billion",
+        "people",
+        "the",
+        "more",
+        "people",
+        "the",
+        "more",
+        "smart",
+        "people"
+      ],
+      "matched_tokens": [
+        "smart",
+        "more",
+        "or",
+        "asians",
+        "fluoride"
+      ],
+      "overlap": 0.2632,
+      "human_rationale_count": 19
+    },
+    {
+      "post_id": "1174186731006042114_twitter",
+      "model_top_tokens": [
+        ">",
+        "number",
+        "oe",
+        "that",
+        "h"
+      ],
+      "human_rationale_tokens": [
+        "hoe"
+      ],
+      "matched_tokens": [
+        "hoe"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "1179080158340407297_twitter",
+      "model_top_tokens": [
+        "a",
+        "oe",
+        "trust",
+        "me",
+        "h"
+      ],
+      "human_rationale_tokens": [
+        "hoe",
+        "hoe"
+      ],
+      "matched_tokens": [
+        "hoe"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "18152238_gab",
+      "model_top_tokens": [
+        "is",
+        "homosexual",
+        "cancer",
+        "there"
+      ],
+      "human_rationale_tokens": [
+        "😂",
+        "😂",
+        "😂",
+        "straight",
+        "cancer",
+        "homosexual",
+        "cancer"
+      ],
+      "matched_tokens": [
+        "homosexual",
+        "cancer"
+      ],
+      "overlap": 0.5,
+      "human_rationale_count": 4
+    },
+    {
+      "post_id": "1176631691479322624_twitter",
+      "model_top_tokens": [
+        "user",
+        "do",
+        "that",
+        "<",
+        "gay"
+      ],
+      "human_rationale_tokens": [
+        "gay"
+      ],
+      "matched_tokens": [
+        "gay"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "1087571270605131776_twitter",
+      "model_top_tokens": [
+        "hy",
+        "oes",
+        "they",
+        "h",
+        "was"
+      ],
+      "human_rationale_tokens": [
+        "hoes",
+        "wishy",
+        "washy",
+        "they",
+        "will",
+        "fuck",
+        "yo",
+        "potna",
+        "and",
+        "take",
+        "all",
+        "of",
+        "yo",
+        "gwalla"
+      ],
+      "matched_tokens": [
+        "wishy",
+        "hoes",
+        "washy",
+        "they"
+      ],
+      "overlap": 0.3077,
+      "human_rationale_count": 13
+    },
+    {
+      "post_id": "1076286149310730240_twitter",
+      "model_top_tokens": [
+        "as",
+        "these",
+        "bitch",
+        "they",
+        "n"
+      ],
+      "human_rationale_tokens": [
+        "niggas",
+        "bitch"
+      ],
+      "matched_tokens": [
+        "niggas",
+        "bitch"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "27692892_gab",
+      "model_top_tokens": [
+        "not",
+        "back",
+        "this",
+        "wet"
+      ],
+      "human_rationale_tokens": [
+        "wetback",
+        "squad"
+      ],
+      "matched_tokens": [
+        "wetback"
+      ],
+      "overlap": 0.5,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "11983952_gab",
+      "model_top_tokens": [
+        "a",
+        "happy",
+        "foolish",
+        "this",
+        "cheating"
+      ],
+      "human_rationale_tokens": [
+        "pretty",
+        "soon",
+        "the",
+        "ivy",
+        "league",
+        "will",
+        "be",
+        "synonymous",
+        "with",
+        "the",
+        "china",
+        "league",
+        "because",
+        "a",
+        "foolish",
+        "and",
+        "stubborn",
+        "insistence",
+        "on",
+        "open",
+        "borders",
+        "in",
+        "perpetuity",
+        "means",
+        "studygrind",
+        "cheating",
+        "asians",
+        "gradually",
+        "taking",
+        "over",
+        "all",
+        "white",
+        "western",
+        "schools"
+      ],
+      "matched_tokens": [
+        "taking",
+        "a",
+        "because",
+        "in",
+        "china",
+        "gradually",
+        "all",
+        "league",
+        "foolish",
+        "means",
+        "asians",
+        "and",
+        "cheating"
+      ],
+      "overlap": 0.4062,
+      "human_rationale_count": 32
+    },
+    {
+      "post_id": "1177392985471934464_twitter",
+      "model_top_tokens": [
+        "ugly",
+        "ke",
+        "lil",
+        "boy",
+        "dy"
+      ],
+      "human_rationale_tokens": [
+        "dyke"
+      ],
+      "matched_tokens": [
+        "dyke"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "9555286_gab",
+      "model_top_tokens": [
+        "black",
+        "is",
+        "they",
+        "crazy",
+        "ghetto"
+      ],
+      "human_rationale_tokens": [
+        "crazy",
+        "oh",
+        "no",
+        "she",
+        "is",
+        "black",
+        "that",
+        "ishwat",
+        "they",
+        "do",
+        "<number>",
+        "of",
+        "times",
+        "everyday",
+        "ghetto",
+        "lotto",
+        "you",
+        "can",
+        "not",
+        "win",
+        "if",
+        "you",
+        "do",
+        "not",
+        "play"
+      ],
+      "matched_tokens": [
+        "black",
+        "ishwat",
+        "is",
+        "they",
+        "crazy",
+        "ghetto"
+      ],
+      "overlap": 0.2727,
+      "human_rationale_count": 22
+    },
+    {
+      "post_id": "1178024109655171073_twitter",
+      "model_top_tokens": [
+        "trash",
+        "dick",
+        "pink",
+        "y",
+        "trailer"
+      ],
+      "human_rationale_tokens": [
+        "trailer",
+        "trash",
+        "pink",
+        "dick"
+      ],
+      "matched_tokens": [
+        "trash",
+        "trailer",
+        "dick",
+        "pink"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 4
+    },
+    {
+      "post_id": "1178755558544936966_twitter",
+      "model_top_tokens": [
+        "club",
+        "rag",
+        "head",
+        "of",
+        "be"
+      ],
+      "human_rationale_tokens": [
+        "rag",
+        "head",
+        "club"
+      ],
+      "matched_tokens": [
+        "rag",
+        "head",
+        "club"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "26516753_gab",
+      "model_top_tokens": [
+        "deport",
+        "her",
+        "spawn",
+        "together",
+        "and"
+      ],
+      "human_rationale_tokens": [
+        "illegal",
+        "immigrants",
+        "are",
+        "stronger",
+        "together",
+        "deport",
+        "mom",
+        "and",
+        "her",
+        "spawn",
+        "by",
+        "dawn"
+      ],
+      "matched_tokens": [
+        "deport",
+        "her",
+        "spawn",
+        "together",
+        "and"
+      ],
+      "overlap": 0.4167,
+      "human_rationale_count": 12
+    },
+    {
+      "post_id": "1178629960837275649_twitter",
+      "model_top_tokens": [
+        "ots",
+        "agg",
+        "these",
+        "f",
+        "hate"
+      ],
+      "human_rationale_tokens": [
+        "hate",
+        "these",
+        "faggots"
+      ],
+      "matched_tokens": [
+        "hate",
+        "these",
+        "faggots"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "1179033197201494018_twitter",
+      "model_top_tokens": [
+        "ole",
+        ">",
+        "user",
+        "sh",
+        "ith"
+      ],
+      "human_rationale_tokens": [
+        "immigrant",
+        "from",
+        "a",
+        "shithole",
+        "country"
+      ],
+      "matched_tokens": [
+        "shithole"
+      ],
+      "overlap": 0.2,
+      "human_rationale_count": 5
+    },
+    {
+      "post_id": "25001491_gab",
+      "model_top_tokens": [
+        "a",
+        "black",
+        "favorite",
+        "buffalo",
+        "igger"
+      ],
+      "human_rationale_tokens": [
+        "perhaps",
+        "because",
+        "she",
+        "a",
+        "screaming",
+        "ugly",
+        "overweight",
+        "retarded",
+        "black",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "a",
+        "black",
+        "because",
+        "nigger",
+        "perhaps",
+        "retarded",
+        "screaming"
+      ],
+      "overlap": 0.7,
+      "human_rationale_count": 10
+    },
+    {
+      "post_id": "22161097_gab",
+      "model_top_tokens": [
+        "a",
+        "sand",
+        "igger",
+        "n",
+        "fitting"
+      ],
+      "human_rationale_tokens": [
+        "sand",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "sand",
+        "nigger"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "5167719_gab",
+      "model_top_tokens": [
+        "ie",
+        "m",
+        "uzz",
+        "ours",
+        "classics"
+      ],
+      "human_rationale_tokens": [
+        "muzzie"
+      ],
+      "matched_tokens": [
+        "muzzie"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "20602248_gab",
+      "model_top_tokens": [
+        "c",
+        "ollywood",
+        "unts",
+        "igger",
+        "of"
+      ],
+      "human_rationale_tokens": [
+        "cunts",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "cunts",
+        "nigger"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "13713469_gab",
+      "model_top_tokens": [
+        "🐸",
+        "most",
+        "retarded",
+        "you"
+      ],
+      "human_rationale_tokens": [
+        "this",
+        "is",
+        "the",
+        "most",
+        "retarded",
+        "thing",
+        "you",
+        "will",
+        "see",
+        "today"
+      ],
+      "matched_tokens": [
+        "most",
+        "retarded",
+        "you"
+      ],
+      "overlap": 0.3,
+      "human_rationale_count": 10
+    },
+    {
+      "post_id": "21531589_gab",
+      "model_top_tokens": [
+        "twitter",
+        "ong",
+        "igger",
+        "n",
+        "why"
+      ],
+      "human_rationale_tokens": [
+        "nigger"
+      ],
+      "matched_tokens": [
+        "nigger"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "23659865_gab",
+      "model_top_tokens": [
+        "ar",
+        "lim",
+        "the",
+        "abs"
+      ],
+      "human_rationale_tokens": [
+        "i",
+        "will",
+        "apologize",
+        "for",
+        "calling",
+        "you",
+        "a",
+        "muslim",
+        "if",
+        "you",
+        "are",
+        "not",
+        "one",
+        "but",
+        "the",
+        "talmud",
+        "does",
+        "not",
+        "represent",
+        "traditional",
+        "judaism",
+        "anyway",
+        "it",
+        "represents",
+        "the",
+        "mongrelization",
+        "that",
+        "occurred",
+        "in",
+        "babylon",
+        "and",
+        "yes",
+        "the",
+        "arabs",
+        "were",
+        "infected",
+        "by",
+        "the",
+        "same"
+      ],
+      "matched_tokens": [
+        "a",
+        "are",
+        "arabs",
+        "i",
+        "the",
+        "muslim"
+      ],
+      "overlap": 0.1765,
+      "human_rationale_count": 34
+    },
+    {
+      "post_id": "19089112_gab",
+      "model_top_tokens": [
+        "whites",
+        "killed",
+        "igger",
+        "ax",
+        "should"
+      ],
+      "human_rationale_tokens": [
+        "nigger",
+        "whites",
+        "use",
+        "it",
+        "they",
+        "should",
+        "be",
+        "killed"
+      ],
+      "matched_tokens": [
+        "nigger",
+        "whites",
+        "killed",
+        "should",
+        "it"
+      ],
+      "overlap": 0.625,
+      "human_rationale_count": 8
+    },
+    {
+      "post_id": "27902074_gab",
+      "model_top_tokens": [
+        "hate",
+        "jew",
+        "likes"
+      ],
+      "human_rationale_tokens": [
+        "nobody",
+        "who",
+        "knows",
+        "jews",
+        "likes",
+        "jews",
+        "even",
+        "jews",
+        "hate",
+        "jews"
+      ],
+      "matched_tokens": [
+        "hate",
+        "likes",
+        "jews"
+      ],
+      "overlap": 0.4286,
+      "human_rationale_count": 7
+    },
+    {
+      "post_id": "11498486_gab",
+      "model_top_tokens": [
+        "sp",
+        "bean",
+        "rapists",
+        "ic",
+        "er"
+      ],
+      "human_rationale_tokens": [
+        "fucking",
+        "spic",
+        "beaner"
+      ],
+      "matched_tokens": [
+        "spic",
+        "beaner"
+      ],
+      "overlap": 0.6667,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "26871375_gab",
+      "model_top_tokens": [
+        "omer",
+        "sh",
+        "censor",
+        "k",
+        "ike"
+      ],
+      "human_rationale_tokens": [
+        "boomer",
+        "kike"
+      ],
+      "matched_tokens": [
+        "kike",
+        "boomer"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "19930942_gab",
+      "model_top_tokens": [
+        "ole",
+        "ites",
+        "igger",
+        "n",
+        "and"
+      ],
+      "human_rationale_tokens": [
+        "anti",
+        "semites",
+        "also",
+        "muslime",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "semites",
+        "anti",
+        "nigger"
+      ],
+      "overlap": 0.6,
+      "human_rationale_count": 5
+    },
+    {
+      "post_id": "21925689_gab",
+      "model_top_tokens": [
+        "whore",
+        "gers",
+        "nig",
+        "k",
+        "ike"
+      ],
+      "human_rationale_tokens": [
+        "niggers",
+        "kike",
+        "whore"
+      ],
+      "matched_tokens": [
+        "kike",
+        "whore",
+        "niggers"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "20126138_gab",
+      "model_top_tokens": [
+        "min",
+        "k",
+        "ike",
+        "ver"
+      ],
+      "human_rationale_tokens": [
+        "kike",
+        "vermin",
+        "kike",
+        "vermin"
+      ],
+      "matched_tokens": [
+        "kike",
+        "vermin"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "27832444_gab",
+      "model_top_tokens": [
+        "agg",
+        "bitch",
+        "would",
+        "ute",
+        "anymore"
+      ],
+      "human_rationale_tokens": [
+        "wished",
+        "you",
+        "would",
+        "unmute",
+        "me",
+        "nazi",
+        "faggot",
+        "you",
+        "are",
+        "not",
+        "even",
+        "trying",
+        "anymore",
+        "bitch"
+      ],
+      "matched_tokens": [
+        "anymore",
+        "bitch",
+        "would",
+        "faggot",
+        "unmute"
+      ],
+      "overlap": 0.3846,
+      "human_rationale_count": 13
+    },
+    {
+      "post_id": "15422594_gab",
+      "model_top_tokens": [
+        "murdering",
+        "skins",
+        "white",
+        "shit",
+        "women"
+      ],
+      "human_rationale_tokens": [
+        "low",
+        "iq",
+        "shit",
+        "skins",
+        "murdering",
+        "white",
+        "women",
+        "and",
+        "this",
+        "fucking",
+        "useless",
+        "twat",
+        "wants"
+      ],
+      "matched_tokens": [
+        "murdering",
+        "skins",
+        "white",
+        "shit",
+        "women"
+      ],
+      "overlap": 0.3846,
+      "human_rationale_count": 13
+    },
+    {
+      "post_id": "12789757_gab",
+      "model_top_tokens": [
+        "trash",
+        "af",
+        "rican",
+        "ghetto",
+        "it"
+      ],
+      "human_rationale_tokens": [
+        "while",
+        "black",
+        "african",
+        "ghetto",
+        "trash",
+        "disrespect",
+        "it"
+      ],
+      "matched_tokens": [
+        "trash",
+        "african",
+        "it",
+        "ghetto"
+      ],
+      "overlap": 0.5714,
+      "human_rationale_count": 7
+    }
+  ],
+  "baseline_rationale_lime": [
+    {
+      "post_id": "19449874_gab",
+      "model_top_tokens": [
+        "billion",
+        "because",
+        "people",
+        "they",
+        "asians"
+      ],
+      "human_rationale_tokens": [
+        "but",
+        "in",
+        "asia",
+        "they",
+        "have",
+        "other",
+        "then",
+        "aspartame",
+        "or",
+        "fluoride",
+        "asians",
+        "seem",
+        "smart",
+        "because",
+        "they",
+        "have",
+        "<number>",
+        "billion",
+        "people",
+        "the",
+        "more",
+        "people",
+        "the",
+        "more",
+        "smart",
+        "people"
+      ],
+      "matched_tokens": [
+        "billion",
+        "because",
+        "people",
+        "they",
+        "asians",
+        "asia",
+        "the"
+      ],
+      "overlap": 0.3684,
+      "human_rationale_count": 19
+    },
+    {
+      "post_id": "1174186731006042114_twitter",
+      "model_top_tokens": [
+        "made",
+        "hits",
+        "<number>",
+        "that",
+        "hoe"
+      ],
+      "human_rationale_tokens": [
+        "hoe"
+      ],
+      "matched_tokens": [
+        "hoe"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "1179080158340407297_twitter",
+      "model_top_tokens": [
+        "am",
+        "🤡",
+        "trust",
+        "hoe",
+        "i"
+      ],
+      "human_rationale_tokens": [
+        "hoe",
+        "hoe"
+      ],
+      "matched_tokens": [
+        "hoe"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "18152238_gab",
+      "model_top_tokens": [
+        "😂",
+        "cancer",
+        "guess",
+        "i",
+        "homosexual"
+      ],
+      "human_rationale_tokens": [
+        "😂",
+        "😂",
+        "😂",
+        "straight",
+        "cancer",
+        "homosexual",
+        "cancer"
+      ],
+      "matched_tokens": [
+        "😂",
+        "homosexual",
+        "cancer",
+        "straight"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 4
+    },
+    {
+      "post_id": "1176631691479322624_twitter",
+      "model_top_tokens": [
+        "do",
+        "that",
+        "<user>",
+        "gay",
+        "but"
+      ],
+      "human_rationale_tokens": [
+        "gay"
+      ],
+      "matched_tokens": [
+        "gay"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "1087571270605131776_twitter",
+      "model_top_tokens": [
+        "hoes",
+        "potna",
+        "gwalla",
+        "yo",
+        "and"
+      ],
+      "human_rationale_tokens": [
+        "hoes",
+        "wishy",
+        "washy",
+        "they",
+        "will",
+        "fuck",
+        "yo",
+        "potna",
+        "and",
+        "take",
+        "all",
+        "of",
+        "yo",
+        "gwalla"
+      ],
+      "matched_tokens": [
+        "hoes",
+        "potna",
+        "gwalla",
+        "all",
+        "yo",
+        "and"
+      ],
+      "overlap": 0.4615,
+      "human_rationale_count": 13
+    },
+    {
+      "post_id": "1076286149310730240_twitter",
+      "model_top_tokens": [
+        "’",
+        "niggas",
+        "bitch",
+        "then",
+        "they"
+      ],
+      "human_rationale_tokens": [
+        "niggas",
+        "bitch"
+      ],
+      "matched_tokens": [
+        "niggas",
+        "bitch"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "27692892_gab",
+      "model_top_tokens": [
+        "need",
+        "squad",
+        "this",
+        "jersey",
+        "wetback"
+      ],
+      "human_rationale_tokens": [
+        "wetback",
+        "squad"
+      ],
+      "matched_tokens": [
+        "squad",
+        "wetback"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "11983952_gab",
+      "model_top_tokens": [
+        "taking",
+        "studygrind",
+        "cheating",
+        "asians",
+        "synonymous"
+      ],
+      "human_rationale_tokens": [
+        "pretty",
+        "soon",
+        "the",
+        "ivy",
+        "league",
+        "will",
+        "be",
+        "synonymous",
+        "with",
+        "the",
+        "china",
+        "league",
+        "because",
+        "a",
+        "foolish",
+        "and",
+        "stubborn",
+        "insistence",
+        "on",
+        "open",
+        "borders",
+        "in",
+        "perpetuity",
+        "means",
+        "studygrind",
+        "cheating",
+        "asians",
+        "gradually",
+        "taking",
+        "over",
+        "all",
+        "white",
+        "western",
+        "schools"
+      ],
+      "matched_tokens": [
+        "taking",
+        "a",
+        "on",
+        "in",
+        "studygrind",
+        "cheating",
+        "asians",
+        "synonymous"
+      ],
+      "overlap": 0.25,
+      "human_rationale_count": 32
+    },
+    {
+      "post_id": "1177392985471934464_twitter",
+      "model_top_tokens": [
+        "ugly",
+        "imma",
+        "haitian",
+        "that",
+        "dyke"
+      ],
+      "human_rationale_tokens": [
+        "dyke"
+      ],
+      "matched_tokens": [
+        "dyke"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "9555286_gab",
+      "model_top_tokens": [
+        "not",
+        "play",
+        "ishwat",
+        "times",
+        "ghetto"
+      ],
+      "human_rationale_tokens": [
+        "crazy",
+        "oh",
+        "no",
+        "she",
+        "is",
+        "black",
+        "that",
+        "ishwat",
+        "they",
+        "do",
+        "<number>",
+        "of",
+        "times",
+        "everyday",
+        "ghetto",
+        "lotto",
+        "you",
+        "can",
+        "not",
+        "win",
+        "if",
+        "you",
+        "do",
+        "not",
+        "play"
+      ],
+      "matched_tokens": [
+        "play",
+        "not",
+        "no",
+        "ishwat",
+        "is",
+        "times",
+        "ghetto"
+      ],
+      "overlap": 0.3182,
+      "human_rationale_count": 22
+    },
+    {
+      "post_id": "1178024109655171073_twitter",
+      "model_top_tokens": [
+        "trash",
+        "dick",
+        "normally",
+        "<user>",
+        "trailer"
+      ],
+      "human_rationale_tokens": [
+        "trailer",
+        "trash",
+        "pink",
+        "dick"
+      ],
+      "matched_tokens": [
+        "trash",
+        "trailer",
+        "dick"
+      ],
+      "overlap": 0.75,
+      "human_rationale_count": 4
+    },
+    {
+      "post_id": "1178755558544936966_twitter",
+      "model_top_tokens": [
+        "club",
+        "she",
+        "rag",
+        "head",
+        "of"
+      ],
+      "human_rationale_tokens": [
+        "rag",
+        "head",
+        "club"
+      ],
+      "matched_tokens": [
+        "rag",
+        "head",
+        "club"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "26516753_gab",
+      "model_top_tokens": [
+        "deport",
+        "illegal",
+        "spawn",
+        "dawn",
+        "immigrants"
+      ],
+      "human_rationale_tokens": [
+        "illegal",
+        "immigrants",
+        "are",
+        "stronger",
+        "together",
+        "deport",
+        "mom",
+        "and",
+        "her",
+        "spawn",
+        "by",
+        "dawn"
+      ],
+      "matched_tokens": [
+        "deport",
+        "illegal",
+        "spawn",
+        "dawn",
+        "immigrants"
+      ],
+      "overlap": 0.4167,
+      "human_rationale_count": 12
+    },
+    {
+      "post_id": "1178629960837275649_twitter",
+      "model_top_tokens": [
+        "‍",
+        "faggots",
+        "these",
+        "i",
+        "hate"
+      ],
+      "human_rationale_tokens": [
+        "hate",
+        "these",
+        "faggots"
+      ],
+      "matched_tokens": [
+        "hate",
+        "these",
+        "faggots"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "1179033197201494018_twitter",
+      "model_top_tokens": [
+        "a",
+        "<user>",
+        "or",
+        "nonconfirming",
+        "shithole"
+      ],
+      "human_rationale_tokens": [
+        "immigrant",
+        "from",
+        "a",
+        "shithole",
+        "country"
+      ],
+      "matched_tokens": [
+        "a",
+        "immigrant",
+        "shithole"
+      ],
+      "overlap": 0.6,
+      "human_rationale_count": 5
+    },
+    {
+      "post_id": "25001491_gab",
+      "model_top_tokens": [
+        "ugly",
+        "nigger",
+        "she",
+        "turd",
+        "retarded"
+      ],
+      "human_rationale_tokens": [
+        "perhaps",
+        "because",
+        "she",
+        "a",
+        "screaming",
+        "ugly",
+        "overweight",
+        "retarded",
+        "black",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "ugly",
+        "a",
+        "nigger",
+        "she",
+        "retarded"
+      ],
+      "overlap": 0.5,
+      "human_rationale_count": 10
+    },
+    {
+      "post_id": "22161097_gab",
+      "model_top_tokens": [
+        "nigger",
+        "sand",
+        "die",
+        "fitting",
+        "hussein"
+      ],
+      "human_rationale_tokens": [
+        "sand",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "sand",
+        "nigger"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "5167719_gab",
+      "model_top_tokens": [
+        "also",
+        "on",
+        "favours",
+        "muzzie",
+        "<wink>"
+      ],
+      "human_rationale_tokens": [
+        "muzzie"
+      ],
+      "matched_tokens": [
+        "muzzie"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "20602248_gab",
+      "model_top_tokens": [
+        "nigger",
+        "lover",
+        "cunts",
+        "biggest",
+        "hollywood"
+      ],
+      "human_rationale_tokens": [
+        "cunts",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "cunts",
+        "nigger"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "13713469_gab",
+      "model_top_tokens": [
+        "thing",
+        "welcome",
+        "most",
+        "retarded",
+        "🐸"
+      ],
+      "human_rationale_tokens": [
+        "this",
+        "is",
+        "the",
+        "most",
+        "retarded",
+        "thing",
+        "you",
+        "will",
+        "see",
+        "today"
+      ],
+      "matched_tokens": [
+        "most",
+        "thing",
+        "retarded"
+      ],
+      "overlap": 0.3,
+      "human_rationale_count": 10
+    },
+    {
+      "post_id": "21531589_gab",
+      "model_top_tokens": [
+        "nigger",
+        "say",
+        "i",
+        "why",
+        "btw"
+      ],
+      "human_rationale_tokens": [
+        "nigger"
+      ],
+      "matched_tokens": [
+        "nigger"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "23659865_gab",
+      "model_top_tokens": [
+        "infected",
+        "talmud",
+        "arabs",
+        "judaism",
+        "mongrelization"
+      ],
+      "human_rationale_tokens": [
+        "i",
+        "will",
+        "apologize",
+        "for",
+        "calling",
+        "you",
+        "a",
+        "muslim",
+        "if",
+        "you",
+        "are",
+        "not",
+        "one",
+        "but",
+        "the",
+        "talmud",
+        "does",
+        "not",
+        "represent",
+        "traditional",
+        "judaism",
+        "anyway",
+        "it",
+        "represents",
+        "the",
+        "mongrelization",
+        "that",
+        "occurred",
+        "in",
+        "babylon",
+        "and",
+        "yes",
+        "the",
+        "arabs",
+        "were",
+        "infected",
+        "by",
+        "the",
+        "same"
+      ],
+      "matched_tokens": [
+        "a",
+        "infected",
+        "in",
+        "talmud",
+        "arabs",
+        "judaism",
+        "i",
+        "mongrelization"
+      ],
+      "overlap": 0.2353,
+      "human_rationale_count": 34
+    },
+    {
+      "post_id": "19089112_gab",
+      "model_top_tokens": [
+        "blax",
+        "nigger",
+        "whites",
+        "killed",
+        "should"
+      ],
+      "human_rationale_tokens": [
+        "nigger",
+        "whites",
+        "use",
+        "it",
+        "they",
+        "should",
+        "be",
+        "killed"
+      ],
+      "matched_tokens": [
+        "nigger",
+        "whites",
+        "killed",
+        "should",
+        "it"
+      ],
+      "overlap": 0.625,
+      "human_rationale_count": 8
+    },
+    {
+      "post_id": "27902074_gab",
+      "model_top_tokens": [
+        "who",
+        "jews",
+        "hate",
+        "knows",
+        "even"
+      ],
+      "human_rationale_tokens": [
+        "nobody",
+        "who",
+        "knows",
+        "jews",
+        "likes",
+        "jews",
+        "even",
+        "jews",
+        "hate",
+        "jews"
+      ],
+      "matched_tokens": [
+        "who",
+        "jews",
+        "hate",
+        "knows",
+        "even"
+      ],
+      "overlap": 0.7143,
+      "human_rationale_count": 7
+    },
+    {
+      "post_id": "11498486_gab",
+      "model_top_tokens": [
+        "spic",
+        "out",
+        "beaner",
+        "rapists",
+        "and"
+      ],
+      "human_rationale_tokens": [
+        "fucking",
+        "spic",
+        "beaner"
+      ],
+      "matched_tokens": [
+        "spic",
+        "beaner"
+      ],
+      "overlap": 0.6667,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "26871375_gab",
+      "model_top_tokens": [
+        "kike",
+        "shall",
+        "shill",
+        "boomer",
+        "dumb"
+      ],
+      "human_rationale_tokens": [
+        "boomer",
+        "kike"
+      ],
+      "matched_tokens": [
+        "kike",
+        "boomer"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "19930942_gab",
+      "model_top_tokens": [
+        "nigger",
+        "haters",
+        "intro",
+        "muslime",
+        "shithole"
+      ],
+      "human_rationale_tokens": [
+        "anti",
+        "semites",
+        "also",
+        "muslime",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "muslime",
+        "nigger"
+      ],
+      "overlap": 0.4,
+      "human_rationale_count": 5
+    },
+    {
+      "post_id": "21925689_gab",
+      "model_top_tokens": [
+        "whore",
+        "niggers",
+        "kike",
+        "the",
+        "you"
+      ],
+      "human_rationale_tokens": [
+        "niggers",
+        "kike",
+        "whore"
+      ],
+      "matched_tokens": [
+        "kike",
+        "whore",
+        "niggers"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "20126138_gab",
+      "model_top_tokens": [
+        "kike",
+        "of",
+        "the",
+        "vermin",
+        "you"
+      ],
+      "human_rationale_tokens": [
+        "kike",
+        "vermin",
+        "kike",
+        "vermin"
+      ],
+      "matched_tokens": [
+        "kike",
+        "vermin"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "27832444_gab",
+      "model_top_tokens": [
+        "not",
+        "nazi",
+        "bitch",
+        "would",
+        "unmute"
+      ],
+      "human_rationale_tokens": [
+        "wished",
+        "you",
+        "would",
+        "unmute",
+        "me",
+        "nazi",
+        "faggot",
+        "you",
+        "are",
+        "not",
+        "even",
+        "trying",
+        "anymore",
+        "bitch"
+      ],
+      "matched_tokens": [
+        "not",
+        "nazi",
+        "bitch",
+        "would",
+        "unmute"
+      ],
+      "overlap": 0.3846,
+      "human_rationale_count": 13
+    },
+    {
+      "post_id": "15422594_gab",
+      "model_top_tokens": [
+        "murdering",
+        "twat",
+        "skins",
+        "arabs",
+        "are"
+      ],
+      "human_rationale_tokens": [
+        "low",
+        "iq",
+        "shit",
+        "skins",
+        "murdering",
+        "white",
+        "women",
+        "and",
+        "this",
+        "fucking",
+        "useless",
+        "twat",
+        "wants"
+      ],
+      "matched_tokens": [
+        "murdering",
+        "twat",
+        "skins"
+      ],
+      "overlap": 0.2308,
+      "human_rationale_count": 13
+    },
+    {
+      "post_id": "12789757_gab",
+      "model_top_tokens": [
+        "trash",
+        "black",
+        "while",
+        "african",
+        "ghetto"
+      ],
+      "human_rationale_tokens": [
+        "while",
+        "black",
+        "african",
+        "ghetto",
+        "trash",
+        "disrespect",
+        "it"
+      ],
+      "matched_tokens": [
+        "black",
+        "trash",
+        "while",
+        "african",
+        "ghetto"
+      ],
+      "overlap": 0.7143,
+      "human_rationale_count": 7
+    }
+  ],
+  "improved_rationale_lime": [
+    {
+      "post_id": "19449874_gab",
+      "model_top_tokens": [
+        "smart",
+        "aspartame",
+        "have",
+        "asians",
+        "fluoride"
+      ],
+      "human_rationale_tokens": [
+        "but",
+        "in",
+        "asia",
+        "they",
+        "have",
+        "other",
+        "then",
+        "aspartame",
+        "or",
+        "fluoride",
+        "asians",
+        "seem",
+        "smart",
+        "because",
+        "they",
+        "have",
+        "<number>",
+        "billion",
+        "people",
+        "the",
+        "more",
+        "people",
+        "the",
+        "more",
+        "smart",
+        "people"
+      ],
+      "matched_tokens": [
+        "smart",
+        "aspartame",
+        "have",
+        "or",
+        "asians",
+        "asia",
+        "fluoride"
+      ],
+      "overlap": 0.3684,
+      "human_rationale_count": 19
+    },
+    {
+      "post_id": "1174186731006042114_twitter",
+      "model_top_tokens": [
+        "made",
+        "hits",
+        "<number>",
+        "that",
+        "hoe"
+      ],
+      "human_rationale_tokens": [
+        "hoe"
+      ],
+      "matched_tokens": [
+        "hoe"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "1179080158340407297_twitter",
+      "model_top_tokens": [
+        "a",
+        "trust",
+        "hoe",
+        "trusted",
+        "never"
+      ],
+      "human_rationale_tokens": [
+        "hoe",
+        "hoe"
+      ],
+      "matched_tokens": [
+        "hoe"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "18152238_gab",
+      "model_top_tokens": [
+        "cancer",
+        "now",
+        "is",
+        "straight",
+        "homosexual"
+      ],
+      "human_rationale_tokens": [
+        "😂",
+        "😂",
+        "😂",
+        "straight",
+        "cancer",
+        "homosexual",
+        "cancer"
+      ],
+      "matched_tokens": [
+        "homosexual",
+        "cancer",
+        "straight"
+      ],
+      "overlap": 0.75,
+      "human_rationale_count": 4
+    },
+    {
+      "post_id": "1176631691479322624_twitter",
+      "model_top_tokens": [
+        "mine",
+        "do",
+        "that",
+        "<user>",
+        "gay"
+      ],
+      "human_rationale_tokens": [
+        "gay"
+      ],
+      "matched_tokens": [
+        "gay"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "1087571270605131776_twitter",
+      "model_top_tokens": [
+        "hoes",
+        "know",
+        "fuck",
+        "wishy",
+        "you"
+      ],
+      "human_rationale_tokens": [
+        "hoes",
+        "wishy",
+        "washy",
+        "they",
+        "will",
+        "fuck",
+        "yo",
+        "potna",
+        "and",
+        "take",
+        "all",
+        "of",
+        "yo",
+        "gwalla"
+      ],
+      "matched_tokens": [
+        "wishy",
+        "hoes",
+        "yo",
+        "fuck"
+      ],
+      "overlap": 0.3077,
+      "human_rationale_count": 13
+    },
+    {
+      "post_id": "1076286149310730240_twitter",
+      "model_top_tokens": [
+        "about",
+        "talk",
+        "niggas",
+        "bitch",
+        "dont"
+      ],
+      "human_rationale_tokens": [
+        "niggas",
+        "bitch"
+      ],
+      "matched_tokens": [
+        "niggas",
+        "bitch"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "27692892_gab",
+      "model_top_tokens": [
+        "lose",
+        "germany",
+        "to",
+        "this",
+        "wetback"
+      ],
+      "human_rationale_tokens": [
+        "wetback",
+        "squad"
+      ],
+      "matched_tokens": [
+        "wetback"
+      ],
+      "overlap": 0.5,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "11983952_gab",
+      "model_top_tokens": [
+        "studygrind",
+        "schools",
+        "means",
+        "perpetuity",
+        "cheating"
+      ],
+      "human_rationale_tokens": [
+        "pretty",
+        "soon",
+        "the",
+        "ivy",
+        "league",
+        "will",
+        "be",
+        "synonymous",
+        "with",
+        "the",
+        "china",
+        "league",
+        "because",
+        "a",
+        "foolish",
+        "and",
+        "stubborn",
+        "insistence",
+        "on",
+        "open",
+        "borders",
+        "in",
+        "perpetuity",
+        "means",
+        "studygrind",
+        "cheating",
+        "asians",
+        "gradually",
+        "taking",
+        "over",
+        "all",
+        "white",
+        "western",
+        "schools"
+      ],
+      "matched_tokens": [
+        "a",
+        "in",
+        "studygrind",
+        "schools",
+        "means",
+        "perpetuity",
+        "cheating"
+      ],
+      "overlap": 0.2188,
+      "human_rationale_count": 32
+    },
+    {
+      "post_id": "1177392985471934464_twitter",
+      "model_top_tokens": [
+        "ugly",
+        "that",
+        "dyke",
+        "boy",
+        "anybody"
+      ],
+      "human_rationale_tokens": [
+        "dyke"
+      ],
+      "matched_tokens": [
+        "dyke"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "9555286_gab",
+      "model_top_tokens": [
+        "black",
+        "everyday",
+        "she",
+        "crazy",
+        "ghetto"
+      ],
+      "human_rationale_tokens": [
+        "crazy",
+        "oh",
+        "no",
+        "she",
+        "is",
+        "black",
+        "that",
+        "ishwat",
+        "they",
+        "do",
+        "<number>",
+        "of",
+        "times",
+        "everyday",
+        "ghetto",
+        "lotto",
+        "you",
+        "can",
+        "not",
+        "win",
+        "if",
+        "you",
+        "do",
+        "not",
+        "play"
+      ],
+      "matched_tokens": [
+        "black",
+        "everyday",
+        "she",
+        "crazy",
+        "ghetto"
+      ],
+      "overlap": 0.2273,
+      "human_rationale_count": 22
+    },
+    {
+      "post_id": "1178024109655171073_twitter",
+      "model_top_tokens": [
+        "trash",
+        "dick",
+        "pink",
+        "trailer",
+        "you"
+      ],
+      "human_rationale_tokens": [
+        "trailer",
+        "trash",
+        "pink",
+        "dick"
+      ],
+      "matched_tokens": [
+        "trash",
+        "trailer",
+        "dick",
+        "pink"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 4
+    },
+    {
+      "post_id": "1178755558544936966_twitter",
+      "model_top_tokens": [
+        "could",
+        "she",
+        "rag",
+        "head",
+        "of"
+      ],
+      "human_rationale_tokens": [
+        "rag",
+        "head",
+        "club"
+      ],
+      "matched_tokens": [
+        "rag",
+        "head"
+      ],
+      "overlap": 0.6667,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "26516753_gab",
+      "model_top_tokens": [
+        "deport",
+        "her",
+        "illegal",
+        "spawn",
+        "dawn"
+      ],
+      "human_rationale_tokens": [
+        "illegal",
+        "immigrants",
+        "are",
+        "stronger",
+        "together",
+        "deport",
+        "mom",
+        "and",
+        "her",
+        "spawn",
+        "by",
+        "dawn"
+      ],
+      "matched_tokens": [
+        "deport",
+        "her",
+        "illegal",
+        "spawn",
+        "dawn",
+        "together"
+      ],
+      "overlap": 0.5,
+      "human_rationale_count": 12
+    },
+    {
+      "post_id": "1178629960837275649_twitter",
+      "model_top_tokens": [
+        "♂️",
+        "faggots",
+        "these",
+        "hate",
+        "🤷"
+      ],
+      "human_rationale_tokens": [
+        "hate",
+        "these",
+        "faggots"
+      ],
+      "matched_tokens": [
+        "hate",
+        "these",
+        "faggots"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "1179033197201494018_twitter",
+      "model_top_tokens": [
+        "a",
+        "from",
+        "<user>",
+        "country",
+        "shithole"
+      ],
+      "human_rationale_tokens": [
+        "immigrant",
+        "from",
+        "a",
+        "shithole",
+        "country"
+      ],
+      "matched_tokens": [
+        "a",
+        "from",
+        "country",
+        "immigrant",
+        "shithole"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 5
+    },
+    {
+      "post_id": "25001491_gab",
+      "model_top_tokens": [
+        "black",
+        "nigger",
+        "buffalo",
+        "turd",
+        "retarded"
+      ],
+      "human_rationale_tokens": [
+        "perhaps",
+        "because",
+        "she",
+        "a",
+        "screaming",
+        "ugly",
+        "overweight",
+        "retarded",
+        "black",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "a",
+        "retarded",
+        "black",
+        "nigger"
+      ],
+      "overlap": 0.4,
+      "human_rationale_count": 10
+    },
+    {
+      "post_id": "22161097_gab",
+      "model_top_tokens": [
+        "a",
+        "nigger",
+        "ending",
+        "sand",
+        "die"
+      ],
+      "human_rationale_tokens": [
+        "sand",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "sand",
+        "nigger"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "5167719_gab",
+      "model_top_tokens": [
+        "he",
+        "favours",
+        "muzzie",
+        "but",
+        "classics"
+      ],
+      "human_rationale_tokens": [
+        "muzzie"
+      ],
+      "matched_tokens": [
+        "muzzie"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "20602248_gab",
+      "model_top_tokens": [
+        "nigger",
+        "cunts",
+        "for",
+        "biggest",
+        "and"
+      ],
+      "human_rationale_tokens": [
+        "cunts",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "cunts",
+        "nigger"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "13713469_gab",
+      "model_top_tokens": [
+        "thing",
+        "welcome",
+        "most",
+        "retarded",
+        "🐸"
+      ],
+      "human_rationale_tokens": [
+        "this",
+        "is",
+        "the",
+        "most",
+        "retarded",
+        "thing",
+        "you",
+        "will",
+        "see",
+        "today"
+      ],
+      "matched_tokens": [
+        "most",
+        "thing",
+        "retarded"
+      ],
+      "overlap": 0.3,
+      "human_rationale_count": 10
+    },
+    {
+      "post_id": "21531589_gab",
+      "model_top_tokens": [
+        "nigger",
+        "say",
+        "i",
+        "why",
+        "gotongab"
+      ],
+      "human_rationale_tokens": [
+        "nigger"
+      ],
+      "matched_tokens": [
+        "nigger"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 1
+    },
+    {
+      "post_id": "23659865_gab",
+      "model_top_tokens": [
+        "same",
+        "a",
+        "infected",
+        "arabs",
+        "yes"
+      ],
+      "human_rationale_tokens": [
+        "i",
+        "will",
+        "apologize",
+        "for",
+        "calling",
+        "you",
+        "a",
+        "muslim",
+        "if",
+        "you",
+        "are",
+        "not",
+        "one",
+        "but",
+        "the",
+        "talmud",
+        "does",
+        "not",
+        "represent",
+        "traditional",
+        "judaism",
+        "anyway",
+        "it",
+        "represents",
+        "the",
+        "mongrelization",
+        "that",
+        "occurred",
+        "in",
+        "babylon",
+        "and",
+        "yes",
+        "the",
+        "arabs",
+        "were",
+        "infected",
+        "by",
+        "the",
+        "same"
+      ],
+      "matched_tokens": [
+        "same",
+        "apologize",
+        "a",
+        "infected",
+        "babylon",
+        "mongrelization",
+        "talmud",
+        "in",
+        "that",
+        "are",
+        "arabs",
+        "judaism",
+        "i",
+        "calling",
+        "and",
+        "traditional",
+        "anyway",
+        "yes"
+      ],
+      "overlap": 0.5294,
+      "human_rationale_count": 34
+    },
+    {
+      "post_id": "19089112_gab",
+      "model_top_tokens": [
+        "nigger",
+        "whites",
+        "when",
+        "killed",
+        "be"
+      ],
+      "human_rationale_tokens": [
+        "nigger",
+        "whites",
+        "use",
+        "it",
+        "they",
+        "should",
+        "be",
+        "killed"
+      ],
+      "matched_tokens": [
+        "nigger",
+        "whites",
+        "killed",
+        "be",
+        "it"
+      ],
+      "overlap": 0.625,
+      "human_rationale_count": 8
+    },
+    {
+      "post_id": "27902074_gab",
+      "model_top_tokens": [
+        "who",
+        "likes",
+        "jews",
+        "hate",
+        "nobody"
+      ],
+      "human_rationale_tokens": [
+        "nobody",
+        "who",
+        "knows",
+        "jews",
+        "likes",
+        "jews",
+        "even",
+        "jews",
+        "hate",
+        "jews"
+      ],
+      "matched_tokens": [
+        "who",
+        "likes",
+        "jews",
+        "hate",
+        "nobody"
+      ],
+      "overlap": 0.7143,
+      "human_rationale_count": 7
+    },
+    {
+      "post_id": "11498486_gab",
+      "model_top_tokens": [
+        "get",
+        "spic",
+        "out",
+        "beaner",
+        "you"
+      ],
+      "human_rationale_tokens": [
+        "fucking",
+        "spic",
+        "beaner"
+      ],
+      "matched_tokens": [
+        "spic",
+        "beaner"
+      ],
+      "overlap": 0.6667,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "26871375_gab",
+      "model_top_tokens": [
+        "kike",
+        "while",
+        "is",
+        "ibor",
+        "paul"
+      ],
+      "human_rationale_tokens": [
+        "boomer",
+        "kike"
+      ],
+      "matched_tokens": [
+        "kike"
+      ],
+      "overlap": 0.5,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "19930942_gab",
+      "model_top_tokens": [
+        "muslime",
+        "nigger",
+        "<happy>",
+        "of",
+        "priceless"
+      ],
+      "human_rationale_tokens": [
+        "anti",
+        "semites",
+        "also",
+        "muslime",
+        "nigger"
+      ],
+      "matched_tokens": [
+        "muslime",
+        "nigger"
+      ],
+      "overlap": 0.4,
+      "human_rationale_count": 5
+    },
+    {
+      "post_id": "21925689_gab",
+      "model_top_tokens": [
+        "niggers",
+        "kike",
+        "no",
+        "to",
+        "the"
+      ],
+      "human_rationale_tokens": [
+        "niggers",
+        "kike",
+        "whore"
+      ],
+      "matched_tokens": [
+        "kike",
+        "niggers"
+      ],
+      "overlap": 0.6667,
+      "human_rationale_count": 3
+    },
+    {
+      "post_id": "20126138_gab",
+      "model_top_tokens": [
+        "alone",
+        "kike",
+        "fight",
+        "goal",
+        "vermin"
+      ],
+      "human_rationale_tokens": [
+        "kike",
+        "vermin",
+        "kike",
+        "vermin"
+      ],
+      "matched_tokens": [
+        "kike",
+        "vermin"
+      ],
+      "overlap": 1.0,
+      "human_rationale_count": 2
+    },
+    {
+      "post_id": "27832444_gab",
+      "model_top_tokens": [
+        "not",
+        "nazi",
+        "bitch",
+        "faggot",
+        "unmute"
+      ],
+      "human_rationale_tokens": [
+        "wished",
+        "you",
+        "would",
+        "unmute",
+        "me",
+        "nazi",
+        "faggot",
+        "you",
+        "are",
+        "not",
+        "even",
+        "trying",
+        "anymore",
+        "bitch"
+      ],
+      "matched_tokens": [
+        "not",
+        "nazi",
+        "bitch",
+        "faggot",
+        "unmute"
+      ],
+      "overlap": 0.3846,
+      "human_rationale_count": 13
+    },
+    {
+      "post_id": "15422594_gab",
+      "model_top_tokens": [
+        "murdering",
+        "iq",
+        "skins",
+        "white",
+        "women"
+      ],
+      "human_rationale_tokens": [
+        "low",
+        "iq",
+        "shit",
+        "skins",
+        "murdering",
+        "white",
+        "women",
+        "and",
+        "this",
+        "fucking",
+        "useless",
+        "twat",
+        "wants"
+      ],
+      "matched_tokens": [
+        "murdering",
+        "iq",
+        "skins",
+        "white",
+        "women"
+      ],
+      "overlap": 0.3846,
+      "human_rationale_count": 13
+    },
+    {
+      "post_id": "12789757_gab",
+      "model_top_tokens": [
+        "trash",
+        "black",
+        "while",
+        "ghetto",
+        "disrespect"
+      ],
+      "human_rationale_tokens": [
+        "while",
+        "black",
+        "african",
+        "ghetto",
+        "trash",
+        "disrespect",
+        "it"
+      ],
+      "matched_tokens": [
+        "black",
+        "trash",
+        "while",
+        "ghetto",
+        "disrespect"
+      ],
+      "overlap": 0.7143,
+      "human_rationale_count": 7
+    }
   ]
 }

@@ -8,5 +8,12 @@
   "baseline_overlap_ge_60": 36,
   "improved_overlap_ge_60": 42,
   "sample_count": 50,
-  "fixed_error_count": 25
+  "fixed_error_count": 25,
+  "baseline_rationale_shap_mean": 0.5789,
+  "improved_rationale_shap_mean": 0.688,
+  "baseline_rationale_lime_mean": 0.7253,
+  "improved_rationale_lime_mean": 0.6917,
+  "baseline_rationale_ge_50": 24,
+  "improved_rationale_ge_50": 22,
+  "rationale_sample_count": 33
 }
