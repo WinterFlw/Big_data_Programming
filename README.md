@@ -141,11 +141,28 @@ pip install -r requirements.txt
 4. **Ablation 확인** — BERT+MLP vs BERT+VADER (p=0.567): MLP 구조가 아닌 인코더 사전학습이 결정 요인
 5. **hate/offensive 경계 모호** — 어휘 Jaccard 유사도 0.71, offensive F1 전 모델 0.53~0.55
 
+### XAI 이중 검증 결과
+
+| 검증 차원 | 지표 | BERT-base | RoBERTa+VADER | 해석 |
+|-----------|------|:---------:|:-------------:|------|
+| **설명 안정성** | Overlap@5 (SHAP↔LIME) | 0.628 | **0.724** | 두 XAI 기법 간 Top-5 토큰 일치도 |
+| **설명 타당성** | SHAP Top-5 vs Human Rationale | 0.579 | **0.688** | 모델이 인간과 같은 근거를 보는 정도 |
+| **설명 타당성** | LIME Top-5 vs Human Rationale | **0.725** | 0.692 | LIME 기준 인간 판단 정렬도 |
+| | Overlap >= 60% 샘플 수 | 36/50 | **42/50** | |
+| | Rationale 보유 분석 샘플 | 33/50 | 33/50 | hatespeech/offensive만 rationale 보유 |
+
+> **설명 안정성**: SHAP과 LIME이 같은 토큰을 중요하다고 보는가? (기법 간 일치도)
+> **설명 타당성**: 모델이 인간 annotator와 같은 근거를 보는가? (인간 판단 정렬도)
+
 ### 결론
 
 > 가설 "VADER 감성 점수가 혐오표현 탐지를 향상시킨다"는 **부분 채택**.
 > VADER는 강력한 인코더(RoBERTa)와 결합할 때만 유의미한 시너지를 만들며,
 > 같은 인코더(BERT)에서는 효과가 미미하다. **인코더 사전학습 품질이 가장 중요한 변수**이다.
+>
+> XAI 이중 검증에서 RoBERTa+VADER는 설명 안정성(Overlap@5 0.724)과
+> SHAP 기반 설명 타당성(Human Rationale 0.688) 모두에서 BERT-base를 상회하여,
+> 성능 향상이 설명 가능성 개선과 동반됨을 확인했다.
 
 ---
 
@@ -153,7 +170,7 @@ pip install -r requirements.txt
 
 1. BERT 계열 모델의 **hate / offensive 오분류 패턴**을 EDA + XAI로 분석
 2. **VADER 감성 피처** 결합 + **Ablation Study**(BERT+MLP)로 개선 요인 분리
-3. 개선 전후 XAI 비교로 **Before/After 차이를 정량적으로 검증** (Overlap@5 + 통계 검정)
+3. 개선 전후 XAI 비교로 **Before/After 차이를 정량적으로 검증** (Overlap@5 + Human Rationale)
 
 ---
 
@@ -279,7 +296,7 @@ Big_data_Programming/
 ├── run_experiments.py         # 파이프라인 관제탑 (argparse)
 ├── experiment_core.py         # 핵심 실험 (모델, 학습, 벤치마크, 튜닝)
 ├── experiment_eda.py          # 탐색적 데이터 분석
-├── experiment_xai.py          # XAI 분석 (SHAP, LIME, Overlap@5)
+├── experiment_xai.py          # XAI 분석 (SHAP, LIME, Overlap@5, Human Rationale)
 ├── experiment_dashboard.py    # 정적 HTML 대시보드 생성기
 ├── dashboard_app.py           # FastAPI 대시보드 서버 (18탭 + Playground)
 ├── utils.py                   # 공통 유틸리티
@@ -300,7 +317,7 @@ Big_data_Programming/
 │   ├── reports/               #   벤치마크 요약, 통계 검정, EDA, freeze study
 │   ├── tuning/                #   하이퍼파라미터 탐색 이력
 │   ├── runs/                  #   시드별 학습 로그, confusion matrix
-│   ├── xai/                   #   SHAP/LIME 분석, 케이스 이미지
+│   ├── xai/                   #   SHAP/LIME 분석, Human Rationale 비교, 케이스 이미지
 │   ├── dashboard/             #   정적 HTML 대시보드
 │   └── logs/                  #   실행 로그
 │
@@ -359,7 +376,9 @@ Big_data_Programming/
 | `run_freeze_study()` | `experiment_core.py` | 인코더 동결 비교 실험 |
 | `run_hyperparameter_tuning()` | `experiment_core.py` | lr → batch → dropout → epochs 순차 탐색 |
 | `run_eda()` | `experiment_eda.py` | 탐색적 데이터 분석 |
-| `run_xai()` | `experiment_xai.py` | SHAP/LIME 비교 분석 |
+| `run_xai()` | `experiment_xai.py` | SHAP/LIME + Human Rationale 이중 검증 |
+| `_load_human_rationales()` | `experiment_xai.py` | dataset.json에서 majority vote rationale 로드 |
+| `_compute_rationale_overlap()` | `experiment_xai.py` | Model Top-5 vs Human rationale 토큰 overlap |
 | `compute_pairwise_significance()` | `utils.py` | paired t-test + Cohen's d |
 
 ---
@@ -391,6 +410,7 @@ Big_data_Programming/
 | **통계 검정** | paired t-test (n=3) | 3개 시드는 검정력이 낮음 |
 | **SHAP 구조** | 텍스트 입력만 perturbation | VADER 4차원의 기여도를 직접 산출하지 못함 |
 | **offensive F1** | 전 모델 0.53~0.55 | 어휘 Jaccard 0.71의 구조적 한계 |
+| **Human Rationale** | majority vote 기반 | annotator 간 합의도에 따라 rationale 품질 상이, normal 클래스는 rationale 없음 |
 
 ### Future Work
 
@@ -399,6 +419,7 @@ Big_data_Programming/
 - HateXplain target 정보를 모델 입력으로 활용
 - feature-level SHAP으로 VADER 기여도 직접 측정
 - Overlap@K 민감도 분석 (K=3, 5, 10)
+- Rationale overlap의 annotator 합의도별 세분화 분석
 - 한국어/다국어 혐오표현 데이터셋 확장
 
 ---
