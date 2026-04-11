@@ -441,26 +441,107 @@ HateSpeachStudy/
 
 ---
 
-## 8. 핵심 설정값 (experiment_config.json)
+## 8. 학습 파이프라인 상세
 
-| 카테고리 | 파라미터 | 기본값 |
-|---------|---------|--------|
-| **데이터** | split ratio | 70 / 10 / 20 |
-| **토크나이저** | max_len | 128 |
-| **학습** | batch_size | 64 |
-| | epochs | 5 (early stopping) |
-| | learning_rate | 2e-5 |
-| | warmup_ratio | 0.10 |
-| | weight_decay | 0.01 |
-| | dropout | 0.10 |
-| | early_stopping_patience | 2 |
-| | class_weighting | True |
-| | label_smoothing | 0.1 |
-| **MLP** | mlp_hidden | 256 |
-| **벤치마크** | seeds | [42, 52, 62] |
-| **XAI** | xai_sample_size | 50 |
-| | lime_num_features | 5 |
-| | shap_max_evals | 300 |
+### 8.1 클래스 불균형 대응
+
+```
+compute_class_weight_tensor(labels, imbalance_threshold=0.40)
+  │
+  ├── 클래스 분포: hate 29.5% / offensive 27.2% / normal 38.8%
+  ├── 소수 클래스 비율 27.2% < threshold 40% → balanced 가중치 적용
+  │
+  ├── DL: CrossEntropyLoss(weight=balanced_tensor, label_smoothing=0.1)
+  └── ML: class_weight="balanced"
+```
+
+| 기법 | 적용 대상 | 메커니즘 |
+|------|----------|---------|
+| Class Weighting | ML + DL 전부 | sklearn `compute_class_weight("balanced")` → 소수 클래스에 높은 가중치 |
+| Label Smoothing 0.1 | DL만 | hard [1,0,0] → soft [0.933,0.033,0.033]. hate/offensive 경계 모호함 대응 |
+
+### 8.2 ML 하이퍼파라미터 튜닝 (TF-IDF + LR / SVM)
+
+```
+run_tfidf_baselines()
+  │
+  ├── TF-IDF 벡터화
+  │   ├── ngram_range=(1, 3)     1~3gram 피처
+  │   ├── max_features=50,000    빈도 상위 5만개
+  │   └── sublinear_tf=True      1 + log(tf) 적용
+  │
+  ├── C 파라미터 Grid Search (시드별 독립)
+  │   ├── 후보: [0.5, 1.0, 2.0]
+  │   ├── 선택 기준: val macro F1
+  │   └── SVM: CalibratedClassifierCV(cv=3)으로 확률 출력 추가
+  │
+  └── 3시드 x 2모델 = 6회 학습
+```
+
+### 8.3 DL 하이퍼파라미터 튜닝 (순차 탐색)
+
+```
+_tune_single_model()
+  │
+  ├── Step 1: learning_rate [1e-5, 2e-5, 3e-5] → 최적값 확정
+  │                                                    │
+  ├── Step 2: batch_size [64]                    → 고정 (MPS 한계)
+  │                          ↑ lr 최적값 적용         │
+  ├── Step 3: dropout [0.1, 0.2, 0.3]           → 최적값 확정
+  │                          ↑ lr + batch 적용        │
+  └── Step 4: epochs [5]                         → 고정 (early stopping)
+                             ↑ lr + batch + dropout 적용
+
+  대상: BERT-base, BERT+MLP, BERT+VADER, RoBERTa+VADER (각각 독립)
+  튜닝 시드: 42 고정 | 선택 기준: val macro F1
+```
+
+**Grid Search가 아닌 순차 탐색을 택한 이유:**
+- Grid Search: 3 x 1 x 3 x 1 = 9 조합 x 4모델 = 36회 학습
+- Sequential: 3 + 1 + 3 + 1 = 8 후보 x 4모델 = 32회 학습 (탐색 공간 대폭 축소)
+- 파라미터 간 상호작용이 적다는 가정 하에 효율적
+
+### 8.4 학습 루프 (train_neural_model)
+
+```
+train_neural_model()
+  │
+  ├── 옵티마이저: AdamW (weight_decay=0.01)
+  ├── 스케줄러: Linear warmup (10%) → linear decay
+  ├── 손실함수: CrossEntropyLoss(weight=balanced, label_smoothing=0.1)
+  │
+  ├── epoch 루프 (최대 5회)
+  │   ├── train: forward → loss → backward → optimizer.step()
+  │   ├── val: val macro F1 계산
+  │   └── early stopping: patience=2 (2에폭 연속 개선 없으면 중단)
+  │
+  ├── 체크포인트 저장: best val F1 기준 model_state + optimizer_state
+  └── 테스트 평가: 최적 체크포인트 로드 → test metrics 계산
+```
+
+### 8.5 핵심 설정값 요약 (experiment_config.json)
+
+| 카테고리 | 파라미터 | 기본값 | 비고 |
+|---------|---------|--------|------|
+| **데이터** | split ratio | 70 / 10 / 20 | stratified |
+| **토크나이저** | max_len | 128 | EDA 99%+ 커버 |
+| **학습** | batch_size | 64 | MPS 메모리 한계 |
+| | epochs | 5 | early stopping이 실질 종료 |
+| | learning_rate | 2e-5 | 튜닝 확정값 |
+| | warmup_ratio | 0.10 | 전체 스텝의 10% |
+| | weight_decay | 0.01 | AdamW L2 |
+| | dropout | 0.10 | 튜닝 확정값 |
+| | early_stopping_patience | 2 | |
+| | class_weighting | True (auto) | threshold=0.40 |
+| | label_smoothing | 0.1 | hate/offensive 경계 |
+| **MLP** | mlp_hidden | 256 | Hybrid/MLP 공통 |
+| **벤치마크** | seeds | [42, 52, 62] | paired t-test 요건 |
+| **ML 튜닝** | C candidates | [0.5, 1.0, 2.0] | val F1 기준 |
+| **DL 튜닝** | lr candidates | [1e-5, 2e-5, 3e-5] | 순차 탐색 |
+| | dropout candidates | [0.1, 0.2, 0.3] | 순차 탐색 |
+| **XAI** | xai_sample_size | 50 | |
+| | lime_num_features | 5 | |
+| | shap_max_evals | 300 | |
 
 ---
 

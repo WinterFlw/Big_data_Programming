@@ -339,19 +339,88 @@ Big_data_Programming/
 
 ---
 
-## 학습 설정
+## 학습 설정 및 하이퍼파라미터 튜닝
+
+### 클래스 불균형 대응
+
+HateXplain의 클래스 분포는 hate 29.5% / offensive 27.2% / normal 38.8%로 중간 수준의 불균형이다.
+이에 대해 두 가지 기법을 동시에 적용한다.
+
+| 기법 | 적용 대상 | 설명 |
+|------|----------|------|
+| **Class Weighting** | 전 모델 (ML + DL) | `imbalance_threshold=0.40` 설정. 소수 클래스 비율(27.2%)이 40% 미만이므로 `sklearn.compute_class_weight("balanced")`로 자동 가중치 계산 → `CrossEntropyLoss(weight=...)` 또는 sklearn `class_weight="balanced"` 적용 |
+| **Label Smoothing** | DL 모델만 | `label_smoothing=0.1`. hard label [1, 0, 0] → soft label [0.933, 0.033, 0.033]. hate/offensive 어휘 Jaccard 유사도 0.71로 경계가 모호한 샘플에서 과적합 방지 |
+
+### 머신러닝 모델 (TF-IDF + LR / SVM)
+
+**TF-IDF 벡터화:**
 
 | 파라미터 | 값 | 설명 |
-|----------|-----|------|
-| `max_len` | 128 | 토큰 최대 길이 (EDA 결과 99%+ 미잘림) |
-| `batch_size` | 64 | MPS 메모리 30-48GB 소비 |
-| `epochs` | 5 | 최대 에폭 (early stopping patience=2) |
-| `learning_rate` | 2e-5 | 튜닝으로 확인된 최적값 |
-| `dropout` | 0.10 | 전 모델 최적 (짧은 학습에 강한 정규화 불필요) |
-| `warmup_ratio` | 0.10 | 전체 스텝의 10% warmup |
-| `weight_decay` | 0.01 | AdamW L2 정규화 |
-| `mlp_hidden` | 256 | 하이브리드/MLP 은닉층 |
-| `seeds` | [42, 52, 62] | 3회 반복 (paired t-test 최소 요건) |
+|---------|-----|------|
+| `ngram_range` | (1, 3) | 1~3gram 피처. "fuck"(1) + "fuck you"(2) + "go fuck yourself"(3) |
+| `max_features` | 50,000 | 빈도 상위 5만개만 사용. 희귀 단어 노이즈 제거 |
+| `sublinear_tf` | True | `1 + log(tf)` 적용. 동일 단어 반복 출현의 영향 완화 |
+
+**하이퍼파라미터 튜닝 (C 파라미터):**
+
+| 모델 | 파라미터 | 후보 | 선택 기준 | 설명 |
+|------|---------|------|----------|------|
+| Logistic Regression | C | [0.5, 1.0, 2.0] | val macro F1 | 정규화 강도의 역수. C가 클수록 결정 경계 복잡 |
+| LinearSVC | C | [0.5, 1.0, 2.0] | val macro F1 | 동일. SVM은 `CalibratedClassifierCV(cv=3)`로 확률 출력 추가 |
+
+- 시드별(42, 52, 62) 독립 실행 → C 선택도 시드마다 독립
+- LR: `max_iter=2000`, SVM: `max_iter=10000`
+- `class_weight="balanced"` 자동 적용
+
+### 딥러닝 모델 (BERT / RoBERTa 계열)
+
+**하이퍼파라미터 튜닝 — 순차 탐색 (Sequential Search):**
+
+Grid Search(모든 조합)가 아닌, 한 파라미터씩 최적화 후 고정하는 순차 전략이다.
+앞 단계의 최적값을 다음 단계에 반영하므로, 탐색 공간을 대폭 줄일 수 있다.
+
+```
+Step 1: learning_rate 탐색 [1e-5, 2e-5, 3e-5]  → 2e-5 확정
+Step 2: batch_size 탐색    [64]                  → 64 고정 (MPS 메모리 한계)
+Step 3: dropout 탐색       [0.1, 0.2, 0.3]      → 0.1 확정
+Step 4: epochs 탐색        [5]                   → 5 고정 (early stopping이 실질 종료)
+```
+
+대상 모델: BERT-base, BERT+MLP, BERT+VADER, RoBERTa+VADER (각각 독립 탐색)
+튜닝 시드: 42 고정 (재현성), 선택 기준: val macro F1
+
+**튜닝 대상 파라미터:**
+
+| 순서 | 파라미터 | 후보 | 최적값 | 설명 |
+|:---:|---------|------|:------:|------|
+| 1 | `learning_rate` | [1e-5, 2e-5, 3e-5] | 2e-5 | 가중치 업데이트 보폭. BERT 논문 권장 범위 2e-5~5e-5 |
+| 2 | `batch_size` | [64] | 64 | M3 Max MPS 메모리(30~48GB) 기준 최대치. 고정 |
+| 3 | `dropout` | [0.1, 0.2, 0.3] | 0.1 | 뉴런 비활성 비율. 5에폭 짧은 학습에서는 낮을수록 유리 |
+| 4 | `epochs` | [5] | 5 | early stopping patience=2가 실질적 종료 조건 |
+
+**고정 파라미터 (탐색 대상 아님):**
+
+| 파라미터 | 값 | 설명 |
+|---------|-----|------|
+| `weight_decay` | 0.01 | AdamW의 L2 정규화. 가중치 폭발 방지 |
+| `warmup_ratio` | 0.10 | 전체 스텝의 10%는 LR을 0에서 서서히 증가. 학습 초반 불안정 방지 |
+| `max_len` | 128 | 토큰 최대 길이. EDA에서 99%+ 텍스트가 128 이내 확인 |
+| `mlp_hidden` | 256 | [CLS](768d) → 256d 차원 축소. Hybrid/MLP 모델 공통 |
+| `early_stopping_patience` | 2 | val F1이 2에폭 연속 개선 없으면 학습 중단 |
+| `label_smoothing` | 0.1 | hard → soft label. hate/offensive 경계 모호함 대응 |
+| `class_weight` | balanced (자동) | `compute_class_weight_tensor(threshold=0.40)`이 데이터 분포 기반 자동 판단 |
+
+**옵티마이저:** AdamW (Adam + 올바른 L2 정규화)
+**스케줄러:** Linear warmup → linear decay
+
+### 벤치마크 실행 구성
+
+| 항목 | 값 | 설명 |
+|------|-----|------|
+| `seeds` | [42, 52, 62] | 3회 반복. paired t-test 최소 요건 |
+| 모델 수 | 6개 | TF-IDF+LR, TF-IDF+SVM, BERT-base, BERT+MLP, BERT+VADER, RoBERTa+VADER |
+| 총 학습 횟수 | 18회 | 6모델 x 3시드 |
+| 통계 검정 | paired t-test + Cohen's d | 3시드 F1 배열로 모델 간 유의차 검정 |
 
 ---
 
