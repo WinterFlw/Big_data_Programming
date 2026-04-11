@@ -82,6 +82,7 @@ from experiment_core import (
     BEST_MODELS_PATH,              # 최고 성능 모델 레지스트리 JSON 경로
     ExperimentConfig,              # 실험 설정을 담는 dataclass
     HybridSentimentClassifier,     # BERT/RoBERTa + VADER 하이브리드 모델
+    RAW_DATASET_PATH,              # dataset.json 경로 (human rationale 포함)
     SPLITS_PICKLE_PATH,            # train/val/test 분할 데이터 경로
     TransformerCLSClassifier,      # 순수 Transformer 분류기 (baseline)
     get_config,                    # 실험 설정 로드 함수
@@ -563,6 +564,148 @@ def _plot_case_comparison(
 
 
 # ╔══════════════════════════════════════════════════════════╗
+# ║  6-1. Human Rationale 비교 (설명 타당성 평가)             ║
+# ╚══════════════════════════════════════════════════════════╝
+#
+# HateXplain 데이터셋에는 annotator들이 "왜 혐오표현인지" 근거 토큰을 표시한
+# word-level rationale이 포함되어 있어요. 이걸 활용해서:
+#   - 모델이 중요하다고 본 토큰(SHAP/LIME Top-5)이 인간의 판단 근거와 얼마나 일치하는지 측정
+#   - Overlap@5(안정성)와 별개로 "설명 타당성"을 평가하는 독립적인 지표
+#
+# 이는 "두 XAI 기법이 서로 동의한다"(안정성)와
+# "모델이 인간과 같은 근거를 본다"(타당성)는 전혀 다른 질문에 답합니다.
+
+import json as _json
+import math as _math
+
+
+def _load_human_rationales() -> dict[str, list[str]]:
+    """
+    dataset.json에서 human rationale을 로드하여 post_id -> rationale 토큰 리스트로 반환.
+
+    각 annotator의 binary mask를 majority vote로 합산해서,
+    과반수(ceil(n/2)) 이상이 표시한 토큰만 rationale로 인정합니다.
+    이렇게 하면 개별 annotator의 주관적 편향을 줄일 수 있어요.
+    """
+    if not RAW_DATASET_PATH.exists():
+        return {}
+
+    with open(RAW_DATASET_PATH, "r", encoding="utf-8") as f:
+        raw = _json.load(f)
+
+    rationale_map: dict[str, list[str]] = {}
+    for post_id, sample in raw.items():
+        rats = sample.get("rationales", [])
+        tokens = sample.get("post_tokens", [])
+        if not rats or not tokens:
+            continue
+
+        # annotator 수에서 과반수 기준 결정
+        n_annotators = len(rats)
+        threshold = _math.ceil(n_annotators / 2)
+
+        # majority vote: 과반수 이상이 표시한 토큰만 rationale로 인정
+        rationale_tokens = []
+        for tok_idx in range(len(tokens)):
+            votes = sum(r[tok_idx] for r in rats if tok_idx < len(r))
+            if votes >= threshold:
+                rationale_tokens.append(tokens[tok_idx].lower())
+
+        if rationale_tokens:
+            rationale_map[post_id] = rationale_tokens
+
+    return rationale_map
+
+
+def _compute_rationale_overlap(
+    xai_results: list[dict[str, Any]],
+    post_ids: list[str],
+    rationale_map: dict[str, list[str]],
+    k: int = 5,
+) -> list[dict[str, Any]]:
+    """
+    Model Top-k 토큰과 Human rationale 토큰의 overlap을 계산.
+
+    Jaccard similarity가 아닌 precision 기반 overlap을 사용합니다:
+      overlap = |Model Top-k ∩ Human Rationale| / min(k, |Human Rationale|)
+
+    이유: human rationale 토큰 수가 k보다 적을 수 있어서,
+    단순 Jaccard(합집합 기준)는 rationale이 짧은 샘플에 불리하게 작용합니다.
+    min(k, |HR|)로 나누면 "모델이 인간 근거를 얼마나 포착했는지"를 더 공정하게 측정해요.
+
+    반환값: 샘플별 overlap 정보 리스트
+    """
+    results = []
+    for xai_result, pid in zip(xai_results, post_ids):
+        human_tokens = rationale_map.get(pid, [])
+        if not human_tokens:
+            # rationale이 없는 샘플(normal 등)은 건너뛰기
+            continue
+
+        # 모델의 Top-k 토큰을 정규화
+        model_top = {_normalize_token(t) for t in xai_result["top_tokens"][:k] if _normalize_token(t)}
+        human_set = set(human_tokens)
+
+        # 퍼지 매칭: 서브워드와 전체 단어 간 부분 문자열 관계도 인정
+        matched = set()
+        for model_token in model_top:
+            if model_token in human_set:
+                matched.add(model_token)
+                continue
+            for human_token in human_set:
+                if model_token in human_token or human_token in model_token:
+                    matched.add(model_token)
+                    break
+
+        denominator = min(k, len(human_set))
+        overlap = len(matched) / denominator if denominator > 0 else 0.0
+
+        results.append({
+            "post_id": pid,
+            "model_top_tokens": list(model_top),
+            "human_rationale_tokens": human_tokens,
+            "matched_tokens": list(matched),
+            "overlap": round(overlap, 4),
+            "human_rationale_count": len(human_set),
+        })
+
+    return results
+
+
+def _plot_rationale_comparison(
+    baseline_overlaps: list[dict[str, Any]],
+    improved_overlaps: list[dict[str, Any]],
+    baseline_name: str,
+    improved_name: str,
+    output_path: Path,
+) -> None:
+    """Baseline vs Improved의 Human Rationale Overlap 분포를 비교하는 박스플롯."""
+    ensure_dir(output_path.parent)
+
+    rows = []
+    for item in baseline_overlaps:
+        rows.append({"model": baseline_name, "overlap": item["overlap"]})
+    for item in improved_overlaps:
+        rows.append({"model": improved_name, "overlap": item["overlap"]})
+
+    if not rows:
+        return
+
+    df = pd.DataFrame(rows)
+    fig, ax = plt.subplots(figsize=(8, 5))
+    df.boxplot(column="overlap", by="model", ax=ax)
+    ax.axhline(0.5, color="red", linestyle="--", label="Alignment threshold (0.5)")
+    ax.set_title("Model Top-5 vs Human Rationale Overlap")
+    ax.set_xlabel("Model")
+    ax.set_ylabel("Overlap (precision@5)")
+    plt.suptitle("")
+    ax.legend()
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=160)
+    plt.close(fig)
+
+
+# ╔══════════════════════════════════════════════════════════╗
 # ║  7. 분석 샘플 선정 전략                                   ║
 # ╚══════════════════════════════════════════════════════════╝
 #
@@ -581,6 +724,7 @@ def _select_analysis_samples(
     baseline_preds: np.ndarray,
     improved_preds: np.ndarray,
     sample_size: int,
+    post_ids: list[str] | None = None,
 ) -> pd.DataFrame:
     # 카테고리별로 분류할 리스트들
     fixed_rows = []          # 오분류 --> 정분류 전환 (가장 가치 있는 샘플!)
@@ -589,6 +733,7 @@ def _select_analysis_samples(
     fallback_rows = []       # 그 외 나머지
     columns = [
         "index",
+        "post_id",
         "text",
         "true_label",
         "true_label_name",
@@ -599,12 +744,17 @@ def _select_analysis_samples(
         "category",
     ]
 
+    # post_ids가 없으면 빈 문자열로 채우기 (하위 호환)
+    if post_ids is None:
+        post_ids = [""] * len(texts)
+
     # 각 샘플을 분류하기
-    for index, (text, label, baseline_pred, improved_pred) in enumerate(
-        zip(texts, labels, baseline_preds, improved_preds)
+    for index, (text, label, baseline_pred, improved_pred, pid) in enumerate(
+        zip(texts, labels, baseline_preds, improved_preds, post_ids)
     ):
         row = {
             "index": index,
+            "post_id": pid,
             "text": text,
             "true_label": int(label),
             "true_label_name": LABEL_NAMES[int(label)],
@@ -679,6 +829,7 @@ def run_xai(config: ExperimentConfig | None = None) -> dict[str, Any]:
     test_df = splits["test"]
     texts = test_df["text"].tolist()       # 테스트 텍스트 목록
     labels = test_df["label"].to_numpy()   # 정답 라벨 (0=hate, 1=offensive, 2=normal)
+    post_ids = test_df["post_id"].tolist() if "post_id" in test_df.columns else [""] * len(texts)
 
     # ── Step 2: 두 모델로 테스트셋 전체 예측 ──────────────
     # Baseline(BERT-base)과 Improved(BERT+VADER 또는 RoBERTa+VADER) 모델을 로드하고,
@@ -719,6 +870,7 @@ def run_xai(config: ExperimentConfig | None = None) -> dict[str, Any]:
         baseline_preds=baseline_preds,
         improved_preds=improved_preds,
         sample_size=config.xai_sample_size,
+        post_ids=post_ids,
     )
     save_dataframe(sample_frame, XAI_DIR / "analysis_samples.csv")
 
@@ -751,6 +903,13 @@ def run_xai(config: ExperimentConfig | None = None) -> dict[str, Any]:
             "improved_overlap_ge_60": 0,
             "sample_count": 0,
             "fixed_error_count": 0,
+            "baseline_rationale_shap_mean": None,
+            "improved_rationale_shap_mean": None,
+            "baseline_rationale_lime_mean": None,
+            "improved_rationale_lime_mean": None,
+            "baseline_rationale_ge_50": 0,
+            "improved_rationale_ge_50": 0,
+            "rationale_sample_count": 0,
             "message": "No eligible XAI samples were selected.",
         }
         save_json(summary, XAI_DIR / "xai_summary.json")
@@ -765,6 +924,10 @@ def run_xai(config: ExperimentConfig | None = None) -> dict[str, Any]:
                 "baseline_lime": [],
                 "improved_shap": [],
                 "improved_lime": [],
+                "baseline_rationale_shap": [],
+                "improved_rationale_shap": [],
+                "baseline_rationale_lime": [],
+                "improved_rationale_lime": [],
             },
             XAI_DIR / "xai_details.json",
         )
@@ -799,6 +962,53 @@ def run_xai(config: ExperimentConfig | None = None) -> dict[str, Any]:
     overlap_frame = pd.DataFrame(overlap_rows)
     save_dataframe(overlap_frame, XAI_DIR / "overlap_at_5.csv")
     _plot_overlap_summary(overlap_rows, XAI_DIR / "overlap_at_5.png")
+
+    # ── Step 6-1: Human Rationale 비교 (설명 타당성 평가) ──
+    # 모델의 Top-5 토큰이 인간 annotator의 판단 근거(rationale)와 얼마나 일치하는지 측정합니다.
+    # Overlap@5(안정성)와 독립적인 "설명 타당성" 지표예요.
+    rationale_map = _load_human_rationales()
+    sample_post_ids = sample_frame["post_id"].tolist()
+
+    # SHAP 기준으로 Baseline/Improved 각각의 rationale overlap 계산
+    baseline_rat_shap = _compute_rationale_overlap(baseline_shap, sample_post_ids, rationale_map)
+    improved_rat_shap = _compute_rationale_overlap(improved_shap, sample_post_ids, rationale_map)
+    # LIME 기준으로도 동일하게 계산
+    baseline_rat_lime = _compute_rationale_overlap(baseline_lime, sample_post_ids, rationale_map)
+    improved_rat_lime = _compute_rationale_overlap(improved_lime, sample_post_ids, rationale_map)
+
+    # 결과를 CSV로 저장
+    rat_rows = []
+    for item in baseline_rat_shap:
+        rat_rows.append({"model": baseline_bundle.display_name, "xai_method": "SHAP", "post_id": item["post_id"],
+                         "overlap": item["overlap"], "matched": ", ".join(item["matched_tokens"]),
+                         "model_top5": ", ".join(item["model_top_tokens"]), "human_rationale_count": item["human_rationale_count"]})
+    for item in improved_rat_shap:
+        rat_rows.append({"model": improved_bundle.display_name, "xai_method": "SHAP", "post_id": item["post_id"],
+                         "overlap": item["overlap"], "matched": ", ".join(item["matched_tokens"]),
+                         "model_top5": ", ".join(item["model_top_tokens"]), "human_rationale_count": item["human_rationale_count"]})
+    for item in baseline_rat_lime:
+        rat_rows.append({"model": baseline_bundle.display_name, "xai_method": "LIME", "post_id": item["post_id"],
+                         "overlap": item["overlap"], "matched": ", ".join(item["matched_tokens"]),
+                         "model_top5": ", ".join(item["model_top_tokens"]), "human_rationale_count": item["human_rationale_count"]})
+    for item in improved_rat_lime:
+        rat_rows.append({"model": improved_bundle.display_name, "xai_method": "LIME", "post_id": item["post_id"],
+                         "overlap": item["overlap"], "matched": ", ".join(item["matched_tokens"]),
+                         "model_top5": ", ".join(item["model_top_tokens"]), "human_rationale_count": item["human_rationale_count"]})
+    rationale_frame = pd.DataFrame(rat_rows)
+    save_dataframe(rationale_frame, XAI_DIR / "rationale_overlap.csv")
+
+    # SHAP 기준 비교 박스플롯 저장
+    _plot_rationale_comparison(
+        baseline_rat_shap, improved_rat_shap,
+        baseline_bundle.display_name, improved_bundle.display_name,
+        XAI_DIR / "rationale_overlap_shap.png",
+    )
+    # LIME 기준 비교 박스플롯 저장
+    _plot_rationale_comparison(
+        baseline_rat_lime, improved_rat_lime,
+        baseline_bundle.display_name, improved_bundle.display_name,
+        XAI_DIR / "rationale_overlap_lime.png",
+    )
 
     # ── Step 7: 케이스별 비교 차트 생성 ───────────────────
     # 최대 8개 샘플에 대해 Baseline vs Improved의 SHAP Top-5 막대 그래프를 나란히 그려요.
@@ -846,17 +1056,38 @@ def run_xai(config: ExperimentConfig | None = None) -> dict[str, Any]:
         "improved_overlap_ge_60": int(sum(value >= 0.6 for value in improved_overlap)),
         "sample_count": int(len(sample_frame)),                   # 분석한 총 샘플 수
         "fixed_error_count": int((sample_frame["category"] == "fixed_error").sum()),  # 오분류 교정 수
+        # ── Human Rationale 비교 메트릭 (설명 타당성) ──
+        "baseline_rationale_shap_mean": round(float(np.mean([r["overlap"] for r in baseline_rat_shap])), 4) if baseline_rat_shap else None,
+        "improved_rationale_shap_mean": round(float(np.mean([r["overlap"] for r in improved_rat_shap])), 4) if improved_rat_shap else None,
+        "baseline_rationale_lime_mean": round(float(np.mean([r["overlap"] for r in baseline_rat_lime])), 4) if baseline_rat_lime else None,
+        "improved_rationale_lime_mean": round(float(np.mean([r["overlap"] for r in improved_rat_lime])), 4) if improved_rat_lime else None,
+        "baseline_rationale_ge_50": int(sum(1 for r in baseline_rat_shap if r["overlap"] >= 0.5)),
+        "improved_rationale_ge_50": int(sum(1 for r in improved_rat_shap if r["overlap"] >= 0.5)),
+        "rationale_sample_count": len(baseline_rat_shap),  # rationale이 있는 샘플 수
     }
 
     # JSON 요약 저장
     save_json(summary, XAI_DIR / "xai_summary.json")
 
     # Markdown 요약 저장 (보고서에 바로 복붙 가능!)
+    rationale_md = ""
+    if baseline_rat_shap or improved_rat_shap:
+        rationale_md = (
+            "\n\n## Human Rationale Alignment (설명 타당성)\n\n"
+            f"| 지표 | {baseline_bundle.display_name} | {improved_bundle.display_name} |\n"
+            f"|------|:---:|:---:|\n"
+            f"| SHAP Top-5 vs Human Rationale (mean) | {summary['baseline_rationale_shap_mean']} | {summary['improved_rationale_shap_mean']} |\n"
+            f"| LIME Top-5 vs Human Rationale (mean) | {summary['baseline_rationale_lime_mean']} | {summary['improved_rationale_lime_mean']} |\n"
+            f"| SHAP overlap >= 0.5 (count) | {summary['baseline_rationale_ge_50']} | {summary['improved_rationale_ge_50']} |\n"
+            f"| Rationale 보유 샘플 수 | {summary['rationale_sample_count']} | {summary['rationale_sample_count']} |\n"
+        )
+
     save_text(
         "# XAI Summary\n\n"
         + dataframe_to_markdown(pd.DataFrame([summary]))
         + "\n\n## Case Summary\n\n"
-        + dataframe_to_markdown(case_frame),
+        + dataframe_to_markdown(case_frame)
+        + rationale_md,
         XAI_DIR / "xai_summary.md",
     )
 
@@ -867,6 +1098,10 @@ def run_xai(config: ExperimentConfig | None = None) -> dict[str, Any]:
             "baseline_lime": baseline_lime,
             "improved_shap": improved_shap,
             "improved_lime": improved_lime,
+            "baseline_rationale_shap": baseline_rat_shap,
+            "improved_rationale_shap": improved_rat_shap,
+            "baseline_rationale_lime": baseline_rat_lime,
+            "improved_rationale_lime": improved_rat_lime,
         },
         XAI_DIR / "xai_details.json",
     )

@@ -519,6 +519,7 @@ def dashboard():
     xai_summary = _read_json(OUTPUTS / "xai" / "xai_summary.json")
     overlap = _read_csv(OUTPUTS / "xai" / "overlap_at_5.csv")
     case_summary = _read_csv(OUTPUTS / "xai" / "case_summary.csv")
+    rationale_overlap = _read_csv(OUTPUTS / "xai" / "rationale_overlap.csv")
     tuning_best = _read_json(OUTPUTS / "tuning" / "transformer_tuning_best.json")
     tuning_log = _read_csv(OUTPUTS / "tuning" / "transformer_tuning_log.csv")
 
@@ -560,6 +561,15 @@ def dashboard():
     xai_baseline_ge60 = xai_summary.get("baseline_overlap_ge_60", 0)
     xai_improved_ge60 = xai_summary.get("improved_overlap_ge_60", 0)
     xai_fixed = xai_summary.get("fixed_error_count", 0)
+
+    # Human Rationale 비교 메트릭
+    xai_baseline_rat_shap = xai_summary.get("baseline_rationale_shap_mean")
+    xai_improved_rat_shap = xai_summary.get("improved_rationale_shap_mean")
+    xai_baseline_rat_lime = xai_summary.get("baseline_rationale_lime_mean")
+    xai_improved_rat_lime = xai_summary.get("improved_rationale_lime_mean")
+    xai_baseline_rat_ge50 = xai_summary.get("baseline_rationale_ge_50", 0)
+    xai_improved_rat_ge50 = xai_summary.get("improved_rationale_ge_50", 0)
+    xai_rat_sample_count = xai_summary.get("rationale_sample_count", 0)
 
     # JSON 직렬화 헬퍼
     def js(obj):
@@ -603,6 +613,16 @@ def dashboard():
             "model": row.get("model", ""),
             "sample_id": row.get("sample_id", ""),
             "overlap_at_5": row.get("overlap_at_5", "0"),
+        })
+
+    rationale_slim = []
+    for row in rationale_overlap:
+        rationale_slim.append({
+            "model": row.get("model", ""),
+            "xai_method": row.get("xai_method", ""),
+            "post_id": row.get("post_id", ""),
+            "overlap": row.get("overlap", "0"),
+            "matched": row.get("matched", ""),
         })
 
     # ------------------------------------------------------------------
@@ -2504,6 +2524,57 @@ select {{
     <span class="en"><strong>Baseline Overlap@5 mean 71.7%, Improved 67.5%:</strong> RoBERTa+VADER overlap is slightly lower, possibly attending to more diverse features. A performance-explanation consistency trade-off exists.</span>
   </div>
 
+  <!-- Human Rationale 비교 (설명 타당성 평가) -->
+  <div class="card">
+    <h3><span class="ko">Human Rationale Alignment (설명 타당성)</span><span class="en">Human Rationale Alignment (Explanation Validity)</span></h3>
+    <div class="ko-block desc">
+      모델이 중요하다고 판단한 Top-5 토큰이 HateXplain 인간 주석자(annotator)의 판단 근거(rationale)와 얼마나 일치하는지를 측정한다.
+      Overlap@5(안정성: 두 XAI 기법 간 일치도)와 별개로, 이 지표는 "모델의 설명이 인간의 판단과 얼마나 정합적인지"를 평가하는 <strong>설명 타당성</strong> 지표이다.
+    </div>
+    <div class="en-block desc">
+      Measures how well the model's Top-5 important tokens align with human annotators' rationale tokens from HateXplain.
+      Independent from Overlap@5 (stability), this metric evaluates <strong>explanation validity</strong> — whether the model looks at the same evidence as humans.
+    </div>
+    <div class="grid-2">
+      <div>
+        <table class="data-table">
+          <thead>
+            <tr><th><span class="ko">지표</span><span class="en">Metric</span></th><th>BERT-base</th><th>RoBERTa+VADER</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>SHAP Top-5 vs Human (mean)</td>
+              <td>{xai_baseline_rat_shap if xai_baseline_rat_shap is not None else 'N/A'}</td>
+              <td>{xai_improved_rat_shap if xai_improved_rat_shap is not None else 'N/A'}</td>
+            </tr>
+            <tr>
+              <td>LIME Top-5 vs Human (mean)</td>
+              <td>{xai_baseline_rat_lime if xai_baseline_rat_lime is not None else 'N/A'}</td>
+              <td>{xai_improved_rat_lime if xai_improved_rat_lime is not None else 'N/A'}</td>
+            </tr>
+            <tr>
+              <td><span class="ko">SHAP overlap >= 50% 샘플</span><span class="en">SHAP overlap >= 50% samples</span></td>
+              <td>{xai_baseline_rat_ge50}</td>
+              <td>{xai_improved_rat_ge50}</td>
+            </tr>
+            <tr>
+              <td><span class="ko">Rationale 보유 분석 샘플</span><span class="en">Samples with Rationale</span></td>
+              <td colspan="2" style="text-align:center">{xai_rat_sample_count}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="chart-container"><canvas id="chartRationale"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="insight insight-green" id="rationale-insight" style="display:{'block' if xai_baseline_rat_shap is not None else 'none'}">
+    <span class="ko"><strong>설명 타당성 평가:</strong> 모델 Top-5 토큰과 인간 rationale의 overlap을 측정하여, 모델이 욕설 등 표면 토큰에 편중되어 있는지 vs 인간과 같은 맥락적 근거를 포착하는지를 검증한다. overlap >= 0.5이면 인간 판단과 일정 수준 정렬된 설명으로 해석한다.</span>
+    <span class="en"><strong>Explanation validity:</strong> Measures whether the model captures the same contextual cues as human annotators, or relies on surface-level slur tokens. Overlap >= 0.5 indicates reasonable alignment with human judgment.</span>
+  </div>
+
   <div class="card">
     <h3><span class="ko">혼동 행렬 비교</span><span class="en">Confusion Matrix Comparison</span></h3>
     <div class="ko-block desc">BERT-base와 RoBERTa+VADER의 혼동 행렬. 대각선 값이 높을수록 정확한 분류이다.</div>
@@ -3112,6 +3183,7 @@ const significanceData = {js(sig_slim)};
 const tuningLog = {js(tuning_slim)};
 const edaData = {js(eda)};
 const overlapData = {js(overlap_slim)};
+const rationaleData = {js(rationale_slim)};
 let learningCurveData = null;
 
 // ---- 테마 / 언어 토글 ----
@@ -3454,6 +3526,49 @@ function updateLearningCurveChart() {{
       scales: {{ y: {{ min: 0, max: 1.0, title: {{ display: true, text: 'Overlap@5' }} }} }}
     }}
   }});
+}})();
+
+// ---- Human Rationale 차트 ----
+(function() {{
+  // SHAP 기준 Baseline vs Improved 비교 막대 차트
+  const shapData = rationaleData.filter(r => r.xai_method === 'SHAP');
+  const baseShap = shapData.filter(r => r.model === 'BERT-base').map(r => parseFloat(r.overlap));
+  const impShap = shapData.filter(r => r.model !== 'BERT-base').map(r => parseFloat(r.overlap));
+  const baseMean = baseShap.length ? baseShap.reduce((a,b)=>a+b,0)/baseShap.length : 0;
+  const impMean = impShap.length ? impShap.reduce((a,b)=>a+b,0)/impShap.length : 0;
+
+  const limeData = rationaleData.filter(r => r.xai_method === 'LIME');
+  const baseLime = limeData.filter(r => r.model === 'BERT-base').map(r => parseFloat(r.overlap));
+  const impLime = limeData.filter(r => r.model !== 'BERT-base').map(r => parseFloat(r.overlap));
+  const baseLimeMean = baseLime.length ? baseLime.reduce((a,b)=>a+b,0)/baseLime.length : 0;
+  const impLimeMean = impLime.length ? impLime.reduce((a,b)=>a+b,0)/impLime.length : 0;
+
+  const canvas = document.getElementById('chartRationale');
+  if (canvas && (baseShap.length > 0 || impShap.length > 0)) {{
+    new Chart(canvas, {{
+      type: 'bar',
+      data: {{
+        labels: ['SHAP Top-5', 'LIME Top-5'],
+        datasets: [
+          {{ label: 'BERT-base', data: [baseMean, baseLimeMean],
+            backgroundColor: '#7c8aff99', borderColor: '#7c8aff', borderWidth: 2 }},
+          {{ label: 'RoBERTa+VADER', data: [impMean, impLimeMean],
+            backgroundColor: '#00e5b099', borderColor: '#00e5b0', borderWidth: 2 }}
+        ]
+      }},
+      options: {{
+        responsive: true,
+        plugins: {{
+          legend: {{ position: 'top' }},
+          title: {{ display: true, text: 'Model Top-5 vs Human Rationale (Mean Overlap)' }}
+        }},
+        scales: {{
+          y: {{ min: 0, max: 1.0, title: {{ display: true, text: 'Overlap' }},
+            ticks: {{ callback: v => (v*100).toFixed(0) + '%' }} }}
+        }}
+      }}
+    }});
+  }}
 }})();
 
 // ===== Playground Functions =====
