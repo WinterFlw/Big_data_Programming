@@ -626,12 +626,11 @@ def _compute_rationale_overlap(
     """
     Model Top-k 토큰과 Human rationale 토큰의 overlap을 계산.
 
-    Jaccard similarity가 아닌 precision 기반 overlap을 사용합니다:
-      overlap = |Model Top-k ∩ Human Rationale| / min(k, |Human Rationale|)
+    "인간 rationale 토큰 중 모델이 커버한 비율"을 측정합니다:
+      overlap = |covered human tokens| / |Human Rationale|
 
-    이유: human rationale 토큰 수가 k보다 적을 수 있어서,
-    단순 Jaccard(합집합 기준)는 rationale이 짧은 샘플에 불리하게 작용합니다.
-    min(k, |HR|)로 나누면 "모델이 인간 근거를 얼마나 포착했는지"를 더 공정하게 측정해요.
+    human 토큰 기준으로 세기 때문에 서브워드 퍼지 매칭에서도
+    0.0~1.0 범위가 보장됩니다.
 
     반환값: 샘플별 overlap 정보 리스트
     """
@@ -646,25 +645,25 @@ def _compute_rationale_overlap(
         model_top = {_normalize_token(t) for t in xai_result["top_tokens"][:k] if _normalize_token(t)}
         human_set = set(human_tokens)
 
+        # human 토큰 기준: 각 human 토큰이 model top-k에 의해 커버되는지 확인
         # 퍼지 매칭: 서브워드와 전체 단어 간 부분 문자열 관계도 인정
-        matched = set()
-        for model_token in model_top:
-            if model_token in human_set:
-                matched.add(model_token)
+        covered_human = set()
+        for human_token in human_set:
+            if human_token in model_top:
+                covered_human.add(human_token)
                 continue
-            for human_token in human_set:
+            for model_token in model_top:
                 if model_token in human_token or human_token in model_token:
-                    matched.add(model_token)
+                    covered_human.add(human_token)
                     break
 
-        denominator = min(k, len(human_set))
-        overlap = len(matched) / denominator if denominator > 0 else 0.0
+        overlap = len(covered_human) / len(human_set) if human_set else 0.0
 
         results.append({
             "post_id": pid,
             "model_top_tokens": list(model_top),
             "human_rationale_tokens": human_tokens,
-            "matched_tokens": list(matched),
+            "matched_tokens": list(covered_human),
             "overlap": round(overlap, 4),
             "human_rationale_count": len(human_set),
         })
