@@ -158,7 +158,8 @@ class ExperimentConfig:
     tuning_max_epochs: int = 5    # 튜닝 시 최대 에포크
 
     # ── XAI(설명가능 AI) 분석 설정 — 모델의 판단 이유를 들여다봐요 ──
-    xai_sample_size: int = 50     # SHAP/LIME 분석할 샘플 수 (50개면 일반화 가능성 확보)
+    # v2.1 명세서: 메인 SHAP/LIME 분석은 클래스별 stratified 500 샘플 / 조건
+    xai_sample_size: int = 500    # SHAP/LIME 분석할 샘플 수 (메인 비교 A_B vs D_B)
     lime_num_features: int = 5    # LIME이 보여줄 중요 단어 Top-K개
     lime_num_samples: int = 500   # LIME이 텍스트를 얼마나 변형해볼지
     shap_max_evals: int = 300     # SHAP 최대 평가 횟수
@@ -172,7 +173,11 @@ class ExperimentConfig:
     attention_loss_alpha: float = 0.0
     target_loss_beta: float = 0.0
     target_labels: list[str] = field(default_factory=list)
-    xai_context_sample_size: int = 50
+    # 메인 비교용 자동 메트릭 샘플 수 (A_B vs D_B Context Learning 축)
+    xai_context_sample_size: int = 500
+    # 8조건 풀 ablation 매트릭스 전용 (시간 절약을 위해 메인보다 작게)
+    # 메인은 명세서 부합 500, 매트릭스는 reduced 50으로 운영하고 한계 명시
+    xai_ablation_sample_size: int = 50
     xai_interaction_pairs: int = 50
     xai_mss_threshold: float = 0.8
 

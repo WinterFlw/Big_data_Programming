@@ -97,11 +97,13 @@ from utils import (
     XAI_DIR,                       # XAI 결과물 저장 디렉토리
     clear_device_cache,            # GPU/MPS 메모리 정리
     compute_metrics,               # 정확도, F1 등 성능 지표 계산
+    compute_subgroup_metrics,      # source/target 별 분리 보고 (v2.1 신규)
     dataframe_to_markdown,         # DataFrame을 마크다운 표로 변환
     ensure_dir,                    # 디렉토리가 없으면 생성
     load_json,                     # JSON 파일 로드
     load_pickle,                   # Pickle 파일 로드
     plot_confusion_matrix,         # 혼동 행렬 시각화
+    primary_target_label,          # multi-label target 대표 카테고리 추출 (v2.1 신규)
     save_dataframe,                # DataFrame 저장 (CSV)
     save_json,                     # JSON 저장
     save_text,                     # 텍스트 파일 저장
@@ -136,6 +138,8 @@ class LoadedModelBundle:
 # v2 결과가 있으면 A_B vs D_B/D_R를 우선 사용하고, 없으면 v1 checkpoint로 fallback합니다.
 BASELINE_MODEL_NAMES = ["A_B", "BERT+MLP", "BERT-base"]
 IMPROVED_MODEL_NAMES = ["D_B", "D_R", "RoBERTa+VADER", "BERT+VADER"]
+# v2.1 풀 ablation 8조건 — XAI 자동 메트릭 매트릭스용
+ABLATION_CONDITION_ORDER = ["A_B", "B_B", "C_B", "D_B", "A_R", "B_R", "C_R", "D_R"]
 
 
 # ╔══════════════════════════════════════════════════════════╗
@@ -361,7 +365,21 @@ def predict_probabilities(bundle: LoadedModelBundle, texts: list[str], batch_siz
 # BERT는 "##ing" 같은 서브워드를, RoBERTa는 "Ġhello" 같은 형태를 사용해요.
 # 이런 접두사/접미사를 제거해서 SHAP과 LIME 토큰을 공정하게 비교할 수 있게 합니다.
 def _normalize_token(token: str) -> str:
-    return token.lower().replace("##", "").replace("Ġ", "").strip()
+    return token.lower().replace("##", "").replace("Ġ", "").replace("▁", "").strip()
+
+
+# ── 안전한 fuzzy 토큰 매칭 ──────────────────────────────
+# 부분 문자열 매칭은 편리하지만 짧은 토큰("a", "the", "us")은 거의 모든 단어와 매칭됨.
+# 길이 3 미만은 exact match만 허용하고, 그 이상에서만 부분 문자열을 인정해 정밀도를 확보합니다.
+# 토큰 시작·끝 경계도 우선 검사해 우연한 부분 매칭을 줄여요.
+def _fuzzy_token_match(query: str, target: str, min_len: int = 3) -> bool:
+    if not query or not target:
+        return False
+    if query == target:
+        return True
+    if len(query) < min_len or len(target) < min_len:
+        return False
+    return query in target or target in query
 
 
 def _is_subword_continuation(token: str) -> bool:
@@ -394,14 +412,34 @@ def _aggregate_subword_scores(
     if len(tokens) == 0 or len(scores) == 0:
         return []
 
-    # Step 1: 서브워드를 단어 단위로 그룹화
-    word_groups: list[dict[str, Any]] = []  # [{"word": str, "score_sum": float}, ...]
+    # Step 0: 토큰 형태 자동 감지 — BERT/RoBERTa subword 또는 word-level
+    has_bert_subword = any(t.startswith("##") for t in tokens)
+    has_roberta_subword = any(t.startswith("Ġ") or t.startswith("▁") for t in tokens)
+    is_word_level = not has_bert_subword and not has_roberta_subword
+
+    word_groups: list[dict[str, Any]] = []
+
+    # Word-level 분기: SHAP transformers masker가 공백 분리 단어로 결과를 줄 때
+    # 각 토큰이 이미 완전한 단어이므로 그대로 매핑한다 (이어붙이기 X).
+    if is_word_level:
+        for token, score in zip(tokens, scores):
+            if token in special_tokens:
+                continue
+            normalized = _normalize_token(token)
+            if not normalized:
+                continue
+            score_value = float(score)
+            word_groups.append({
+                "word": normalized,
+                "score": score_value,
+                "abs_score": abs(score_value),
+            })
+        return word_groups
+
+    # Subword 분기: BERT(##) 또는 RoBERTa(Ġ/▁) prefix로 단어 경계 판별
     current_word = ""
     current_score = 0.0
-    has_bert_subword = any(t.startswith("##") for t in tokens)
-
     for token, score in zip(tokens, scores):
-        # 특수 토큰은 건너뛰기
         if token in special_tokens:
             continue
         normalized = _normalize_token(token)
@@ -409,31 +447,31 @@ def _aggregate_subword_scores(
             continue
 
         if has_bert_subword:
-            # BERT 토크나이저: ## prefix로 연속 판별
+            # BERT 토크나이저: ## prefix가 붙은 토큰은 이전 단어의 연속
             if token.startswith("##"):
-                # 이전 단어에 이어붙이기
                 current_word += normalized
                 current_score += float(score)
             else:
-                # 새 단어 시작 -- 이전 단어 저장
                 if current_word:
                     word_groups.append({"word": current_word, "score": current_score, "abs_score": abs(current_score)})
                 current_word = normalized
                 current_score = float(score)
         else:
-            # RoBERTa 토크나이저: Ġ prefix로 새 단어 시작 판별
-            if token.startswith("Ġ") or not word_groups and not current_word:
-                # 새 단어 시작
+            # RoBERTa/SentencePiece: Ġ 또는 ▁ prefix가 새 단어 시작
+            if token.startswith("Ġ") or token.startswith("▁"):
                 if current_word:
                     word_groups.append({"word": current_word, "score": current_score, "abs_score": abs(current_score)})
                 current_word = normalized
                 current_score = float(score)
             else:
-                # 이전 단어에 이어붙이기
-                current_word += normalized
-                current_score += float(score)
+                # prefix 없는 토큰은 이전 단어의 연속 (단, current_word 비어있으면 새 단어)
+                if not current_word:
+                    current_word = normalized
+                    current_score = float(score)
+                else:
+                    current_word += normalized
+                    current_score += float(score)
 
-    # 마지막 단어 저장
     if current_word:
         word_groups.append({"word": current_word, "score": current_score, "abs_score": abs(current_score)})
 
@@ -597,14 +635,14 @@ def _compute_overlap_at_5(
         lime_top = {_normalize_token(token) for token in lime_result["top_tokens"] if _normalize_token(token)}
 
         # 퍼지 매칭: BERT의 서브워드("##ing")와 LIME의 전체 단어("running")가
-        # 부분 문자열 관계면 매칭으로 인정해줍니다 (좀 더 공정한 비교를 위해!)
+        # 부분 문자열 관계면 매칭으로 인정 — 단 길이 3 이상에서만 (짧은 토큰 우연 매칭 방지).
         matched_shap_tokens = set()
         for shap_token in shap_top:
             if shap_token in lime_top:
                 matched_shap_tokens.add(shap_token)
                 continue
             for lime_token in lime_top:
-                if shap_token in lime_token or lime_token in shap_token:
+                if _fuzzy_token_match(shap_token, lime_token):
                     matched_shap_tokens.add(shap_token)
                     break
 
@@ -748,14 +786,14 @@ def _compute_rationale_overlap(
         human_set = set(human_tokens)
 
         # human 토큰 기준: 각 human 토큰이 model top-k에 의해 커버되는지 확인
-        # 퍼지 매칭: 서브워드와 전체 단어 간 부분 문자열 관계도 인정
+        # 퍼지 매칭: 길이 3 이상에서만 부분 문자열 관계 인정 (짧은 토큰 우연 매칭 방지)
         covered_human = set()
         for human_token in human_set:
             if human_token in model_top:
                 covered_human.add(human_token)
                 continue
             for model_token in model_top:
-                if model_token in human_token or human_token in model_token:
+                if _fuzzy_token_match(model_token, human_token):
                     covered_human.add(human_token)
                     break
 
@@ -795,7 +833,7 @@ def _mask_tokens_in_text(text: str, tokens_to_mask: set[str]) -> str:
         word_lower = word.lower().strip(".,!?;:'\"()[]{}#@")
         should_mask = False
         for target in tokens_to_mask:
-            if word_lower == target or target in word_lower or word_lower in target:
+            if _fuzzy_token_match(word_lower, target):
                 should_mask = True
                 break
         masked.append("[MASK]" if should_mask else word)
@@ -849,7 +887,7 @@ def _compute_masking_metrics(
             word_lower = word.lower().strip(".,!?;:'\"()[]{}#@")
             is_top = False
             for target in top_tokens:
-                if word_lower == target or target in word_lower or word_lower in target:
+                if _fuzzy_token_match(word_lower, target):
                     is_top = True
                     break
             kept_words.append(word if is_top else "[MASK]")
@@ -1009,7 +1047,7 @@ def _keep_only_tokens(text: str, tokens_to_keep: set[str]) -> str:
     kept_words = []
     for word in text.split():
         word_lower = word.lower().strip(".,!?;:'\"()[]{}#@")
-        should_keep = any(word_lower == token or token in word_lower or word_lower in token for token in tokens_to_keep)
+        should_keep = any(_fuzzy_token_match(word_lower, token) for token in tokens_to_keep)
         kept_words.append(word if should_keep else "[MASK]")
     return " ".join(kept_words)
 
@@ -1186,6 +1224,62 @@ def _compute_v2_xai_metrics(
             _compute_attention_rollout_entropy(bundle, metric_texts, sample_cap)
         ),
     }
+
+
+def _compute_ablation_metric_table(
+    registry: dict[str, dict[str, Any]],
+    sample_texts: list[str],
+    config: ExperimentConfig,
+) -> pd.DataFrame:
+    """v2.1 8조건 풀 ablation에 대한 자동 XAI 메트릭(CI/MSS/LOO/IS/Rollout) 매트릭스.
+
+    명세서 v2.1의 "8조건 × 4축" 검증을 위해 각 조건별로 SHAP을 1회 계산하고
+    Context Learning 축의 자동 메트릭만 산출한다. Plausibility는 본 매트릭스에서 제외
+    (인간 rationale 의존성 축이라 별도 보고).
+
+    8조건 × 매트릭스 샘플 수만큼 SHAP을 호출하므로 시간 부담이 크다.
+    `config.xai_ablation_sample_size`로 별도 제한해 시간을 절약한다 (메인 비교는 풀 샘플).
+
+    각 조건은 순차적으로 로드·평가 후 모델을 메모리에서 해제해 메모리 부담을 낮춘다.
+    """
+
+    # 매트릭스 전용 샘플 수 — 메인 비교(xai_sample_size)와 분리하여 시간 절약
+    ablation_cap = min(len(sample_texts), getattr(config, "xai_ablation_sample_size", 50))
+    matrix_texts = list(sample_texts[:ablation_cap])
+
+    rows = []
+    for cond in ABLATION_CONDITION_ORDER:
+        if cond not in registry:
+            continue
+        bundle = None
+        try:
+            bundle = _instantiate_bundle(cond, registry[cond])
+            probs = predict_probabilities(bundle, matrix_texts)
+            preds = probs.argmax(axis=1).tolist()
+            shap_results = run_shap_explanations(bundle, matrix_texts, preds, config)
+            v2 = _compute_v2_xai_metrics(bundle, shap_results, matrix_texts, preds, config)
+
+            rows.append({
+                "condition": cond,
+                "ci_mean": v2["ci"]["mean"],
+                "ci_std": v2["ci"]["std"],
+                "mss_mean": v2["mss"]["mean"],
+                "mss_std": v2["mss"]["std"],
+                "loo_mean": v2["loo"]["mean"],
+                "loo_std": v2["loo"]["std"],
+                "interaction_strength_mean": v2["interaction_strength"]["mean"],
+                "interaction_strength_std": v2["interaction_strength"]["std"],
+                "rollout_entropy_mean": v2["attention_rollout_entropy"]["mean"],
+                "rollout_entropy_std": v2["attention_rollout_entropy"]["std"],
+                "sample_count": v2["ci"]["count"],
+            })
+        finally:
+            if bundle is not None and bundle.model is not None:
+                bundle.model.to(torch.device("cpu"))
+            del bundle
+            clear_device_cache()
+
+    return pd.DataFrame(rows)
 
 
 def _plot_masking_comparison(
@@ -1707,6 +1801,59 @@ def run_xai(config: ExperimentConfig | None = None) -> dict[str, Any]:
         },
         XAI_DIR / "xai_4axis_metrics.json",
     )
+
+    # ── Step 6-4: v2.1 풀 ablation 자동 메트릭 매트릭스 (8조건) ──
+    # 8조건(BERT × 4 + RoBERTa × 4) 전체에 대해 자동 XAI 메트릭만 계산하여
+    # 명세서 v2.1의 "8조건 × Context Learning 축" 매트릭스를 채운다.
+    # 메모리·시간 부담 줄이기 위해 각 조건을 순차 로드·해제한다.
+    try:
+        registry = _load_best_registry()
+        ablation_table = _compute_ablation_metric_table(registry, sample_texts, config)
+        if not ablation_table.empty:
+            save_dataframe(ablation_table, XAI_DIR / "xai_ablation_metrics.csv")
+    except Exception as exc:
+        # 일부 조건이 누락되거나 로드 실패해도 메인 보고는 진행
+        save_json(
+            {"error": str(exc), "stage": "ablation_metric_table"},
+            XAI_DIR / "xai_ablation_metrics_error.json",
+        )
+
+    # ── Step 6-5: Subgroup 분리 보고 (source / target 별) ──
+    # 명세서 v2.1: stratified는 라벨 단일이지만, 평가 시 source-별·target-별 분리 보고로
+    # 간접 leakage 또는 subgroup robustness를 검증한다.
+    try:
+        # source 컬럼은 test_df에 이미 포함되어 있음 (post_id 접미사에서 추출됨)
+        if "source" in test_df.columns:
+            source_groups = test_df["source"].astype(str).tolist()
+            baseline_subgroup_source = compute_subgroup_metrics(
+                labels, baseline_preds, source_groups, group_name="source"
+            )
+            improved_subgroup_source = compute_subgroup_metrics(
+                labels, improved_preds, source_groups, group_name="source"
+            )
+            baseline_subgroup_source.insert(0, "model", baseline_bundle.display_name)
+            improved_subgroup_source.insert(0, "model", improved_bundle.display_name)
+            combined_source = pd.concat([baseline_subgroup_source, improved_subgroup_source], ignore_index=True)
+            save_dataframe(combined_source, XAI_DIR / "subgroup_metrics_source.csv")
+
+        # target 컬럼: 각 샘플의 첫 번째 비-None target을 대표로
+        if "targets" in test_df.columns:
+            target_groups = [primary_target_label(t) for t in test_df["targets"].tolist()]
+            baseline_subgroup_target = compute_subgroup_metrics(
+                labels, baseline_preds, target_groups, group_name="target"
+            )
+            improved_subgroup_target = compute_subgroup_metrics(
+                labels, improved_preds, target_groups, group_name="target"
+            )
+            baseline_subgroup_target.insert(0, "model", baseline_bundle.display_name)
+            improved_subgroup_target.insert(0, "model", improved_bundle.display_name)
+            combined_target = pd.concat([baseline_subgroup_target, improved_subgroup_target], ignore_index=True)
+            save_dataframe(combined_target, XAI_DIR / "subgroup_metrics_target.csv")
+    except Exception as exc:
+        save_json(
+            {"error": str(exc), "stage": "subgroup_metrics"},
+            XAI_DIR / "subgroup_metrics_error.json",
+        )
 
     # ── Step 7: 케이스별 비교 차트 생성 ───────────────────
     # 최대 8개 샘플에 대해 기준 조건 vs 비교 조건의 SHAP Top-5 막대 그래프를 나란히 그려요.

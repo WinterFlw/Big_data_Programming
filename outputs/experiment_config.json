@@ -36,7 +36,7 @@
   ],
   "tuning_seed": 42,
   "tuning_max_epochs": 5,
-  "xai_sample_size": 50,
+  "xai_sample_size": 500,
   "lime_num_features": 5,
   "lime_num_samples": 500,
   "shap_max_evals": 300,
@@ -83,7 +83,8 @@
     "Refugee",
     "Women"
   ],
-  "xai_context_sample_size": 50,
+  "xai_context_sample_size": 500,
+  "xai_ablation_sample_size": 50,
   "xai_interaction_pairs": 50,
   "xai_mss_threshold": 0.8
 }

@@ -358,6 +358,67 @@ def format_mean_std(mean_value: float | None, std_value: float | None) -> str:
     return f"{mean_value:.4f} ± {std_value:.4f}"
 
 
+def compute_subgroup_metrics(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    groups: Iterable[Any],
+    group_name: str = "source",
+) -> pd.DataFrame:
+    """그룹 변수(source/target 등)별로 분류 성능을 분리 보고하는 헬퍼.
+
+    명세서 v2.1: stratified split은 라벨 단일이지만, 평가 시 source-별 / target-별
+    Subgroup Macro F1, Precision, Recall, Accuracy를 분리해서 보고하여
+    간접 leakage 또는 subgroup robustness를 검증합니다.
+
+    Args:
+        y_true: 정답 라벨 배열 (int)
+        y_pred: 예측 라벨 배열 (int)
+        groups: 각 샘플의 그룹 라벨 (예: ["gab", "twitter", ...])
+        group_name: 결과 DataFrame의 그룹 컬럼명
+
+    Returns:
+        DataFrame[group_name, n_samples, macro_f1, macro_precision, macro_recall, accuracy]
+    """
+    y_true_arr = np.asarray(y_true)
+    y_pred_arr = np.asarray(y_pred)
+    groups_arr = np.asarray(list(groups), dtype=object)
+
+    if len(y_true_arr) != len(y_pred_arr) or len(y_true_arr) != len(groups_arr):
+        raise ValueError(
+            f"length mismatch: y_true={len(y_true_arr)} y_pred={len(y_pred_arr)} groups={len(groups_arr)}"
+        )
+
+    rows = []
+    unique_groups = sorted({str(group) for group in groups_arr.tolist()})
+    for group_value in unique_groups:
+        mask = np.array([str(item) == group_value for item in groups_arr], dtype=bool)
+        if mask.sum() == 0:
+            continue
+        sub_true = y_true_arr[mask]
+        sub_pred = y_pred_arr[mask]
+        rows.append({
+            group_name: group_value,
+            "n_samples": int(mask.sum()),
+            "macro_f1": float(f1_score(sub_true, sub_pred, average="macro", zero_division=0)),
+            "macro_precision": float(precision_score(sub_true, sub_pred, average="macro", zero_division=0)),
+            "macro_recall": float(recall_score(sub_true, sub_pred, average="macro", zero_division=0)),
+            "accuracy": float(accuracy_score(sub_true, sub_pred)),
+        })
+    return pd.DataFrame(rows)
+
+
+def primary_target_label(targets: list[str]) -> str:
+    """multi-label target 리스트에서 대표 카테고리를 뽑는 헬퍼.
+
+    Subgroup 분석 시 단일 그룹 변수로 사용. None만 있으면 'None',
+    비-None target이 있으면 첫 번째를 대표로 사용 (학습 supervision 영향 없음).
+    """
+    non_none = [item for item in (targets or []) if item and str(item) != "None"]
+    if not non_none:
+        return "None"
+    return str(non_none[0])
+
+
 def aggregate_run_metrics(run_records: list[dict[str, Any]]) -> pd.DataFrame:
     """
     seed별 반복 실험 결과를 모아서 모델별 평균/표준편차 요약표를 만듭니다.
