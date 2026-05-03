@@ -55,7 +55,7 @@ import pandas as pd
 
 # experiment_dashboard: 실험 결과를 예쁜 HTML 대시보드로 만들어주는 모듈이에요.
 # 실험이 끝날 때마다 대시보드를 업데이트해서 결과를 한눈에 볼 수 있게 해줘요!
-from experiment_dashboard import DASHBOARD_HTML_PATH, run_dashboard
+from experiment_dashboard import run_dashboard
 
 # experiment_core: 우리 파이프라인의 핵심 엔진이 들어있는 모듈이에요!
 # 데이터 준비부터 벤치마크까지, 무거운 연산은 대부분 이 친구가 담당해요.
@@ -93,13 +93,13 @@ from utils import CHECKPOINT_DIR, dataframe_to_markdown, remove_tree, save_text
 # ║  병원에서 건강검진 받듯이, 파이프라인의 각 단계가                      ║
 # ║  제대로 완료되었는지 한눈에 확인할 수 있어요!                          ║
 # ║                                                                     ║
-# ║  "ready"가 뜨면 해당 단계가 이미 완료된 거고,                         ║
-# ║  "missing"이 뜨면 아직 실행하지 않은 단계예요.                        ║
+# ║  "ready"가 뜨면 현재 명세 기준 산출물이 완료된 거고,                   ║
+# ║  "missing"이 뜨면 없거나 과거 명세 산출물이라 재실행이 필요합니다.       ║
 # ║  걱정 마세요, missing이 있어도 괜찮아요! 차근차근 하면 돼요 :)         ║
 # ╚══════════════════════════════════════════════════════════════════════╝
 def _print_status() -> None:
     # describe_status()가 딕셔너리를 돌려줘요: {"data": True, "vader": False, ...}
-    # True면 해당 산출물이 존재하는 것이고, False면 아직 없다는 뜻이에요.
+    # True면 현재 명세 기준 산출물이 유효하고, False면 없거나 stale 상태입니다.
     status = describe_status()
 
     # 터미널에 깔끔하게 상태표를 출력해 줄게요!
@@ -215,10 +215,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "eda":
         splits = prepare_data(config=config)
         extract_vader_features(splits=splits)
-        eda_results = run_eda(config=config, force_refresh=args.force)
+        run_eda(config=config, force_refresh=args.force)
         dashboard_path = run_dashboard()
         print("EDA complete.")
-        print(f"  Results: outputs/reports/eda/")
+        print("  Results: outputs/reports/eda/")
         print(f"Dashboard updated: {dashboard_path}")
         return 0
 
@@ -227,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     # 요리로 치면 "소금을 얼마나 넣어야 가장 맛있을까?"를 찾는 과정이에요!
     # 시간이 좀 걸릴 수 있지만, 좋은 하이퍼파라미터는 성능에 큰 영향을 줘요.
     if args.command == "tune":
-        tuning_summary = run_hyperparameter_tuning(config=config)
+        tuning_summary = run_hyperparameter_tuning(config=config, force_refresh=args.force)
         dashboard_path = run_dashboard()
         print("Tuning complete.")
         # 각 모델별로 찾아낸 최적의 파라미터를 출력해 줘요.
@@ -296,12 +296,12 @@ def main(argv: list[str] | None = None) -> int:
         extract_vader_features(force_refresh=args.force)
 
         # 2.5단계: EDA — 데이터 특성 파악 (텍스트 길이, VADER 분포, 타겟 커뮤니티)
-        run_eda(config=config)
+        run_eda(config=config, force_refresh=args.force)
 
         # 3단계 (선택): 하이퍼파라미터 튜닝 -- --with-tuning 플래그가 있을 때만!
         # 튜닝은 시간이 오래 걸려서, 기본적으로는 건너뛰어요.
         if args.with_tuning:
-            run_hyperparameter_tuning(config=config)
+            run_hyperparameter_tuning(config=config, force_refresh=args.force)
 
         # 4단계: 벤치마크 -- 모든 모델의 성능을 공정하게 비교!
         benchmark_summary = run_benchmark(config=config)

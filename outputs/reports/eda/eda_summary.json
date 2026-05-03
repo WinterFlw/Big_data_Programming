@@ -1,4 +1,23 @@
 {
+  "class_distribution": [
+    {
+      "class": "hatespeech",
+      "count": 5930,
+      "ratio_pct": 30.9
+    },
+    {
+      "class": "offensive",
+      "count": 5473,
+      "ratio_pct": 28.52
+    },
+    {
+      "class": "normal",
+      "count": 7789,
+      "ratio_pct": 40.58
+    }
+  ],
+  "imbalance_ratio": 1.42,
+  "total_samples": 19192,
   "text_length_stats": [
     {
       "class": "hatespeech",
@@ -103,6 +122,26 @@
   "compound_mean_hate": -0.358,
   "compound_mean_offensive": -0.283,
   "compound_mean_normal": -0.1811,
+  "vader_separability": [
+    {
+      "class_a": "hatespeech",
+      "class_b": "offensive",
+      "ks_statistic": 0.1058,
+      "p_value": 3.29e-28
+    },
+    {
+      "class_a": "hatespeech",
+      "class_b": "normal",
+      "ks_statistic": 0.1583,
+      "p_value": 4.84e-74
+    },
+    {
+      "class_a": "offensive",
+      "class_b": "normal",
+      "ks_statistic": 0.1011,
+      "p_value": 4.71e-29
+    }
+  ],
   "top_targets": [
     {
       "target": "None",
@@ -190,5 +229,554 @@
     }
   ],
   "top_k": 500,
-  "elapsed_seconds": 3.4
+  "ngram_top_bigrams": {
+    "hatespeech": [
+      {
+        "ngram": "do not",
+        "count": 390
+      },
+      {
+        "ngram": "in the",
+        "count": 368
+      },
+      {
+        "ngram": "you are",
+        "count": 351
+      },
+      {
+        "ngram": "is a",
+        "count": 347
+      },
+      {
+        "ngram": "i am",
+        "count": 328
+      },
+      {
+        "ngram": "of the",
+        "count": 299
+      },
+      {
+        "ngram": "a nigger",
+        "count": 286
+      },
+      {
+        "ngram": "they are",
+        "count": 267
+      },
+      {
+        "ngram": "to be",
+        "count": 209
+      },
+      {
+        "ngram": "to the",
+        "count": 172
+      }
+    ],
+    "offensive": [
+      {
+        "ngram": "do not",
+        "count": 342
+      },
+      {
+        "ngram": "in the",
+        "count": 338
+      },
+      {
+        "ngram": "user user",
+        "count": 302
+      },
+      {
+        "ngram": "you are",
+        "count": 288
+      },
+      {
+        "ngram": "i am",
+        "count": 268
+      },
+      {
+        "ngram": "of the",
+        "count": 261
+      },
+      {
+        "ngram": "is a",
+        "count": 259
+      },
+      {
+        "ngram": "to be",
+        "count": 240
+      },
+      {
+        "ngram": "they are",
+        "count": 225
+      },
+      {
+        "ngram": "can not",
+        "count": 141
+      }
+    ],
+    "normal": [
+      {
+        "ngram": "user user",
+        "count": 1781
+      },
+      {
+        "ngram": "i am",
+        "count": 602
+      },
+      {
+        "ngram": "do not",
+        "count": 530
+      },
+      {
+        "ngram": "in the",
+        "count": 470
+      },
+      {
+        "ngram": "of the",
+        "count": 395
+      },
+      {
+        "ngram": "is a",
+        "count": 362
+      },
+      {
+        "ngram": "to be",
+        "count": 338
+      },
+      {
+        "ngram": "you are",
+        "count": 298
+      },
+      {
+        "ngram": "user i",
+        "count": 295
+      },
+      {
+        "ngram": "they are",
+        "count": 259
+      }
+    ]
+  },
+  "ngram_top_trigrams": {
+    "hatespeech": [
+      {
+        "ngram": "i do not",
+        "count": 97
+      },
+      {
+        "ngram": "you are a",
+        "count": 79
+      },
+      {
+        "ngram": "nigger nigger nigger",
+        "count": 53
+      },
+      {
+        "ngram": "i am not",
+        "count": 51
+      },
+      {
+        "ngram": "i am a",
+        "count": 41
+      },
+      {
+        "ngram": "you can not",
+        "count": 35
+      },
+      {
+        "ngram": "you do not",
+        "count": 35
+      },
+      {
+        "ngram": "they do not",
+        "count": 33
+      },
+      {
+        "ngram": "do not want",
+        "count": 33
+      },
+      {
+        "ngram": "to be a",
+        "count": 30
+      }
+    ],
+    "offensive": [
+      {
+        "ngram": "i do not",
+        "count": 71
+      },
+      {
+        "ngram": "you are a",
+        "count": 60
+      },
+      {
+        "ngram": "i am not",
+        "count": 43
+      },
+      {
+        "ngram": "you do not",
+        "count": 38
+      },
+      {
+        "ngram": "is a fucking",
+        "count": 35
+      },
+      {
+        "ngram": "they do not",
+        "count": 33
+      },
+      {
+        "ngram": "do not have",
+        "count": 33
+      },
+      {
+        "ngram": "i hate you",
+        "count": 31
+      },
+      {
+        "ngram": "i can not",
+        "count": 31
+      },
+      {
+        "ngram": "you can not",
+        "count": 29
+      }
+    ],
+    "normal": [
+      {
+        "ngram": "user user user",
+        "count": 776
+      },
+      {
+        "ngram": "i do not",
+        "count": 125
+      },
+      {
+        "ngram": "user user i",
+        "count": 91
+      },
+      {
+        "ngram": "is a fucking",
+        "count": 84
+      },
+      {
+        "ngram": "i fucking hate",
+        "count": 80
+      },
+      {
+        "ngram": "i am not",
+        "count": 69
+      },
+      {
+        "ngram": "i am a",
+        "count": 69
+      },
+      {
+        "ngram": "fucking hate you",
+        "count": 59
+      },
+      {
+        "ngram": "i hate you",
+        "count": 56
+      },
+      {
+        "ngram": "you do not",
+        "count": 49
+      }
+    ]
+  },
+  "ngram_hate_unique_bigrams": [
+    "a kike",
+    "a nigger",
+    "this is"
+  ],
+  "ngram_shared_all_bigrams": [
+    "can not",
+    "do not",
+    "i am",
+    "if you",
+    "in the",
+    "is a",
+    "of the",
+    "they are",
+    "to be",
+    "to the",
+    "you are"
+  ],
+  "wordcloud_generated": true,
+  "wordcloud_top_words": {
+    "hatespeech": [
+      {
+        "word": "nigger",
+        "tfidf": 0.0951
+      },
+      {
+        "word": "kike",
+        "tfidf": 0.0635
+      },
+      {
+        "word": "user",
+        "tfidf": 0.0495
+      },
+      {
+        "word": "white",
+        "tfidf": 0.0442
+      },
+      {
+        "word": "number",
+        "tfidf": 0.0392
+      },
+      {
+        "word": "niggers",
+        "tfidf": 0.038
+      },
+      {
+        "word": "like",
+        "tfidf": 0.0357
+      },
+      {
+        "word": "jews",
+        "tfidf": 0.0311
+      },
+      {
+        "word": "just",
+        "tfidf": 0.0288
+      },
+      {
+        "word": "fuck",
+        "tfidf": 0.0269
+      },
+      {
+        "word": "fucking",
+        "tfidf": 0.0243
+      },
+      {
+        "word": "faggot",
+        "tfidf": 0.0233
+      },
+      {
+        "word": "shit",
+        "tfidf": 0.0226
+      },
+      {
+        "word": "people",
+        "tfidf": 0.0209
+      },
+      {
+        "word": "sand",
+        "tfidf": 0.0204
+      },
+      {
+        "word": "moslem",
+        "tfidf": 0.02
+      },
+      {
+        "word": "women",
+        "tfidf": 0.0173
+      },
+      {
+        "word": "muslim",
+        "tfidf": 0.0165
+      },
+      {
+        "word": "know",
+        "tfidf": 0.0158
+      },
+      {
+        "word": "faggots",
+        "tfidf": 0.0149
+      }
+    ],
+    "offensive": [
+      {
+        "word": "user",
+        "tfidf": 0.0942
+      },
+      {
+        "word": "retarded",
+        "tfidf": 0.0496
+      },
+      {
+        "word": "white",
+        "tfidf": 0.0428
+      },
+      {
+        "word": "bitch",
+        "tfidf": 0.0411
+      },
+      {
+        "word": "number",
+        "tfidf": 0.0391
+      },
+      {
+        "word": "like",
+        "tfidf": 0.0374
+      },
+      {
+        "word": "ghetto",
+        "tfidf": 0.0367
+      },
+      {
+        "word": "just",
+        "tfidf": 0.0306
+      },
+      {
+        "word": "women",
+        "tfidf": 0.0265
+      },
+      {
+        "word": "people",
+        "tfidf": 0.0249
+      },
+      {
+        "word": "jews",
+        "tfidf": 0.0244
+      },
+      {
+        "word": "gay",
+        "tfidf": 0.0238
+      },
+      {
+        "word": "faggot",
+        "tfidf": 0.0237
+      },
+      {
+        "word": "fucking",
+        "tfidf": 0.023
+      },
+      {
+        "word": "retard",
+        "tfidf": 0.0224
+      },
+      {
+        "word": "shit",
+        "tfidf": 0.0197
+      },
+      {
+        "word": "muslim",
+        "tfidf": 0.0197
+      },
+      {
+        "word": "fuck",
+        "tfidf": 0.0183
+      },
+      {
+        "word": "hate",
+        "tfidf": 0.0173
+      },
+      {
+        "word": "bitches",
+        "tfidf": 0.0172
+      }
+    ],
+    "normal": [
+      {
+        "word": "user",
+        "tfidf": 0.1314
+      },
+      {
+        "word": "white",
+        "tfidf": 0.0664
+      },
+      {
+        "word": "number",
+        "tfidf": 0.0476
+      },
+      {
+        "word": "women",
+        "tfidf": 0.0354
+      },
+      {
+        "word": "people",
+        "tfidf": 0.0315
+      },
+      {
+        "word": "like",
+        "tfidf": 0.0308
+      },
+      {
+        "word": "just",
+        "tfidf": 0.0284
+      },
+      {
+        "word": "gay",
+        "tfidf": 0.0243
+      },
+      {
+        "word": "hate",
+        "tfidf": 0.024
+      },
+      {
+        "word": "bitch",
+        "tfidf": 0.024
+      },
+      {
+        "word": "ghetto",
+        "tfidf": 0.023
+      },
+      {
+        "word": "muslim",
+        "tfidf": 0.0228
+      },
+      {
+        "word": "raped",
+        "tfidf": 0.0214
+      },
+      {
+        "word": "violence",
+        "tfidf": 0.0212
+      },
+      {
+        "word": "fucking",
+        "tfidf": 0.02
+      },
+      {
+        "word": "black",
+        "tfidf": 0.0197
+      },
+      {
+        "word": "immigrants",
+        "tfidf": 0.0197
+      },
+      {
+        "word": "nigga",
+        "tfidf": 0.0166
+      },
+      {
+        "word": "queer",
+        "tfidf": 0.0155
+      },
+      {
+        "word": "know",
+        "tfidf": 0.0153
+      }
+    ]
+  },
+  "rationale_analysis": true,
+  "rationale_distribution": [
+    {
+      "class": "hatespeech",
+      "samples_with_rationale": 5933,
+      "mean_rationale_tokens": 7.23,
+      "median_rationale_tokens": 3.0,
+      "max_rationale_tokens": 52
+    },
+    {
+      "class": "offensive",
+      "samples_with_rationale": 5478,
+      "mean_rationale_tokens": 8.79,
+      "median_rationale_tokens": 5.0,
+      "max_rationale_tokens": 54
+    },
+    {
+      "class": "normal",
+      "samples_with_rationale": 0,
+      "mean_rationale_tokens": 0,
+      "median_rationale_tokens": 0,
+      "max_rationale_tokens": 0
+    }
+  ],
+  "rationale_total_with": 11411,
+  "rationale_total_without": 8737,
+  "elapsed_seconds": 5.0
 }

@@ -33,12 +33,12 @@ Main commands:
   data           Prepare 70/10/20 stratified splits and data profile outputs
   vader          Extract VADER features for all splits
   eda            Exploratory data analysis (text length, VADER by class, targets, vocab overlap)
-  tune           Run sequential hyperparameter tuning
-  benchmark      Run repeated benchmarks (TF-IDF baselines + BERT-base + BERT+MLP + BERT+VADER + RoBERTa+VADER)
-  freeze-study   Compare BERT+VADER with frozen vs fine-tuned encoder
-  xai            Run SHAP + LIME comparison and Overlap@5 analysis
+  tune           Run v2.1 tuning (BERT+MLP base, B_B alpha grid, D_B+Target beta grid)
+  benchmark      Run v2.1 benchmarks (TF-IDF + A/B/C/D for BERT and RoBERTa + D_B target aux)
+  freeze-study   Compare frozen vs fine-tuned encoder as a secondary control
+  xai            Run v2.1 XAI 4-axis post-hoc verification
   dashboard      Build the interactive HTML dashboard from saved artifacts
-  all            Run data -> vader -> eda -> benchmark -> freeze-study -> xai -> dashboard
+  all            Run data -> vader -> eda -> [tune] -> benchmark -> freeze-study -> xai -> dashboard
   fresh-all      Clean generated artifacts and rerun the full pipeline from scratch
   status         Show current artifact status
   clean          Remove outputs/ and checkpoints/

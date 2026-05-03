@@ -1,0 +1,4 @@
+class,count,ratio_pct
+hatespeech,5930,30.9
+offensive,5473,28.52
+normal,7789,40.58

@@ -718,3 +718,83 @@ def compute_pairwise_significance(
         })
 
     return pd.DataFrame(rows)
+
+
+def compute_factorial_anova(frame: pd.DataFrame, metric_key: str, factors: list[str]) -> pd.DataFrame:
+    """범주형 factor들의 주효과/상호작용을 OLS nested-model 비교로 검정합니다."""
+    from itertools import combinations
+    from scipy.stats import f as f_dist
+
+    required = [metric_key, *factors]
+    data = frame.dropna(subset=required).copy()
+    if data.empty or len(data) <= 2:
+        return pd.DataFrame()
+
+    for factor in factors:
+        data[factor] = data[factor].astype(str)
+
+    terms: list[tuple[str, ...]] = []
+    for order in range(1, len(factors) + 1):
+        terms.extend(combinations(factors, order))
+
+    def _term_matrix(term: tuple[str, ...]) -> np.ndarray:
+        matrices = []
+        for factor in term:
+            dummies = pd.get_dummies(data[factor], prefix=factor, drop_first=True, dtype=float)
+            if dummies.empty:
+                dummies = pd.DataFrame({f"{factor}_const": np.ones(len(data))})
+            matrices.append(dummies.to_numpy(dtype=float))
+        matrix = matrices[0]
+        for next_matrix in matrices[1:]:
+            products = [
+                (matrix[:, left] * next_matrix[:, right]).reshape(-1, 1)
+                for left in range(matrix.shape[1])
+                for right in range(next_matrix.shape[1])
+            ]
+            matrix = np.hstack(products) if products else np.empty((len(data), 0))
+        return matrix
+
+    term_matrices = {term: _term_matrix(term) for term in terms}
+
+    def _design(excluded: tuple[str, ...] | None = None) -> np.ndarray:
+        columns = [np.ones((len(data), 1))]
+        for term, matrix in term_matrices.items():
+            if excluded is not None and term == excluded:
+                continue
+            if matrix.size:
+                columns.append(matrix)
+        return np.hstack(columns)
+
+    y = data[metric_key].to_numpy(dtype=float)
+    full_x = _design()
+    _, full_residuals, full_rank, _ = np.linalg.lstsq(full_x, y, rcond=None)
+    full_sse = float(full_residuals[0]) if full_residuals.size else float(np.sum((y - full_x @ np.linalg.lstsq(full_x, y, rcond=None)[0]) ** 2))
+    full_df = max(len(y) - full_rank, 1)
+
+    rows = []
+    for term in terms:
+        reduced_x = _design(excluded=term)
+        _, reduced_residuals, reduced_rank, _ = np.linalg.lstsq(reduced_x, y, rcond=None)
+        reduced_sse = (
+            float(reduced_residuals[0])
+            if reduced_residuals.size
+            else float(np.sum((y - reduced_x @ np.linalg.lstsq(reduced_x, y, rcond=None)[0]) ** 2))
+        )
+        df_num = max(full_rank - reduced_rank, 1)
+        ss_term = max(reduced_sse - full_sse, 0.0)
+        ms_term = ss_term / df_num
+        ms_error = full_sse / full_df if full_df > 0 else 0.0
+        f_value = ms_term / ms_error if ms_error > 0 else np.inf
+        p_value = float(f_dist.sf(f_value, df_num, full_df)) if np.isfinite(f_value) else 0.0
+        rows.append({
+            "term": " * ".join(term),
+            "metric": metric_key,
+            "df_num": int(df_num),
+            "df_den": int(full_df),
+            "sum_sq": round(ss_term, 6),
+            "f_value": round(float(f_value), 6) if np.isfinite(f_value) else "inf",
+            "p_value": round(p_value, 6),
+            "significant": p_value < 0.05,
+        })
+
+    return pd.DataFrame(rows)

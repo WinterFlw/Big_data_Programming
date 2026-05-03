@@ -1,9 +1,0 @@
-sample_id,category,baseline_top_tokens,improved_top_tokens,baseline_overlap_at_5,improved_overlap_at_5
-38,fixed_error,"people, then , e , smart , other ","or , ians , smart , smart , fluoride ",0.4,0.8
-44,fixed_error,"hits, number, made , > , e ","that , oe , h, > , number",1.0,1.0
-52,fixed_error,"🤡, ho, myself , never , am ","h, a , oe , trust , me ",0.6,0.8
-65,fixed_error,"obama , countries , bombs , and , arranging ","bombs , hates , loves , place , a ",0.4,0.4
-70,fixed_error,"😂 , next, 😂 , 😂 , homosexual ","homosexual , cancer , cancer , is , there ",0.4,0.6
-79,fixed_error,"blamed, user, brown , immigrants , be ","immigrants , > , <, user, brown ",1.0,1.0
-80,fixed_error,"mine, <, user, do , but ","gay , do , that , <, user",0.8,1.0
-82,fixed_error,"wall, yo , pot, a, na ","oes , was, h, hy , they ",1.0,0.6

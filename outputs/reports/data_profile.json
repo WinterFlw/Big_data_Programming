@@ -26,5 +26,38 @@
     "train": 0.7,
     "val": 0.1,
     "test": 0.2
-  }
+  },
+  "target_labels": [
+    "African",
+    "Arab",
+    "Asexual",
+    "Asian",
+    "Bisexual",
+    "Buddhism",
+    "Caucasian",
+    "Christian",
+    "Disability",
+    "Economic",
+    "Heterosexual",
+    "Hindu",
+    "Hispanic",
+    "Homosexual",
+    "Indian",
+    "Indigenous",
+    "Islam",
+    "Jewish",
+    "Men",
+    "Minority",
+    "Nonreligious",
+    "Other",
+    "Refugee",
+    "Women"
+  ],
+  "v2_columns": [
+    "post_tokens",
+    "source",
+    "agreement",
+    "rationale_mask",
+    "target_multilabel"
+  ]
 }

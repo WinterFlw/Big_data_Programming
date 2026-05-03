@@ -25,10 +25,10 @@ import uvicorn
 # ---------------------------------------------------------------------------
 BASE = Path(__file__).resolve().parent
 OUTPUTS = BASE / "outputs"
-# models/에 Playground용 최적 체크포인트 4개만 보관 (1.7GB)
-# checkpoints/는 전체 41개(17GB)로 git 제외 대상
-MODELS_DIR = BASE / "models"
-CHECKPOINTS = MODELS_DIR if MODELS_DIR.exists() else BASE / "checkpoints"
+REPORTS = OUTPUTS / "reports"
+BEST_MODELS_PATH = REPORTS / "best_models.json"
+V2_PLAYGROUND_ORDER = ["A_B", "B_B", "C_B", "D_B", "A_R", "B_R", "C_R", "D_R", "D_B+Target"]
+V1_PLAYGROUND_ORDER = ["BERT+MLP", "BERT-base", "BERT+VADER", "RoBERTa+VADER"]
 
 # experiment_core.py, experiment_xai.py를 임포트하기 위해 경로 추가
 if str(BASE) not in sys.path:
@@ -41,6 +41,33 @@ app = FastAPI(title="HateSpeachStudy Dashboard")
 # ---------------------------------------------------------------------------
 _playground_models: dict = {}  # 캐시: 한 번 로드하면 재사용
 _playground_device = None
+
+
+def _load_best_models_registry() -> dict:
+    if not BEST_MODELS_PATH.exists():
+        return {}
+    try:
+        return json.loads(BEST_MODELS_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+
+def _resolve_path(path_value: str | None) -> Path | None:
+    if not path_value:
+        return None
+    path = Path(path_value)
+    return path if path.is_absolute() else BASE / path
+
+
+def _available_playground_models() -> list[str]:
+    registry = _load_best_models_registry()
+    ordered = [name for name in [*V2_PLAYGROUND_ORDER, *V1_PLAYGROUND_ORDER] if name in registry]
+    return [
+        name
+        for name in ordered
+        if (checkpoint_path := _resolve_path(registry[name].get("checkpoint_path"))) is not None
+        and checkpoint_path.exists()
+    ]
 
 
 def _get_device():
@@ -60,7 +87,7 @@ def _get_device():
 
 
 def _load_playground_model(model_key: str):
-    """체크포인트에서 모델 로드 (lazy, 캐시됨)"""
+    """best_models.json에 기록된 v2 checkpoint에서 모델 로드 (lazy, 캐시됨)."""
     if model_key in _playground_models:
         return _playground_models[model_key]
 
@@ -69,62 +96,74 @@ def _load_playground_model(model_key: str):
         TransformerCLSClassifier,
         TransformerMLPClassifier,
         HybridSentimentClassifier,
+        TransformerConditionClassifier,
     )
     from transformers import AutoTokenizer
 
     device = _get_device()
 
-    # 모델별 설정 매핑
-    specs = {
-        "BERT-base": {
-            "cls": TransformerCLSClassifier,
-            "kwargs": {"model_name": "bert-base-uncased", "dropout": 0.1},
-            "checkpoint": CHECKPOINTS / "bert_base_seed_42.pt",
-            "tokenizer": "bert-base-uncased",
-            "model_type": "transformer",
-        },
-        "BERT+MLP": {
-            "cls": TransformerMLPClassifier,
-            "kwargs": {"model_name": "bert-base-uncased", "dropout": 0.1, "hidden_dim": 256},
-            "checkpoint": CHECKPOINTS / "bert_mlp_seed_42.pt",
-            "tokenizer": "bert-base-uncased",
-            "model_type": "mlp",
-        },
-        "BERT+VADER": {
-            "cls": HybridSentimentClassifier,
-            "kwargs": {"model_name": "bert-base-uncased", "dropout": 0.1, "hidden_dim": 256},
-            "checkpoint": CHECKPOINTS / "bert_vader_seed_42.pt",
-            "tokenizer": "bert-base-uncased",
-            "model_type": "hybrid",
-        },
-        "RoBERTa+VADER": {
-            "cls": HybridSentimentClassifier,
-            "kwargs": {"model_name": "roberta-base", "dropout": 0.1, "hidden_dim": 256},
-            "checkpoint": CHECKPOINTS / "roberta_vader_seed_42.pt",
-            "tokenizer": "roberta-base",
-            "model_type": "hybrid",
-        },
-    }
-
-    if model_key not in specs:
+    registry = _load_best_models_registry()
+    if model_key not in registry:
         return None
 
-    spec = specs[model_key]
-    if not spec["checkpoint"].exists():
+    record = registry[model_key]
+    checkpoint_path = _resolve_path(record.get("checkpoint_path"))
+    if checkpoint_path is None or not checkpoint_path.exists():
+        return None
+
+    hyperparams = record.get("hyperparams", {})
+    dropout = float(hyperparams.get("dropout") or 0.1)
+    hidden_dim = int(hyperparams.get("mlp_hidden") or 256)
+    target_labels = hyperparams.get("target_labels") or []
+
+    if model_key == "BERT-base":
+        model_name = "bert-base-uncased"
+        model = TransformerCLSClassifier(model_name=model_name, dropout=dropout)
+        model_type = "transformer"
+    elif model_key == "BERT+VADER":
+        model_name = "bert-base-uncased"
+        model = HybridSentimentClassifier(model_name=model_name, dropout=dropout, hidden_dim=hidden_dim)
+        model_type = "hybrid"
+    elif model_key == "RoBERTa+VADER":
+        model_name = "roberta-base"
+        model = HybridSentimentClassifier(model_name=model_name, dropout=dropout, hidden_dim=hidden_dim)
+        model_type = "hybrid"
+    elif model_key == "BERT+MLP":
+        model_name = "bert-base-uncased"
+        model = TransformerMLPClassifier(model_name=model_name, dropout=dropout, hidden_dim=hidden_dim)
+        model_type = "mlp"
+    elif model_key in V2_PLAYGROUND_ORDER:
+        model_name = "roberta-base" if model_key.endswith("_R") else "bert-base-uncased"
+        use_vader = model_key.startswith(("C_", "D_"))
+        model = TransformerConditionClassifier(
+            model_name=model_name,
+            use_vader=use_vader,
+            dropout=dropout,
+            hidden_dim=hidden_dim,
+            num_targets=len(target_labels) if record.get("use_target_aux") else 0,
+        )
+        model_type = "hybrid" if use_vader else "mlp"
+    else:
         return None
 
     print(f"[playground] Loading {model_key}...", flush=True)
-    ckpt = torch.load(spec["checkpoint"], map_location="cpu", weights_only=False)
-    model = spec["cls"](**spec["kwargs"])
+    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    # sdpa attention은 output_attentions=True를 지원하지 않음
+    # eager attention으로 전환하여 Attention Heatmap이 정상 작동하도록 함
+    if hasattr(model, "encoder") and hasattr(model.encoder, "config"):
+        model.encoder.config._attn_implementation = "eager"
+        # 각 레이어의 self-attention도 eager로 전환
+        for layer in model.encoder.encoder.layer:
+            layer.attention.self._attn_implementation = "eager"
     model.load_state_dict(ckpt["model_state"])
     model.eval()
     model.to(device)
-    tokenizer = AutoTokenizer.from_pretrained(spec["tokenizer"], use_fast=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
 
     bundle = {
         "model": model,
         "tokenizer": tokenizer,
-        "model_type": spec["model_type"],
+        "model_type": model_type,
         "device": device,
     }
     _playground_models[model_key] = bundle
@@ -156,7 +195,6 @@ def _predict_single(bundle: dict, text: str, run_lime: bool = False) -> dict:
 
     # ---- Attention 추출 ----
     token_attention = []
-    tokens_list = []
     with torch.no_grad():
         # encoder에 output_attentions=True를 넘겨서 attention weight 추출
         # return_dict=True를 명시해야 .attentions 속성이 정상 반환됨
@@ -174,10 +212,13 @@ def _predict_single(bundle: dict, text: str, run_lime: bool = False) -> dict:
             avg_attention = last_attention.mean(dim=1)
             # [CLS] 토큰(index 0)이 다른 토큰에 주는 attention -> (seq_len,)
             cls_attention = avg_attention[0, 0, :].cpu().numpy()
+            # 전체 토큰간 attention 행렬 저장 (토큰 상호작용 히트맵용)
+            full_attention_matrix = avg_attention[0].cpu().numpy()
         else:
             # attention을 가져올 수 없는 경우 균등 분포로 대체
             seq_len = input_ids.shape[1]
             cls_attention = np.ones(seq_len) / seq_len
+            full_attention_matrix = np.ones((seq_len, seq_len)) / seq_len
 
         # pooler output으로 logits 계산
         pooled = getattr(encoder_outputs, "pooler_output", None)
@@ -248,6 +289,43 @@ def _predict_single(bundle: dict, text: str, run_lime: bool = False) -> dict:
         for t, a, r in zip(merged_tokens, norm_attention, merged_attention)
     ]
 
+    # ---- 토큰 상호작용 행렬 구성 (subword 병합 기준) ----
+    # 원본 토큰 인덱스 -> 병합된 토큰 인덱스 매핑
+    raw_to_merged = []  # raw index -> merged index
+    merged_idx = -1
+    for i, (tok, m) in enumerate(zip(tokens_raw, mask)):
+        if m == 0 or tok in ("[CLS]", "[SEP]", "<s>", "</s>", "[PAD]", "<pad>"):
+            raw_to_merged.append(-1)
+            continue
+        if tok.startswith("##"):
+            # subword는 이전 병합 토큰에 귀속
+            raw_to_merged.append(merged_idx)
+            continue
+        if tok.startswith("Ġ"):
+            pass  # RoBERTa 단어 시작 표시, 새 토큰
+        merged_idx += 1
+        raw_to_merged.append(merged_idx)
+
+    n_merged = len(merged_tokens)
+    if n_merged > 0 and n_merged <= 40:
+        # 병합 기준으로 attention 행렬 재구성 (max pooling)
+        merged_matrix = np.zeros((n_merged, n_merged))
+        for i in range(len(raw_to_merged)):
+            for j in range(len(raw_to_merged)):
+                mi, mj = raw_to_merged[i], raw_to_merged[j]
+                if mi >= 0 and mj >= 0 and mi < n_merged and mj < n_merged:
+                    merged_matrix[mi][mj] = max(merged_matrix[mi][mj], float(full_attention_matrix[i][j]))
+        # 행 단위 정규화 (각 토큰의 attention 분포를 0~1로)
+        for i in range(n_merged):
+            row_max = merged_matrix[i].max()
+            row_min = merged_matrix[i].min()
+            if row_max > row_min:
+                merged_matrix[i] = (merged_matrix[i] - row_min) / (row_max - row_min)
+        interaction_matrix = [[round(float(merged_matrix[i][j]), 4) for j in range(n_merged)] for i in range(n_merged)]
+    else:
+        # 토큰이 40개 초과면 히트맵 생략 (가독성)
+        interaction_matrix = None
+
     label_names = ["hatespeech", "offensive", "normal"]
     pred_idx = int(np.argmax(probs))
 
@@ -257,6 +335,8 @@ def _predict_single(bundle: dict, text: str, run_lime: bool = False) -> dict:
         "probabilities": {name: round(float(probs[i]), 4) for i, name in enumerate(label_names)},
         "vader_scores": {k: round(v, 4) for k, v in vader_scores.items()},
         "token_attention": token_attention,
+        "interaction_matrix": interaction_matrix,
+        "interaction_tokens": merged_tokens if interaction_matrix else None,
     }
 
     # ---- LIME 설명 (선택적) ----
@@ -372,7 +452,7 @@ async def api_predict(request: Request):
     """텍스트를 받아 선택된 모델들로 추론 결과 반환"""
     body = await request.json()
     text = body.get("text", "").strip()
-    models = body.get("models", ["BERT-base", "BERT+VADER", "RoBERTa+VADER"])
+    models = body.get("models") or _available_playground_models()[:3]
     run_lime = body.get("run_lime", False)
 
     if not text:
@@ -397,10 +477,12 @@ async def api_predict(request: Request):
 @app.get("/api/predict/status")
 def api_predict_status():
     """Playground 상태: 로드된 모델, 디바이스"""
+    available_models = _available_playground_models()
     return JSONResponse({
         "device": str(_get_device()),
         "loaded_models": list(_playground_models.keys()),
-        "available_models": ["BERT-base", "BERT+MLP", "BERT+VADER", "RoBERTa+VADER"],
+        "available_models": available_models,
+        "registry": str(BEST_MODELS_PATH),
     })
 
 
@@ -746,6 +828,61 @@ def dashboard():
           <td>{ts.get('word_median','')}</td>
           <td>{ts.get('token_mean','')}</td>
           <td>{ts.get('token_max','')}</td>
+        </tr>"""
+
+    # ------------------------------------------------------------------
+    # 클래스 분포 테이블
+    # ------------------------------------------------------------------
+    class_dist_rows = ""
+    for cd in eda.get("class_distribution", []):
+        cls_color = {"hatespeech": "var(--accent-red)", "offensive": "var(--accent-orange)", "normal": "var(--accent-green)"}.get(cd.get("class", ""), "")
+        class_dist_rows += f"""<tr>
+          <td style="color:{cls_color};font-weight:600">{cd.get('class','')}</td>
+          <td>{cd.get('count',0):,}</td>
+          <td>{cd.get('ratio_pct',0)}%</td>
+        </tr>"""
+
+    # ------------------------------------------------------------------
+    # N-gram 테이블 (bigram)
+    # ------------------------------------------------------------------
+    ngram_html = ""
+    for label_name in ["hatespeech", "offensive", "normal"]:
+        bg_list = eda.get("ngram_top_bigrams", {}).get(label_name, [])[:8]
+        cls_color = {"hatespeech": "#ff6b7a", "offensive": "#ffb347", "normal": "#00e5b0"}.get(label_name, "")
+        ngram_html += f'<div><h4 style="color:{cls_color};margin-bottom:6px">{label_name}</h4><table class="data-table"><thead><tr><th>#</th><th>Bigram</th><th>Count</th></tr></thead><tbody>'
+        for i, bg in enumerate(bg_list, 1):
+            ngram_html += f'<tr><td>{i}</td><td style="font-family:monospace">{bg.get("ngram","")}</td><td>{bg.get("count",0):,}</td></tr>'
+        ngram_html += '</tbody></table></div>'
+
+    # ------------------------------------------------------------------
+    # Rationale 분포 테이블
+    # ------------------------------------------------------------------
+    rationale_dist_rows = ""
+    for rd in eda.get("rationale_distribution", []):
+        cls_color = {"hatespeech": "var(--accent-red)", "offensive": "var(--accent-orange)", "normal": "var(--accent-green)"}.get(rd.get("class", ""), "")
+        rationale_dist_rows += f"""<tr>
+          <td style="color:{cls_color};font-weight:600">{rd.get('class','')}</td>
+          <td>{rd.get('samples_with_rationale',0):,}</td>
+          <td>{rd.get('mean_rationale_tokens','')}</td>
+          <td>{rd.get('median_rationale_tokens','')}</td>
+          <td>{rd.get('max_rationale_tokens','')}</td>
+        </tr>"""
+
+    # ------------------------------------------------------------------
+    # VADER KS test 테이블
+    # ------------------------------------------------------------------
+    vader_ks_rows = ""
+    for ks in eda.get("vader_separability", []):
+        ks_stat = ks.get("ks_statistic", 0)
+        p_val = ks.get("p_value", 1)
+        sig = "Yes" if p_val < 0.05 else "No"
+        sig_color = "var(--accent-green)" if p_val < 0.05 else "var(--accent-red)"
+        vader_ks_rows += f"""<tr>
+          <td>{ks.get('class_a','')}</td>
+          <td>{ks.get('class_b','')}</td>
+          <td>{ks_stat:.4f}</td>
+          <td>{p_val:.2e}</td>
+          <td style="color:{sig_color};font-weight:600">{sig}</td>
         </tr>"""
 
     # ------------------------------------------------------------------
@@ -1471,7 +1608,7 @@ select {{
       </div>
       <div class="pipeline-section">
         <div class="pipeline-section-title"><span class="ko">핵심 결과 (Key Result)</span><span class="en">Key Result</span></div>
-        <div class="ko-block">Cheng(2022)와의 차별점 -- 우리는 VADER를 XAI 진단 결과가 아닌 선행 연구 기반 사전 가설로 도입하며, XAI는 사후 검증 도구로만 사용한다.</div>
+        <div class="ko-block">Cheng(2022)와의 차별점 -- 우리는 VADER를 XAI 산출물이 아닌 선행 연구 기반 사전 가설로 도입하며, XAI는 사후 검증 도구로만 사용한다.</div>
         <div class="en-block">Differentiation from Cheng(2022) -- we introduce VADER as a prior research-based hypothesis, not as an XAI diagnostic result. XAI is used solely as a post-hoc verification tool.</div>
       </div>
     </div>
@@ -2372,18 +2509,43 @@ select {{
   <div class="card">
     <h2><span class="ko">탐색적 데이터 분석 (EDA)</span><span class="en">Exploratory Data Analysis (EDA)</span></h2>
     <div class="ko-block desc">
-      HateXplain 데이터셋(총 19,192개 텍스트)의 특성을 다각도로 분석하였다.
-      데이터의 분포, 감성 패턴, 어휘 중첩도, 타겟 커뮤니티 등을 파악하여
+      HateXplain 데이터셋(총 {eda.get('total_samples', 19192):,}개 텍스트)의 특성을 9가지 관점에서 분석하였다.
+      데이터의 분포, 감성 패턴, 어휘 중첩도, N-gram 패턴, 타겟 커뮤니티, Human Rationale 분포 등을 파악하여
       모델 설계와 결과 해석에 필요한 기초 지식을 제공한다.
     </div>
     <div class="en-block desc">
-      Multi-faceted analysis of the HateXplain dataset (19,192 texts).
-      Provides foundational knowledge for model design and result interpretation.
+      9-aspect analysis of the HateXplain dataset ({eda.get('total_samples', 19192):,} texts).
+      Covers distribution, sentiment, vocabulary overlap, N-grams, target communities, and human rationale patterns.
     </div>
   </div>
 
+  <!-- 1. 클래스 분포 -->
+  <div class="grid-2">
+    <div class="card">
+      <h3><span class="ko">1. 클래스 분포</span><span class="en">1. Class Distribution</span></h3>
+      <div class="ko-block desc">데이터셋의 라벨 분포와 불균형 비율. 불균형 비율이 1.42:1로 경미한 수준이나, balanced class weight를 적용하여 대응한다.</div>
+      <div class="en-block desc">Label distribution and imbalance ratio. 1.42:1 ratio is mild but addressed with balanced class weights.</div>
+      <table class="data-table">
+        <thead><tr><th><span class="ko">클래스</span><span class="en">Class</span></th><th><span class="ko">샘플 수</span><span class="en">Count</span></th><th><span class="ko">비율</span><span class="en">Ratio</span></th></tr></thead>
+        <tbody>{class_dist_rows}</tbody>
+      </table>
+      <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">
+        <span class="ko">불균형 비율: <strong>{eda.get('imbalance_ratio', 'N/A')}:1</strong></span>
+        <span class="en">Imbalance ratio: <strong>{eda.get('imbalance_ratio', 'N/A')}:1</strong></span>
+      </div>
+    </div>
+    <div class="card">
+      <img src="/static/eda/class_distribution.png" alt="Class distribution" loading="lazy" style="width:100%;border-radius:8px;cursor:pointer" onclick="openLightbox(this.src)">
+    </div>
+  </div>
+  <div class="insight insight-blue">
+    <span class="ko"><strong>불균형 비율 1.42:1:</strong> offensive(8,336)가 가장 많고 normal(5,862)이 가장 적다. imbalance_threshold=0.40 기준 경미한 불균형으로 판정되어 balanced class weight + label smoothing(0.1)을 자동 적용한다.</span>
+    <span class="en"><strong>Imbalance ratio 1.42:1:</strong> Offensive is most common (8,336), normal is least (5,862). Detected as mild imbalance; balanced class weights + label smoothing (0.1) applied automatically.</span>
+  </div>
+
+  <!-- 2. VADER 감성 분포 -->
   <div class="card">
-    <h3><span class="ko">VADER 감성 분포 (클래스별)</span><span class="en">VADER Sentiment Distribution (by class)</span></h3>
+    <h3><span class="ko">2. VADER 감성 분포 (클래스별)</span><span class="en">2. VADER Sentiment Distribution (by class)</span></h3>
     <div class="ko-block desc">VADER의 compound, negative, positive 평균값을 클래스별로 비교한다. 혐오표현이 더 부정적인 감성을 띨 것이라는 가설의 근거이다.</div>
     <div class="en-block desc">VADER compound, negative, and positive mean scores by class, providing evidence for the sentiment hypothesis.</div>
     <div class="chart-container"><canvas id="chartVader"></canvas></div>
@@ -2393,15 +2555,36 @@ select {{
     <span class="en"><strong>VADER compound: hate=-0.358, offensive=-0.283, normal=-0.181</strong> -- Stronger negative sentiment for hateful content. This gradient supports VADER as auxiliary feature, though all classes are negative.</span>
   </div>
 
+  <!-- 3. VADER 분리도 분석 -->
   <div class="grid-2">
     <div class="card">
-      <h3><span class="ko">타겟 커뮤니티 분포</span><span class="en">Target Community Distribution</span></h3>
-      <div class="ko-block desc">혐오표현이 어떤 커뮤니티를 대상으로 하는지 보여준다. Women이 가장 많은 타겟이다.</div>
-      <div class="en-block desc">Shows which communities are targeted. Women is the most targeted group.</div>
+      <h3><span class="ko">3. VADER 분리도 (KDE + KS 검정)</span><span class="en">3. VADER Separability (KDE + KS Test)</span></h3>
+      <div class="ko-block desc">VADER compound 점수만으로 클래스를 분리할 수 있는지 KDE 분포 겹침과 KS 검정으로 확인한다.</div>
+      <div class="en-block desc">Can classes be separated by VADER compound alone? KDE overlap and KS test results.</div>
+      <table class="data-table">
+        <thead><tr><th><span class="ko">클래스 A</span><span class="en">Class A</span></th><th><span class="ko">클래스 B</span><span class="en">Class B</span></th><th>KS Statistic</th><th>p-value</th><th><span class="ko">유의</span><span class="en">Sig.</span></th></tr></thead>
+        <tbody>{vader_ks_rows}</tbody>
+      </table>
+    </div>
+    <div class="card">
+      <img src="/static/eda/vader_separability.png" alt="VADER separability" loading="lazy" style="width:100%;border-radius:8px;cursor:pointer" onclick="openLightbox(this.src)">
+    </div>
+  </div>
+  <div class="insight insight-red">
+    <span class="ko"><strong>KS 통계량이 모두 0.10~0.16:</strong> 통계적으로 유의하지만(p&lt;0.05), 실제 분리도는 매우 낮다. KDE 분포가 대부분 겹치며, VADER 단독으로는 3클래스 분류가 불가능하다. Transformer의 문맥 이해력이 반드시 필요한 이유.</span>
+    <span class="en"><strong>KS statistics 0.10-0.16:</strong> Statistically significant (p&lt;0.05) but practically low separability. KDE distributions heavily overlap; VADER alone cannot classify 3 classes. Confirms need for Transformer contextual understanding.</span>
+  </div>
+
+  <!-- 4. 타겟 커뮤니티 + 어휘 중첩 -->
+  <div class="grid-2">
+    <div class="card">
+      <h3><span class="ko">4. 타겟 커뮤니티 분포</span><span class="en">4. Target Community Distribution</span></h3>
+      <div class="ko-block desc">혐오표현이 어떤 커뮤니티를 대상으로 하는지 보여준다. {eda.get('unique_targets', 25)}개 고유 타겟 중 상위 타겟을 분석한다.</div>
+      <div class="en-block desc">Shows which communities are targeted. {eda.get('unique_targets', 25)} unique targets identified.</div>
       <div class="chart-container"><canvas id="chartTargets"></canvas></div>
     </div>
     <div class="card">
-      <h3><span class="ko">어휘 중첩도 (Jaccard)</span><span class="en">Vocabulary Overlap (Jaccard)</span></h3>
+      <h3><span class="ko">5. 어휘 중첩도 (Jaccard)</span><span class="en">5. Vocabulary Overlap (Jaccard)</span></h3>
       <div class="ko-block desc">클래스 쌍의 상위 500 단어 간 Jaccard 유사도. 높을수록 분류가 어렵다.</div>
       <div class="en-block desc">Jaccard similarity between top 500 words. Higher = harder to classify.</div>
       <table class="data-table">
@@ -2422,10 +2605,45 @@ select {{
     <span class="en"><strong>hate/offensive Jaccard=0.7094:</strong> 71% shared among top 500 words. Explains fundamental TF-IDF limitations and the need for contextual Transformers.</span>
   </div>
 
+  <!-- 6. N-gram 빈도 분석 -->
   <div class="card">
-    <h3><span class="ko">텍스트 길이 통계</span><span class="en">Text Length Statistics</span></h3>
-    <div class="ko-block desc">클래스별 단어 수 및 토큰 수 통계. max_len=128 토큰으로 거의 모든 텍스트가 잘리지 않는다.</div>
-    <div class="en-block desc">Per-class word and token count statistics. With max_len=128, almost no truncation.</div>
+    <h3><span class="ko">6. N-gram 빈도 분석 (Bigram)</span><span class="en">6. N-gram Frequency Analysis (Bigram)</span></h3>
+    <div class="ko-block desc">클래스별 빈출 bigram을 비교한다. 공통 bigram이 많을수록 표면 패턴 기반 분류의 한계를 보여준다.</div>
+    <div class="en-block desc">Top bigrams per class. Shared bigrams across classes reveal surface-level pattern limitations.</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">{ngram_html}</div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <img src="/static/eda/ngram_analysis.png" alt="N-gram analysis" loading="lazy" style="width:100%;border-radius:8px;cursor:pointer" onclick="openLightbox(this.src)">
+    </div>
+    <div class="card">
+      <h3><span class="ko">Bigram 겹침 분석</span><span class="en">Bigram Overlap Analysis</span></h3>
+      <div class="ko-block desc">3개 클래스 모두에서 공유되는 bigram은 분류에 도움이 되지 않는 노이즈이다.</div>
+      <div class="en-block desc">Bigrams shared across all 3 classes are noise that doesn't help classification.</div>
+      <div style="margin:10px 0">
+        <div style="font-size:13px;font-weight:600;color:var(--accent-red);margin-bottom:4px"><span class="ko">3클래스 공유 bigram ({len(eda.get('ngram_shared_all_bigrams', []))}개)</span><span class="en">Shared by all 3 classes ({len(eda.get('ngram_shared_all_bigrams', []))})</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">{''.join(f'<span style="background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:4px;font-size:12px;font-family:monospace">{bg}</span>' for bg in eda.get('ngram_shared_all_bigrams', []))}</div>
+      </div>
+      <div style="margin:10px 0">
+        <div style="font-size:13px;font-weight:600;color:var(--accent-blue);margin-bottom:4px"><span class="ko">hate 고유 bigram ({len(eda.get('ngram_hate_unique_bigrams', []))}개)</span><span class="en">Hate-unique bigrams ({len(eda.get('ngram_hate_unique_bigrams', []))})</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">{''.join(f'<span style="background:rgba(255,107,122,0.15);padding:2px 8px;border-radius:4px;font-size:12px;font-family:monospace;color:#ff6b7a">{bg}</span>' for bg in eda.get('ngram_hate_unique_bigrams', []))}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. 워드클라우드 -->
+  <div class="card">
+    <h3><span class="ko">7. TF-IDF 워드클라우드</span><span class="en">7. TF-IDF Word Clouds</span></h3>
+    <div class="ko-block desc">TF-IDF 가중치 기반 워드클라우드. 단순 빈도가 아닌, 해당 클래스에서 "특징적인" 단어가 강조된다.</div>
+    <div class="en-block desc">TF-IDF weighted word clouds. Highlights class-distinctive words, not just frequency.</div>
+    <img src="/static/eda/wordcloud.png" alt="Word clouds" loading="lazy" style="width:100%;border-radius:8px;cursor:pointer" onclick="openLightbox(this.src)">
+  </div>
+
+  <!-- 8. 텍스트 길이 통계 -->
+  <div class="card">
+    <h3><span class="ko">8. 텍스트 길이 통계</span><span class="en">8. Text Length Statistics</span></h3>
+    <div class="ko-block desc">클래스별 단어 수 및 토큰 수 통계. max_len=128 토큰으로 거의 모든 텍스트가 잘리지 않는다 (초과율: {eda.get('exceed_max_len_total_pct', '0.01')}%).</div>
+    <div class="en-block desc">Per-class word and token count statistics. With max_len=128, almost no truncation (exceed rate: {eda.get('exceed_max_len_total_pct', '0.01')}%).</div>
     <table class="data-table">
       <thead>
         <tr>
@@ -2441,8 +2659,39 @@ select {{
     </table>
   </div>
 
+  <!-- 9. Human Rationale 분포 -->
+  <div class="grid-2">
+    <div class="card">
+      <h3><span class="ko">9. Human Rationale 분포</span><span class="en">9. Human Rationale Distribution</span></h3>
+      <div class="ko-block desc">HateXplain 주석자들이 표시한 근거(rationale)의 분포. normal 클래스는 rationale이 없다 (혐오/공격이 아니므로 근거를 표시할 필요 없음).</div>
+      <div class="en-block desc">Distribution of annotator-marked rationales. Normal class has no rationale (no hate/offense to justify).</div>
+      <table class="data-table">
+        <thead><tr>
+          <th><span class="ko">클래스</span><span class="en">Class</span></th>
+          <th><span class="ko">Rationale 보유</span><span class="en">Has Rationale</span></th>
+          <th><span class="ko">평균 토큰 수</span><span class="en">Mean Tokens</span></th>
+          <th><span class="ko">중앙값</span><span class="en">Median</span></th>
+          <th><span class="ko">최대</span><span class="en">Max</span></th>
+        </tr></thead>
+        <tbody>{rationale_dist_rows}</tbody>
+      </table>
+      <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">
+        <span class="ko">전체: rationale 보유 <strong>{eda.get('rationale_total_with', 0):,}</strong> / 미보유 <strong>{eda.get('rationale_total_without', 0):,}</strong></span>
+        <span class="en">Total: with rationale <strong>{eda.get('rationale_total_with', 0):,}</strong> / without <strong>{eda.get('rationale_total_without', 0):,}</strong></span>
+      </div>
+    </div>
+    <div class="card">
+      <img src="/static/eda/rationale_distribution.png" alt="Rationale distribution" loading="lazy" style="width:100%;border-radius:8px;cursor:pointer" onclick="openLightbox(this.src)">
+    </div>
+  </div>
+  <div class="insight insight-blue">
+    <span class="ko"><strong>hatespeech({eda.get('rationale_distribution', [{}])[0].get('samples_with_rationale', 0):,})와 offensive({eda.get('rationale_distribution', [{}, {}])[1].get('samples_with_rationale', 0):,})에만 rationale 존재.</strong> XAI의 "설명 타당성" 평가(Model Top-5 vs Human Rationale)는 이 데이터를 활용한다. 평균 rationale 길이가 짧아(3~4 토큰) 모델의 Top-5와 비교하기에 적절한 스케일이다.</span>
+    <span class="en"><strong>Rationale exists only for hatespeech and offensive.</strong> XAI "explanation validity" evaluation (Model Top-5 vs Human Rationale) leverages this data. Average rationale length (3-4 tokens) matches Top-5 comparison scale well.</span>
+  </div>
+
+  <!-- 시각화 갤러리 -->
   <div class="card">
-    <h3><span class="ko">EDA 시각화</span><span class="en">EDA Visualizations</span></h3>
+    <h3><span class="ko">EDA 시각화 갤러리</span><span class="en">EDA Visualization Gallery</span></h3>
     <div class="gallery">
       <div class="gallery-item">
         <img src="/static/eda/vader_by_class.png" alt="VADER by class" loading="lazy">
@@ -2977,7 +3226,7 @@ select {{
     <div class="ref-item">
       <div class="ref-citation">Cheng, L. (2022). "Towards Explainable and Adaptive Sentiment-enhanced Hate Speech Detection." <em>Virginia Tech, PhD Dissertation</em>.</div>
       <div class="ref-role"><span class="ko">감성 분석 기반 혐오표현 탐지의 선구적 연구</span><span class="en">Pioneering research on sentiment-based hate speech detection</span></div>
-      <div class="ref-diff"><span class="ko">차별점: Cheng은 XAI 진단 &#x2192; 개선 순환 구조. 본 연구는 사전 가설 &#x2192; 사후 검증 구조 (과학적 검증 프레임워크)</span><span class="en">Differentiation: Cheng uses XAI diagnosis &#x2192; improvement cycle. Our study uses prior hypothesis &#x2192; post-hoc verification (scientific verification framework)</span></div>
+      <div class="ref-diff"><span class="ko">차별점: Cheng은 감성 feature fusion의 성능 효과를 보고한다. 본 연구는 선행연구 기반 사전 가설 &#x2192; 통제 ablation &#x2192; XAI 사후 검증 구조로 확장한다.</span><span class="en">Differentiation: Cheng reports the performance effect of sentiment feature fusion. Our study extends it with a prior hypothesis &#x2192; controlled ablation &#x2192; post-hoc XAI verification structure.</span></div>
     </div>
 
     <div class="ref-item">
@@ -3073,10 +3322,10 @@ select {{
       <label style="font-size:13px;color:var(--text-muted);margin-right:4px">
         <span class="ko">모델 선택:</span><span class="en">Select models:</span>
       </label>
-      <label class="pg-check"><input type="checkbox" value="BERT-base" checked> BERT-base</label>
-      <label class="pg-check"><input type="checkbox" value="BERT+MLP" checked> BERT+MLP</label>
-      <label class="pg-check"><input type="checkbox" value="BERT+VADER" checked> BERT+VADER</label>
-      <label class="pg-check"><input type="checkbox" value="RoBERTa+VADER" checked> RoBERTa+VADER</label>
+      <label class="pg-check"><input type="checkbox" value="A_B" checked> A_B</label>
+      <label class="pg-check"><input type="checkbox" value="D_B" checked> D_B</label>
+      <label class="pg-check"><input type="checkbox" value="D_R" checked> D_R</label>
+      <label class="pg-check"><input type="checkbox" value="D_B+Target"> D_B+Target</label>
       <button id="pg-btn" onclick="pgPredict()"
         style="margin-left:auto;padding:10px 28px;background:var(--accent-blue);color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px">
         <span class="ko">분석하기</span><span class="en">Analyze</span>
@@ -3643,6 +3892,29 @@ async function pgPredict(withLime=false) {{
     }}
     html += `</div>`;
 
+    // ---- Token Interaction Heatmap (전체 attention 행렬) ----
+    const hasInteraction = Object.values(data.results).some(r => r.interaction_matrix && r.interaction_tokens);
+    if (hasInteraction) {{
+      html += `<div class="card" style="margin-bottom:16px">`;
+      html += `<h3 style="color:var(--accent-orange);margin-bottom:4px"><span class="ko">토큰 상호작용 행렬 -- 토큰이 서로를 얼마나 참조하는가</span><span class="en">Token Interaction Matrix -- How tokens attend to each other</span></h3>`;
+      html += `<div style="font-size:12px;color:var(--text-muted);margin-bottom:14px"><span class="ko">행(row) = 해당 토큰이, 열(col) = 참조하는 대상. 색이 진할수록 강한 참조 (마지막 레이어, head 평균, 행 정규화).</span><span class="en">Row = source token, Col = attended token. Darker = stronger attention (last layer, head avg, row-normalized).</span></div>`;
+
+      for (const [modelName, result] of Object.entries(data.results)) {{
+        if (result.error || !result.interaction_matrix || !result.interaction_tokens) continue;
+        const matrix = result.interaction_matrix;
+        const tokens = result.interaction_tokens;
+        const n = tokens.length;
+        const color = labelColors[result.label] || '#7c8aff';
+        const canvasId = `interaction-${{modelName.replace(/[^a-zA-Z0-9]/g, '_')}}`;
+
+        html += `<div style="margin-bottom:20px">`;
+        html += `<div style="font-size:13px;font-weight:600;margin-bottom:8px;color:${{color}}">${{modelName}} <span style="font-weight:400;color:var(--text-muted)">→ ${{result.label}} (${{n}} tokens)</span></div>`;
+        html += `<div style="overflow-x:auto"><canvas id="${{canvasId}}" style="display:block;margin:0 auto"></canvas></div>`;
+        html += `</div>`;
+      }}
+      html += `</div>`;
+    }}
+
     // ---- LIME Section (if requested) ----
     const hasLime = Object.values(data.results).some(r => r.lime && r.lime.length > 0);
     if (hasLime) {{
@@ -3743,6 +4015,80 @@ async function pgPredict(withLime=false) {{
     }}
 
     resultsDiv.innerHTML = html;
+
+    // ---- Canvas 히트맵 렌더링 (토큰 상호작용 행렬) ----
+    for (const [modelName, result] of Object.entries(data.results)) {{
+      if (!result.interaction_matrix || !result.interaction_tokens) continue;
+      const matrix = result.interaction_matrix;
+      const tokens = result.interaction_tokens;
+      const n = tokens.length;
+      const canvasId = `interaction-${{modelName.replace(/[^a-zA-Z0-9]/g, '_')}}`;
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) continue;
+
+      const cellSize = Math.max(28, Math.min(48, 600 / n));
+      const labelSpace = 80;  // 토큰 라벨 공간
+      const topLabelSpace = 70;  // 상단 회전 라벨 공간
+      const w = labelSpace + n * cellSize;
+      const h = topLabelSpace + n * cellSize;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      // 히트맵 셀 그리기
+      for (let i = 0; i < n; i++) {{
+        for (let j = 0; j < n; j++) {{
+          const val = matrix[i][j];
+          // 색상: 낮은 값 = 어두운 배경, 높은 값 = 주황~빨강
+          const r = Math.round(255 * val);
+          const g = Math.round(140 * val);
+          const b = Math.round(50 * (1 - val));
+          ctx.fillStyle = `rgb(${{r}},${{g}},${{b}})`;
+          ctx.fillRect(labelSpace + j * cellSize, topLabelSpace + i * cellSize, cellSize - 1, cellSize - 1);
+
+          // 셀 값 텍스트 (셀이 충분히 클 때만)
+          if (cellSize >= 32) {{
+            ctx.fillStyle = val > 0.5 ? '#fff' : '#aaa';
+            ctx.font = '10px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(val.toFixed(2), labelSpace + j * cellSize + cellSize / 2, topLabelSpace + i * cellSize + cellSize / 2);
+          }}
+        }}
+      }}
+
+      // 왼쪽 라벨 (row: source 토큰)
+      ctx.fillStyle = '#e0e0e0';
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i < n; i++) {{
+        const label = tokens[i].length > 10 ? tokens[i].slice(0, 9) + '..' : tokens[i];
+        ctx.fillText(label, labelSpace - 6, topLabelSpace + i * cellSize + cellSize / 2);
+      }}
+
+      // 상단 라벨 (col: target 토큰, 회전)
+      ctx.save();
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#e0e0e0';
+      for (let j = 0; j < n; j++) {{
+        const x = labelSpace + j * cellSize + cellSize / 2;
+        const y = topLabelSpace - 6;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(-Math.PI / 3);
+        const label = tokens[j].length > 10 ? tokens[j].slice(0, 9) + '..' : tokens[j];
+        ctx.fillText(label, 0, 0);
+        ctx.restore();
+      }}
+      ctx.restore();
+    }}
 
   }} catch(e) {{
     resultsDiv.innerHTML = `<div class="insight-box insight-red">Error: ${{e.message}}</div>`;

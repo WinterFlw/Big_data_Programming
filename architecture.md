@@ -2,7 +2,32 @@
 
 > AI 에이전트가 코드 수정 전 전체 구조를 파악하기 위한 지도입니다.
 > 이 파일은 하네스 시스템에서 **Planner 역할의 참조 문서**입니다.
-> 마지막 업데이트: 2026-04-11
+> 마지막 업데이트: 2026-04-11 (1차 파이프라인) → 2026-04-30 (v2.1 안내 추가)
+
+> ⚠ **본 문서는 1차 파이프라인 (v1 baseline) 기준입니다.**
+> v2.1로 갱신된 내용 (8조건 ablation, XAI 4축, 모델 입력 단일 소스 원칙)은 다음을 참조하세요:
+> - **단일 출처 명세서**: [`docs/파이프라인_명세서_v2.md`](docs/파이프라인_명세서_v2.md)
+> - **참고문헌**: [`docs/참고문헌_v2.md`](docs/참고문헌_v2.md)
+>
+> 본 architecture.md는 1차 파이프라인 구현 구조의 baseline 기록으로 유지됩니다. v2.1 코드 갱신 후 동기화 예정.
+
+---
+
+## v2.1 변경사항 요약 (2026-04-30)
+
+| 영역 | v1 (본 문서) | v2.1 (명세서 v2) |
+|------|------|------|
+| Ablation | 4조건 (CE/원본 vs αAttn/aug) | **8조건** (BERT × 4 + RoBERTa × 4) |
+| 학습 augmentation | Slur-Masking (p=0.3) | **제거** ([MASK] shortcut 위험) |
+| XAI 축 | 3축 (SHAP+LIME+Masking) | **4축** (Attribution / Faithfulness / **Context Learning(CI/IS/MSS)** / Plausibility) |
+| 모델 입력 | 텍스트 + (Slur-Masked) | **텍스트만** (메타는 학습 supervision으로만) |
+| 가설 | H1/H2/H3 | **H1~H4** (H4 multi-task 부가) |
+| 학습 헤드 | 단일 | **듀얼 헤드** (D_B 부가만, Main + Aux for L_target) |
+| 통계 검정 | McNemar / Wilcoxon | **Two-way ANOVA + 3-way ANOVA + paired t-test** |
+
+→ v2.1 코드 작업 시 본 문서의 v1 흐름은 baseline reference로만 활용. 실제 구조는 명세서 v2.1을 따른다.
+
+---
 
 ---
 
@@ -132,8 +157,8 @@ experiment_dashboard.py (1,083줄)
 dashboard_app.py (4,021줄) ◄── FastAPI 대시보드 서버
   │
   ├── 18탭 인터랙티브 대시보드 (Chart.js)
-  ├── Playground: 4모델 실시간 추론 + Attention Heatmap + LIME
-  ├── 의존: outputs/, data/, models/ (또는 checkpoints/)
+  ├── Playground: v2.1 best_models 기반 실시간 추론 + Attention Heatmap + LIME
+  ├── 의존: outputs/, data/, checkpoints/ (best_models.json 생성 이후)
   └── 독립 실행: python3 dashboard_app.py (포트 8501)
 
 run_experiments.py (397줄) ◄── 오케스트레이터
@@ -338,15 +363,15 @@ dashboard_app.py (4,021줄, 단일 파일)
   │   ├── GET /              → 18탭 HTML 응답 (Chart.js 내장)
   │   ├── GET /api/predict/status → 모델 로드 상태
   │   ├── POST /api/predict  → 실시간 추론
-  │   │   ├── 4모델 지원 (BERT-base, BERT+MLP, BERT+VADER, RoBERTa+VADER)
+  │   │   ├── v2 조건 지원 (A_B/B_B/C_B/D_B/A_R/B_R/C_R/D_R + D_B+Target)
   │   │   ├── Attention Heatmap (return_dict=True + output_attentions)
   │   │   ├── LIME 설명 (선택)
   │   │   └── VADER 감성 점수
   │   └── GET /api/explorer  → 데이터셋 검색 (dataset.json fallback)
   │
   ├── 모델 관리
-  │   ├── MODELS_DIR = models/ (1.7GB, Google Drive)
-  │   ├── CHECKPOINTS = checkpoints/ (fallback)
+  │   ├── BEST_MODELS_PATH = outputs/reports/best_models.json
+  │   ├── checkpoint_path = best_models.json의 각 모델별 경로
   │   └── Lazy loading + 캐싱 (_playground_models dict)
   │
   └── 18탭 구성
@@ -397,13 +422,7 @@ HateSpeachStudy/
 │   ├── dataset.json       ← 본문 + annotator rationale
 │   └── post_id_divisions.json
 │
-├── models/                ← Playground 체크포인트 (git 제외, 1.7GB)
-│   ├── bert_base_seed_42.pt         ← Google Drive에서 다운로드
-│   ├── bert_mlp_seed_42.pt
-│   ├── bert_vader_seed_42.pt
-│   └── roberta_vader_seed_42.pt
-│
-├── checkpoints/           ← 전체 체크포인트 (git 제외, 17GB)
+├── checkpoints/           ← v2.1 재학습 체크포인트 (git 제외)
 │
 ├── outputs/               ← 실험 결과 (git 포함, 38MB)
 │   ├── data_splits.pkl
@@ -492,13 +511,13 @@ _tune_single_model()
   └── Step 4: epochs [5]                         → 고정 (early stopping)
                              ↑ lr + batch + dropout 적용
 
-  대상: BERT-base, BERT+MLP, BERT+VADER, RoBERTa+VADER (각각 독립)
+  대상: BERT+MLP/BERT+VADER/RoBERTa+VADER 순차 탐색 + B_B alpha grid + D_B+Target beta grid
   튜닝 시드: 42 고정 | 선택 기준: val macro F1
 ```
 
 **Grid Search가 아닌 순차 탐색을 택한 이유:**
-- Grid Search: 3 x 1 x 3 x 1 = 9 조합 x 4모델 = 36회 학습
-- Sequential: 3 + 1 + 3 + 1 = 8 후보 x 4모델 = 32회 학습 (탐색 공간 대폭 축소)
+- Grid Search: 전체 조합 x 여러 조건을 모두 도는 방식은 v2.1 8조건에서 비용이 큼
+- Sequential: 공통 기본 하이퍼파라미터를 줄인 뒤 B_B alpha와 D_B+Target beta만 별도 grid로 검증
 - 파라미터 간 상호작용이 적다는 가정 하에 효율적
 
 ### 8.4 학습 루프 (train_neural_model)
@@ -556,5 +575,5 @@ train_neural_model()
 | `experiment_xai.py` | `_compute_rationale_overlap()` | human 토큰 기준 | 1.0 초과 버그 수정 완료 |
 | `experiment_xai.py` | SHAP device | CPU 강제 | MPS에서 SHAP 비호환 |
 | `dashboard_app.py` | `_predict_single()` | model.encoder 호출 | return_dict=True 필수 |
-| `dashboard_app.py` | `MODELS_DIR` / `CHECKPOINTS` | 체크포인트 경로 | models/ → checkpoints/ fallback |
+| `dashboard_app.py` | `BEST_MODELS_PATH` / checkpoint_path | 체크포인트 경로 | best_models.json 생성 전 Playground 비활성 |
 | `utils.py` | `compute_pairwise_significance()` | 통계 검정 | scipy.stats.ttest_rel 사용 |

@@ -1,0 +1,4 @@
+class_a,class_b,ks_statistic,p_value
+hatespeech,offensive,0.1058,3.29e-28
+hatespeech,normal,0.1583,4.84e-74
+offensive,normal,0.1011,4.71e-29

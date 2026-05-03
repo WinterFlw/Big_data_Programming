@@ -32,7 +32,6 @@ from itertools import combinations
 from pathlib import Path
 from typing import Any
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -41,7 +40,6 @@ import seaborn as sns
 # ── 우리 프로젝트의 유틸리티 & 핵심 모듈 ──────────
 from utils import (
     LABEL_NAMES,
-    NUM_LABELS,
     REPORT_DIR,
     VADER_COLUMNS,
     ensure_dir,
@@ -52,9 +50,9 @@ from utils import (
 from experiment_core import (
     ExperimentConfig,
     get_config,
-    load_splits,
     extract_vader_features,
     prepare_data,
+    RAW_DATASET_PATH,
 )
 
 # ╔══════════════════════════════════════════════════════════╗
@@ -438,8 +436,472 @@ def _analyze_vocabulary_overlap(
 
 
 # ╔══════════════════════════════════════════════════════════╗
-# ║  5. 종합 요약 보고서 생성                                  ║
-# ║     — 모든 분석 결과를 JSON과 마크다운으로 정리해요         ║
+# ║  5. 클래스 분포 분석                                        ║
+# ║     — 데이터셋의 클래스 불균형을 시각적으로 확인해요         ║
+# ╚══════════════════════════════════════════════════════════╝
+def _analyze_class_distribution(
+    all_df: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Any]:
+    """
+    클래스별 샘플 수와 비율을 분석하고, 파이 차트 + 바 차트로 시각화해요.
+    불균형이 심하면 학습 전략(balanced weight 등)을 조정해야 하니까요.
+    """
+    class_counts = all_df["label"].value_counts().sort_index()
+    total = len(all_df)
+
+    dist_rows = []
+    for label_idx, label_name in enumerate(LABEL_NAMES):
+        count = int(class_counts.get(label_idx, 0))
+        ratio = round(count / total * 100, 2)
+        dist_rows.append({
+            "class": label_name,
+            "count": count,
+            "ratio_pct": ratio,
+        })
+
+    dist_df = pd.DataFrame(dist_rows)
+    save_dataframe(dist_df, output_dir / "class_distribution.csv")
+
+    # 시각화: 바 차트 + 비율 표시
+    colors = ["#ff6b7a", "#ffb347", "#00e5b0"]
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    # 바 차트
+    ax = axes[0]
+    bars = ax.bar(
+        [r["class"] for r in dist_rows],
+        [r["count"] for r in dist_rows],
+        color=colors,
+        edgecolor="white",
+        linewidth=1.5,
+    )
+    for bar, row in zip(bars, dist_rows):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 50,
+            f"{row['count']:,}\n({row['ratio_pct']}%)",
+            ha="center", va="bottom", fontsize=11, fontweight="bold",
+        )
+    ax.set_title("Class Distribution", fontsize=14, fontweight="bold")
+    ax.set_ylabel("Sample Count")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # 파이 차트
+    ax2 = axes[1]
+    wedges, texts, autotexts = ax2.pie(
+        [r["count"] for r in dist_rows],
+        labels=[r["class"] for r in dist_rows],
+        colors=colors,
+        autopct="%1.1f%%",
+        startangle=140,
+        textprops={"fontsize": 11},
+    )
+    for at in autotexts:
+        at.set_fontweight("bold")
+    ax2.set_title("Class Ratio", fontsize=14, fontweight="bold")
+
+    # 불균형 비율 계산
+    max_count = max(r["count"] for r in dist_rows)
+    min_count = min(r["count"] for r in dist_rows)
+    imbalance_ratio = round(max_count / max(min_count, 1), 2)
+
+    fig.suptitle(
+        f"HateXplain Dataset: {total:,} samples (imbalance ratio: {imbalance_ratio}:1)",
+        fontsize=12, color="gray", y=0.02,
+    )
+    plt.tight_layout()
+    fig.savefig(output_dir / "class_distribution.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  [class dist] total={total}, imbalance ratio={imbalance_ratio}:1")
+
+    return {
+        "class_distribution": dist_rows,
+        "imbalance_ratio": imbalance_ratio,
+        "total_samples": total,
+    }
+
+
+# ╔══════════════════════════════════════════════════════════╗
+# ║  6. N-gram 빈도 분석                                       ║
+# ║     — 클래스별 자주 등장하는 bigram/trigram을 비교해요      ║
+# ╚══════════════════════════════════════════════════════════╝
+def _analyze_ngrams(
+    all_df: pd.DataFrame,
+    output_dir: Path,
+    top_k: int = 15,
+) -> dict[str, Any]:
+    """
+    클래스별로 가장 빈번한 bigram과 trigram을 추출해요.
+    hate에서만 자주 나타나는 n-gram은 혐오 표현의 패턴을 보여주고,
+    모든 클래스에서 공통인 n-gram은 분류를 어렵게 만드는 노이즈를 의미해요.
+    """
+    import re
+
+    def _tokenize(text: str) -> list[str]:
+        """소문자 변환 + 알파벳/숫자만 남기는 간단한 토크나이저"""
+        return re.findall(r"[a-z0-9]+", text.lower())
+
+    def _get_ngrams(tokens: list[str], n: int) -> list[str]:
+        """토큰 리스트에서 n-gram 추출"""
+        return [" ".join(tokens[i:i+n]) for i in range(len(tokens) - n + 1)]
+
+    ngram_data = {}
+    for n, name in [(2, "bigram"), (3, "trigram")]:
+        class_ngrams = {}
+        for label_idx, label_name in enumerate(LABEL_NAMES):
+            subset = all_df[all_df["label"] == label_idx]
+            ngram_counter: Counter = Counter()
+            for text in subset["text"].tolist():
+                tokens = _tokenize(text)
+                ngram_counter.update(_get_ngrams(tokens, n))
+            class_ngrams[label_name] = ngram_counter.most_common(top_k)
+
+        ngram_data[name] = class_ngrams
+
+        # CSV 저장
+        rows = []
+        for label_name, ngrams in class_ngrams.items():
+            for rank, (ngram, count) in enumerate(ngrams, 1):
+                rows.append({
+                    "class": label_name,
+                    "rank": rank,
+                    name: ngram,
+                    "count": count,
+                })
+        save_dataframe(pd.DataFrame(rows), output_dir / f"top_{name}s.csv")
+
+    # 시각화: 클래스별 bigram Top-10 가로 바 차트
+    fig, axes = plt.subplots(1, 3, figsize=(18, 7))
+    colors = {"hatespeech": "#ff6b7a", "offensive": "#ffb347", "normal": "#00e5b0"}
+
+    for ax, label_name in zip(axes, LABEL_NAMES):
+        bigrams = ngram_data["bigram"][label_name][:10]
+        if not bigrams:
+            continue
+        names = [b[0] for b in bigrams][::-1]
+        counts = [b[1] for b in bigrams][::-1]
+        ax.barh(names, counts, color=colors[label_name], edgecolor="white")
+        ax.set_title(f"{label_name} Top-10 Bigrams", fontsize=13, fontweight="bold")
+        ax.set_xlabel("Count")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        for i, v in enumerate(counts):
+            ax.text(v + max(counts) * 0.01, i, str(v), va="center", fontsize=9)
+
+    plt.tight_layout()
+    fig.savefig(output_dir / "ngram_analysis.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    # 클래스 간 고유 bigram 분석 (hate에만 있는 bigram)
+    hate_set = {b[0] for b in ngram_data["bigram"]["hatespeech"]}
+    off_set = {b[0] for b in ngram_data["bigram"]["offensive"]}
+    norm_set = {b[0] for b in ngram_data["bigram"]["normal"]}
+    hate_unique = hate_set - off_set - norm_set
+    shared_all = hate_set & off_set & norm_set
+
+    print(f"  [ngram] hate-unique bigrams: {len(hate_unique)}, shared by all: {len(shared_all)}")
+
+    return {
+        "ngram_top_bigrams": {
+            label: [{"ngram": ng, "count": c} for ng, c in grams[:10]]
+            for label, grams in ngram_data["bigram"].items()
+        },
+        "ngram_top_trigrams": {
+            label: [{"ngram": ng, "count": c} for ng, c in grams[:10]]
+            for label, grams in ngram_data["trigram"].items()
+        },
+        "ngram_hate_unique_bigrams": sorted(list(hate_unique)),
+        "ngram_shared_all_bigrams": sorted(list(shared_all)),
+    }
+
+
+# ╔══════════════════════════════════════════════════════════╗
+# ║  7. 워드클라우드 — 클래스별 핵심 단어를 한눈에 보여줘요     ║
+# ╚══════════════════════════════════════════════════════════╝
+def _analyze_wordcloud(
+    all_df: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Any]:
+    """
+    클래스별 TF-IDF 기반 워드클라우드를 생성해요.
+    단순 빈도가 아니라 TF-IDF를 쓰면 해당 클래스에서 "특징적인" 단어가 강조돼요.
+    모든 클래스에서 공통인 불용어('the', 'is' 등)는 자연스럽게 약해지거든요.
+    """
+    try:
+        from wordcloud import WordCloud
+    except ImportError:
+        print("  [wordcloud] wordcloud 패키지 없음 -- pip install wordcloud")
+        return {"wordcloud_generated": False}
+
+    from sklearn.feature_extraction.text import TfidfVectorizer
+
+    colors_map = {
+        "hatespeech": "Reds",
+        "offensive": "Oranges",
+        "normal": "Greens",
+    }
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    wc_stats = {}
+
+    for ax, (label_idx, label_name) in zip(axes, enumerate(LABEL_NAMES)):
+        subset = all_df[all_df["label"] == label_idx]["text"].tolist()
+
+        # TF-IDF로 해당 클래스 텍스트의 중요 단어 추출
+        tfidf = TfidfVectorizer(max_features=200, stop_words="english", ngram_range=(1, 1))
+        tfidf_matrix = tfidf.fit_transform(subset)
+        mean_tfidf = np.array(tfidf_matrix.mean(axis=0)).flatten()
+        feature_names = tfidf.get_feature_names_out()
+
+        # TF-IDF 점수를 단어별 가중치로 변환
+        word_weights = {word: float(score) for word, score in zip(feature_names, mean_tfidf)}
+        top_words = sorted(word_weights.items(), key=lambda x: x[1], reverse=True)[:20]
+        wc_stats[label_name] = [{"word": w, "tfidf": round(s, 4)} for w, s in top_words]
+
+        wc = WordCloud(
+            width=600, height=400,
+            background_color="black",
+            colormap=colors_map[label_name],
+            max_words=100,
+            prefer_horizontal=0.7,
+        )
+        wc.generate_from_frequencies(word_weights)
+        ax.imshow(wc, interpolation="bilinear")
+        ax.set_title(f"{label_name}", fontsize=14, fontweight="bold",
+                     color={"hatespeech": "#ff6b7a", "offensive": "#ffb347", "normal": "#00e5b0"}[label_name])
+        ax.axis("off")
+
+    plt.suptitle("TF-IDF Word Clouds by Class", fontsize=15, fontweight="bold", y=1.02)
+    plt.tight_layout()
+    fig.savefig(output_dir / "wordcloud.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print("  [wordcloud] 생성 완료")
+
+    return {
+        "wordcloud_generated": True,
+        "wordcloud_top_words": wc_stats,
+    }
+
+
+# ╔══════════════════════════════════════════════════════════╗
+# ║  8. Human Rationale 분포 분석                              ║
+# ║     — 어떤 클래스에 인간 주석 근거가 있는지 파악해요        ║
+# ╚══════════════════════════════════════════════════════════╝
+def _analyze_rationale_distribution(
+    all_df: pd.DataFrame,
+    output_dir: Path,
+) -> dict[str, Any]:
+    """
+    HateXplain dataset.json의 인간 rationale 분포를 분석해요.
+    어떤 클래스에 rationale이 집중되어 있는지,
+    rationale 길이(주석된 토큰 수)는 어떤 분포인지 확인해요.
+    """
+    if not RAW_DATASET_PATH.exists():
+        print("  [rationale] dataset.json 없음 -- 건너뜀")
+        return {"rationale_analysis": False}
+
+    import math
+
+    with open(RAW_DATASET_PATH, "r", encoding="utf-8") as f:
+        raw_data = json.load(f)
+
+    # post_id별 majority vote rationale 구성
+    rationale_stats = {"hatespeech": [], "offensive": [], "normal": []}
+    total_with_rationale = 0
+    total_without_rationale = 0
+
+    for post_id, entry in raw_data.items():
+        annotators = entry.get("annotators", [])
+        rationales = entry.get("rationales", [])
+
+        # majority vote로 라벨 결정
+        labels = [a.get("label", "") for a in annotators]
+        label_counter = Counter(labels)
+        majority_label = label_counter.most_common(1)[0][0]
+
+        if not rationales:
+            total_without_rationale += 1
+            continue
+
+        # majority vote rationale
+        n_annotators = len(rationales)
+        threshold = math.ceil(n_annotators / 2)
+        tokens = entry.get("post_tokens", [])
+        if not tokens:
+            total_without_rationale += 1
+            continue
+
+        rationale_sum = [0] * len(tokens)
+        for r in rationales:
+            for i, val in enumerate(r):
+                if i < len(rationale_sum):
+                    rationale_sum[i] += val
+
+        rationale_tokens = [tokens[i] for i in range(len(tokens)) if rationale_sum[i] >= threshold]
+
+        if rationale_tokens:
+            total_with_rationale += 1
+            if majority_label in rationale_stats:
+                rationale_stats[majority_label].append(len(rationale_tokens))
+        else:
+            total_without_rationale += 1
+
+    # 통계 계산
+    dist_rows = []
+    for label_name in LABEL_NAMES:
+        lengths = rationale_stats[label_name]
+        if lengths:
+            dist_rows.append({
+                "class": label_name,
+                "samples_with_rationale": len(lengths),
+                "mean_rationale_tokens": round(np.mean(lengths), 2),
+                "median_rationale_tokens": round(float(np.median(lengths)), 1),
+                "max_rationale_tokens": int(np.max(lengths)),
+            })
+        else:
+            dist_rows.append({
+                "class": label_name,
+                "samples_with_rationale": 0,
+                "mean_rationale_tokens": 0,
+                "median_rationale_tokens": 0,
+                "max_rationale_tokens": 0,
+            })
+
+    save_dataframe(pd.DataFrame(dist_rows), output_dir / "rationale_distribution.csv")
+
+    # 시각화: rationale 유무 + 길이 분포
+    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
+    colors = ["#ff6b7a", "#ffb347", "#00e5b0"]
+
+    # 왼쪽: 클래스별 rationale 보유 샘플 수
+    ax = axes[0]
+    counts = [r["samples_with_rationale"] for r in dist_rows]
+    bars = ax.bar([r["class"] for r in dist_rows], counts, color=colors, edgecolor="white")
+    for bar, c in zip(bars, counts):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 30,
+                f"{c:,}", ha="center", fontsize=11, fontweight="bold")
+    ax.set_title("Samples with Human Rationale", fontsize=13, fontweight="bold")
+    ax.set_ylabel("Count")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # 오른쪽: rationale 토큰 수 분포 (박스플롯)
+    ax2 = axes[1]
+    box_data = [rationale_stats[ln] for ln in LABEL_NAMES if rationale_stats[ln]]
+    box_labels = [ln for ln in LABEL_NAMES if rationale_stats[ln]]
+    if box_data:
+        bp = ax2.boxplot(box_data, labels=box_labels, patch_artist=True, widths=0.5)
+        for patch, color in zip(bp["boxes"], colors[:len(box_data)]):
+            patch.set_facecolor(color)
+            patch.set_alpha(0.6)
+    ax2.set_title("Rationale Length Distribution (tokens)", fontsize=13, fontweight="bold")
+    ax2.set_ylabel("Number of rationale tokens")
+    ax2.spines["top"].set_visible(False)
+    ax2.spines["right"].set_visible(False)
+
+    plt.tight_layout()
+    fig.savefig(output_dir / "rationale_distribution.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    print(f"  [rationale] with={total_with_rationale}, without={total_without_rationale}")
+
+    return {
+        "rationale_analysis": True,
+        "rationale_distribution": dist_rows,
+        "rationale_total_with": total_with_rationale,
+        "rationale_total_without": total_without_rationale,
+    }
+
+
+# ╔══════════════════════════════════════════════════════════╗
+# ║  9. 클래스 간 혼동 분석 — VADER 분리도                      ║
+# ║     — VADER 점수만으로 클래스 분리가 가능한지 확인해요      ║
+# ╚══════════════════════════════════════════════════════════╝
+def _analyze_vader_separability(
+    all_df: pd.DataFrame,
+    vader_features: dict,
+    splits: dict,
+    output_dir: Path,
+) -> dict[str, Any]:
+    """
+    VADER compound 점수의 클래스별 분포를 겹쳐 그려서,
+    감성 점수만으로 혐오/공격/일반을 분리할 수 있는지 시각적으로 확인해요.
+    KDE (Kernel Density Estimation) 오버레이로 분포 겹침을 보여줘요.
+    """
+    # 전체 데이터에 VADER compound 추가
+    all_vader = pd.concat([
+        splits["train"], splits["val"], splits["test"]
+    ], ignore_index=True)
+
+    # VADER features를 합쳐요
+    vader_all = np.concatenate([
+        vader_features["train"], vader_features["val"], vader_features["test"]
+    ], axis=0)
+
+    all_vader = all_vader.copy()
+    all_vader["vader_compound"] = vader_all[:, 3]  # compound는 4번째 열
+
+    colors = {"hatespeech": "#ff6b7a", "offensive": "#ffb347", "normal": "#00e5b0"}
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # KDE 분포 겹침
+    ax = axes[0]
+    for label_idx, label_name in enumerate(LABEL_NAMES):
+        subset = all_vader[all_vader["label"] == label_idx]["vader_compound"]
+        subset.plot.kde(ax=ax, label=label_name, color=colors[label_name], linewidth=2)
+    ax.set_title("VADER Compound Distribution (KDE)", fontsize=13, fontweight="bold")
+    ax.set_xlabel("VADER Compound Score")
+    ax.legend()
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # 누적 분포 (CDF)
+    ax2 = axes[1]
+    for label_idx, label_name in enumerate(LABEL_NAMES):
+        subset = all_vader[all_vader["label"] == label_idx]["vader_compound"].sort_values()
+        cdf = np.arange(1, len(subset) + 1) / len(subset)
+        ax2.plot(subset.values, cdf, label=label_name, color=colors[label_name], linewidth=2)
+    ax2.set_title("VADER Compound CDF", fontsize=13, fontweight="bold")
+    ax2.set_xlabel("VADER Compound Score")
+    ax2.set_ylabel("Cumulative Probability")
+    ax2.legend()
+    ax2.spines["top"].set_visible(False)
+    ax2.spines["right"].set_visible(False)
+
+    plt.tight_layout()
+    fig.savefig(output_dir / "vader_separability.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    # KS 통계량 계산 (hate vs offensive, hate vs normal)
+    from scipy import stats as sp_stats
+    ks_results = []
+    for ca, cb in combinations(LABEL_NAMES, 2):
+        ca_vals = all_vader[all_vader["label"] == LABEL_NAMES.index(ca)]["vader_compound"]
+        cb_vals = all_vader[all_vader["label"] == LABEL_NAMES.index(cb)]["vader_compound"]
+        ks_stat, ks_pval = sp_stats.ks_2samp(ca_vals, cb_vals)
+        ks_results.append({
+            "class_a": ca,
+            "class_b": cb,
+            "ks_statistic": round(float(ks_stat), 4),
+            "p_value": float(f"{ks_pval:.2e}"),
+        })
+    save_dataframe(pd.DataFrame(ks_results), output_dir / "vader_ks_test.csv")
+
+    print("  [vader sep] KS tests: " + ", ".join(
+        f"{r['class_a']}↔{r['class_b']}={r['ks_statistic']}" for r in ks_results
+    ))
+
+    return {
+        "vader_separability": ks_results,
+    }
+
+
+# ╔══════════════════════════════════════════════════════════╗
+# ║  10. 종합 요약 보고서 생성                                  ║
+# ║      — 모든 분석 결과를 JSON과 마크다운으로 정리해요         ║
 # ╚══════════════════════════════════════════════════════════╝
 def _generate_summary(
     results: dict[str, Any],
@@ -475,7 +937,7 @@ def _generate_summary(
                 f"{row['exceed_max_len_pct']}% |"
             )
         md_lines.append("")
-        md_lines.append(f"![Text Length Distribution](text_length_distribution.png)")
+        md_lines.append("![Text Length Distribution](text_length_distribution.png)")
         md_lines.append("")
 
     md_lines.append("---")
@@ -498,7 +960,7 @@ def _generate_summary(
                         f"offensive compound={results.get('compound_mean_offensive', 'N/A')}, "
                         f"normal compound={results.get('compound_mean_normal', 'N/A')}")
         md_lines.append("")
-        md_lines.append(f"![VADER by Class](vader_by_class.png)")
+        md_lines.append("![VADER by Class](vader_by_class.png)")
         md_lines.append("")
 
     md_lines.append("---")
@@ -514,7 +976,7 @@ def _generate_summary(
         for i, t in enumerate(results["top_targets"], 1):
             md_lines.append(f"| {i} | {t['target']} | {t['count']} |")
         md_lines.append("")
-        md_lines.append(f"![Target Distribution](target_distribution.png)")
+        md_lines.append("![Target Distribution](target_distribution.png)")
         md_lines.append("")
 
     md_lines.append("---")
@@ -600,24 +1062,50 @@ def run_eda(
     # ── 분석 실행 ──────────────────────────────────
     results: dict[str, Any] = {}
 
-    # 1. 텍스트 길이 분포
-    print("\n[3/5] 텍스트 길이 분포 분석 중...")
+    # 1. 클래스 분포 (신규)
+    print("\n[1/9] 클래스 분포 분석 중...")
+    class_dist_results = _analyze_class_distribution(all_df, output_dir)
+    results.update(class_dist_results)
+
+    # 2. 텍스트 길이 분포
+    print("\n[2/9] 텍스트 길이 분포 분석 중...")
     text_length_results = _analyze_text_length(all_df, output_dir, max_len=config.max_len)
     results.update(text_length_results)
 
-    # 2. VADER 점수 분포
-    print("\n[4/5] VADER 감성 점수 분포 분석 중...")
+    # 3. VADER 점수 분포
+    print("\n[3/9] VADER 감성 점수 분포 분석 중...")
     vader_results = _analyze_vader_by_class(all_df, vader_features, splits, output_dir)
     results.update(vader_results)
 
-    # 3. 타겟 커뮤니티 분석
-    print("\n[5/5] 타겟 커뮤니티 & 어휘 겹침 분석 중...")
+    # 4. VADER 분리도 분석 (신규)
+    print("\n[4/9] VADER 분리도 분석 중...")
+    vader_sep_results = _analyze_vader_separability(all_df, vader_features, splits, output_dir)
+    results.update(vader_sep_results)
+
+    # 5. 타겟 커뮤니티 분석
+    print("\n[5/9] 타겟 커뮤니티 분석 중...")
     target_results = _analyze_targets(all_df, output_dir)
     results.update(target_results)
 
-    # 4. 어휘 겹침 분석
+    # 6. 어휘 겹침 분석
+    print("\n[6/9] 어휘 겹침 분석 중...")
     vocab_results = _analyze_vocabulary_overlap(all_df, output_dir)
     results.update(vocab_results)
+
+    # 7. N-gram 빈도 분석 (신규)
+    print("\n[7/9] N-gram 빈도 분석 중...")
+    ngram_results = _analyze_ngrams(all_df, output_dir)
+    results.update(ngram_results)
+
+    # 8. 워드클라우드 (신규)
+    print("\n[8/9] 워드클라우드 생성 중...")
+    wc_results = _analyze_wordcloud(all_df, output_dir)
+    results.update(wc_results)
+
+    # 9. Human Rationale 분포 (신규)
+    print("\n[9/9] Human Rationale 분포 분석 중...")
+    rationale_results = _analyze_rationale_distribution(all_df, output_dir)
+    results.update(rationale_results)
 
     # ── 종합 요약 저장 ─────────────────────────────
     elapsed = round(time.time() - start_time, 1)

@@ -12,6 +12,8 @@ __pycache__/
 # Large files (모델 체크포인트)
 checkpoints/
 models/
+models.zip
+backup_v1/
 *.pt
 
 # outputs/ 내 바이너리/대용량 파일 제외 (CSV, JSON, PNG만 유지)

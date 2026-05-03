@@ -1,0 +1,4 @@
+class,samples_with_rationale,mean_rationale_tokens,median_rationale_tokens,max_rationale_tokens
+hatespeech,5933,7.23,3.0,52
+offensive,5478,8.79,5.0,54
+normal,0,0.0,0.0,0

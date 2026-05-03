@@ -40,5 +40,50 @@
   "lime_num_features": 5,
   "lime_num_samples": 500,
   "shap_max_evals": 300,
-  "shap_batch_size": 32
+  "shap_batch_size": 32,
+  "v2_enabled": true,
+  "alpha_grid": [
+    0.0,
+    0.1,
+    0.3,
+    0.5,
+    0.7,
+    1.0
+  ],
+  "beta_grid": [
+    0.0,
+    0.1,
+    0.3
+  ],
+  "attention_loss_alpha": 0.0,
+  "target_loss_beta": 0.0,
+  "target_labels": [
+    "African",
+    "Arab",
+    "Asexual",
+    "Asian",
+    "Bisexual",
+    "Buddhism",
+    "Caucasian",
+    "Christian",
+    "Disability",
+    "Economic",
+    "Heterosexual",
+    "Hindu",
+    "Hispanic",
+    "Homosexual",
+    "Indian",
+    "Indigenous",
+    "Islam",
+    "Jewish",
+    "Men",
+    "Minority",
+    "Nonreligious",
+    "Other",
+    "Refugee",
+    "Women"
+  ],
+  "xai_context_sample_size": 50,
+  "xai_interaction_pairs": 50,
+  "xai_mss_threshold": 0.8
 }
