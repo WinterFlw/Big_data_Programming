@@ -1,0 +1,161 @@
+model,xai_method,post_id,overlap,matched,model_top5,human_rationale_count
+A_B,SHAP,5167719_gab,1.0,muzzie,"mu, e, recommendations, but, zzi",1
+A_B,SHAP,1240029444812791808_twitter,0.3333,"am, negro, a, i, creamy","am, negro, a, i, creamy",15
+A_B,SHAP,1174186731006042114_twitter,0.0,,"ho, >, hits, made, number",1
+A_B,SHAP,1179080158340407297_twitter,0.0,,"ho, the, 🤡, a, trusted",1
+A_B,SHAP,27402153_gab,0.1875,"islam, is, eradicated","de, dicated, islam, europeans, is",16
+A_B,SHAP,1087571270605131776_twitter,0.3077,"will, all, they, gwalla","g, will, ho, they, wall",13
+A_B,SHAP,8544506_gab,0.375,"message, islam, mainstream","message, being, islam, peaceful, mainstream",8
+A_B,SHAP,12867073_gab,0.1282,"and, terror, islam, attack, is","and, terror, islam, attack, is",39
+A_B,SHAP,27692892_gab,0.0,,"to, put, lose, germany",2
+A_B,SHAP,10172622_gab,0.6667,"white, house, the, in","the, house, white, in, those",6
+A_B,SHAP,1165043319321366528_twitter,0.6667,"ugly, negros","negro, <, user, ugly, l",3
+A_B,SHAP,1178915039924895744_twitter,0.3333,faggots,"gg, fa, ots, >, sight",3
+A_B,SHAP,1177392985471934464_twitter,1.0,dyke,"dyke, ma, im, ugly, lil",1
+A_B,SHAP,26588782_gab,0.0938,"standard, sanders, roseanne","and, dar, etc, with, rose",32
+A_B,SHAP,16625438_gab,0.1667,"racist, smarter","racist, proportion, iq, smart, as",12
+A_B,SHAP,1179047042242535425_twitter,0.25,whore,"ho, that, whore, death, fuck",4
+A_B,SHAP,16900430_gab,0.6667,"dykes, queers","s, dyke, ters, queer",3
+A_B,SHAP,13063961_gab,0.25,and,"and, gg, fa, ot, that",4
+A_B,SHAP,22319846_gab,0.3846,"and, jews, own, the, i","and, jews, own, the, i",13
+A_B,SHAP,1178637505710583810_twitter,0.5,redneck,"week, d, part, neck, deux",2
+A_B,SHAP,1178514989436375041_twitter,0.5,"dykes, bitch","s, dyke, bitch, you",4
+A_B,SHAP,25333312_gab,0.125,"who, men, assholes, jackasses","s, men, asse, asshole, who",32
+A_B,SHAP,1178287461560127489_twitter,0.5,niggers,"u, ni, r, kanye, gger",2
+A_B,SHAP,25001491_gab,0.3,"ugly, black, nigger","buffalo, ni, ugly, gger, black",10
+A_B,SHAP,22161097_gab,0.5,nigger,"die, for, ni, ending, gger",2
+A_B,SHAP,20602248_gab,0.5,nigger,"good, ni, cu, a, gger",2
+A_B,SHAP,1114610623072088064_twitter,0.5,gay,"gotta, gay, <, all, man",2
+A_B,SHAP,13713469_gab,0.2,"retarded, you","tar, re, 🐸, ded, you",10
+A_B,SHAP,21531589_gab,1.0,nigger,"can, not, gger, twitter, ni",1
+A_B,SHAP,23659865_gab,0.1471,"same, were, arabs, in, muslim","same, arabs, were, in, muslim",34
+A_B,SHAP,19089112_gab,0.375,"be, should, nigger","should, only, be, gger, ni",8
+A_B,SHAP,1203708372094267392_twitter,0.5,ghetto,"🥴, ghetto, money, with, no",2
+A_B,SHAP,27902074_gab,0.7143,"hate, jews, nobody, likes, knows","hate, jews, nobody, likes, knows",7
+A_B,SHAP,11498486_gab,0.3333,beaner,"bean, er, ic, sp, divide",3
+A_B,SHAP,26871375_gab,0.0,,"shall, while, ke, en, ki",2
+A_B,SHAP,19930942_gab,0.2,nigger,"rs, happy, <, gger, ni",5
+A_B,SHAP,21925689_gab,0.3333,niggers,"lying, ni, ke, ki, gger",3
+A_B,SHAP,20126138_gab,0.0,,"ve, ke, ki",2
+A_B,SHAP,27832444_gab,0.2308,"anymore, nazi, bitch","gg, fa, anymore, nazi, bitch",13
+A_B,SHAP,15422594_gab,0.3077,"wants, skins, twat, murdering","wants, skins, t, wat, murdering",13
+D_B,SHAP,5167719_gab,1.0,muzzie,"s, mu, favour, e, zzi",1
+D_B,SHAP,1240029444812791808_twitter,0.3333,"negro, ur, ass, wanna, creamy","negro, ur, ass, wanna, creamy",15
+D_B,SHAP,1174186731006042114_twitter,0.0,,"ho, <, hits, made, that",1
+D_B,SHAP,1179080158340407297_twitter,0.0,,"🤡, e, ho, trust",1
+D_B,SHAP,27402153_gab,0.1875,"deport, is, islam","de, white, islam, port, is",16
+D_B,SHAP,1087571270605131776_twitter,0.0769,yo,"ho, yo, y, es",13
+D_B,SHAP,8544506_gab,0.25,"islam, liberals","muslims, liberals, lies, islam, peaceful",8
+D_B,SHAP,12867073_gab,0.1282,"will, las, stupid, radical, you","will, las, stupid, radical, you",39
+D_B,SHAP,27692892_gab,0.5,wetback,"jersey, can, back, wet, germany",2
+D_B,SHAP,10172622_gab,0.6667,"racist, house, the, white","racist, the, house, white, those",6
+D_B,SHAP,1165043319321366528_twitter,0.6667,"ugly, negros","negro, l, ma, ugly, f",3
+D_B,SHAP,1178915039924895744_twitter,0.3333,roach,"roach, gg, user, fa",3
+D_B,SHAP,1177392985471934464_twitter,1.0,dyke,"haitian, dyke, blocking, ugly, boy",1
+D_B,SHAP,26588782_gab,0.0938,"standard, sarah, d","d, sarah, dar, ds",32
+D_B,SHAP,16625438_gab,0.1667,"racist, smarter","super, racist, smart, as, article",12
+D_B,SHAP,1179047042242535425_twitter,0.5,"whore, retarded","whore, ho, tar, re",4
+D_B,SHAP,16900430_gab,0.6667,"dykes, queers","s, forget, dyke, your, queer",3
+D_B,SHAP,13063961_gab,0.75,"and, mudshark, serial","and, gg, serial, fa, mud",4
+D_B,SHAP,22319846_gab,0.3846,"and, jews, why, our, enemy","and, jews, why, our, enemy",13
+D_B,SHAP,1178637505710583810_twitter,1.0,"redneck, revenge","red, stoke, revenge, neck, war",2
+D_B,SHAP,1178514989436375041_twitter,0.5,"dykes, bitch","s, dyke, hard, bitch, ni",4
+D_B,SHAP,25333312_gab,0.125,"white, men, destroying, are","white, men, destroying, are",32
+D_B,SHAP,1178287461560127489_twitter,0.5,niggers,"s, u, ni, kanye, gger",2
+D_B,SHAP,25001491_gab,0.1,nigger,"rd, favorite, ni, snack, gger",10
+D_B,SHAP,22161097_gab,0.5,nigger,"understand, for, ni, ending, gger",2
+D_B,SHAP,20602248_gab,1.0,"cunts, nigger","hollywood, nts, ni, lover, gger",2
+D_B,SHAP,1114610623072088064_twitter,0.5,gay,"gotta, gay, we, then, apparently",2
+D_B,SHAP,13713469_gab,0.3,"today, retarded, you","today, tar, re, ded, you",10
+D_B,SHAP,21531589_gab,1.0,nigger,"can, ni, twitter, gger, bt",1
+D_B,SHAP,23659865_gab,0.1471,"judaism, apologize, will, anyway, you","apologize, judaism, will, anyway, you",34
+D_B,SHAP,19089112_gab,0.375,"killed, whites, nigger","killed, x, ni, whites, gger",8
+D_B,SHAP,1203708372094267392_twitter,1.0,"nigga, ghetto","🥴, ghetto, a, never, gga",2
+D_B,SHAP,27902074_gab,0.5714,"hate, jews, nobody, even","hate, jews, nobody, even",7
+D_B,SHAP,11498486_gab,0.3333,beaner,"bean, er, ic, sp, divide",3
+D_B,SHAP,26871375_gab,0.5,boomer,"shall, boom, ke, nsor, ki",2
+D_B,SHAP,19930942_gab,0.4,"muslime, nigger","e, ni, intro, gger, muslim",5
+D_B,SHAP,21925689_gab,0.6667,"niggers, whore","ni, ke, ki, whore, gger",3
+D_B,SHAP,20126138_gab,0.0,,"ve, ke, ki",2
+D_B,SHAP,27832444_gab,0.1538,"nazi, bitch","gg, nazi, bitch, ot, <",13
+D_B,SHAP,15422594_gab,0.2308,"white, skins, murdering","trade, white, skins, with, murdering",13
+A_B,LIME,5167719_gab,1.0,muzzie,"suggestions, culture, that, <wink>, muzzie",1
+A_B,LIME,1240029444812791808_twitter,0.2667,"negro, ”, i, wanna","negro, “, wanna, i, ”",15
+A_B,LIME,1174186731006042114_twitter,1.0,hoe,"hoe, <number>, hits, made, in",1
+A_B,LIME,1179080158340407297_twitter,1.0,hoe,"hoe, a, i, trusted, trust",1
+A_B,LIME,27402153_gab,0.125,"cancer, fireuptheovens","back, bcuz, mojo, cancer, fireuptheovens",16
+A_B,LIME,1087571270605131776_twitter,0.4615,"and, they, gwalla, potna, all, washy","and, they, gwalla, potna, washy",13
+A_B,LIME,8544506_gab,0.25,"destroys, media","brigitte, destroys, peaceful, media, muslims",8
+A_B,LIME,12867073_gab,0.1282,"stupid, islam, look, is, like","stupid, look, islam, is, like",39
+A_B,LIME,27692892_gab,0.5,wetback,"this, not, my, wetback, lose",2
+A_B,LIME,10172622_gab,0.3333,"racist, the","two, racist, the, were, those",6
+A_B,LIME,1165043319321366528_twitter,0.6667,"ugly, negros","in, <user>, i, negros, ugly",3
+A_B,LIME,1178915039924895744_twitter,0.6667,"faggots, ugly","likes, <user>, faggots, ugly, you",3
+A_B,LIME,1177392985471934464_twitter,1.0,dyke,"haitian, dyke, blocking, ugly, lil",1
+A_B,LIME,26588782_gab,0.125,"hollywood, sarah, roseanne, hucksbee","hollywood, roseanne, hucksbee, westandwithroseanne, sarah",32
+A_B,LIME,16625438_gab,0.1667,"is, person","race, iq, person, is, saw",12
+A_B,LIME,1179047042242535425_twitter,1.0,"white, whore, retarded, hoe","retarded, white, hoe, worthless, whore",4
+A_B,LIME,16900430_gab,0.6667,"dykes, queers","dykes, ancesters, queers, 1, late",3
+A_B,LIME,13063961_gab,0.75,"faggot, serial, mudshark","mudshark, serial, he, that, faggot",4
+A_B,LIME,22319846_gab,0.3846,"military, jews, why, own, i","military, jews, why, own, i",13
+A_B,LIME,1178637505710583810_twitter,0.5,redneck,"redneck, part, deux, war, civil",2
+A_B,LIME,1178514989436375041_twitter,0.5,"dykes, bitch","dykes, actin, bitch, sum, you",4
+A_B,LIME,25333312_gab,0.125,"rd, 3, assholes, jackasses","rd, good, jackasses, 3, assholes",32
+A_B,LIME,1178287461560127489_twitter,1.0,"niggers, coonin","niggers, for, coonin, shit, kanye",2
+A_B,LIME,25001491_gab,0.3,"retarded, a, nigger","buffalo, retarded, a, turd, nigger",10
+A_B,LIME,22161097_gab,0.5,nigger,"die, fitting, a, nigger, hussein",2
+A_B,LIME,20602248_gab,1.0,"cunts, nigger","biggest, cunts, lover, one, nigger",2
+A_B,LIME,1114610623072088064_twitter,0.5,gay,"gotta, <user>, gay, idk, morals",2
+A_B,LIME,13713469_gab,0.3,"today, retarded, the","today, retarded, the, welcome, 🐸",10
+A_B,LIME,21531589_gab,1.0,nigger,"can, why, not, i, nigger",1
+A_B,LIME,23659865_gab,0.1471,"same, judaism, infected, arabs, muslim","same, judaism, infected, arabs, muslim",34
+A_B,LIME,19089112_gab,0.5,"be, killed, whites, nigger","killed, blax, whites, be, nigger",8
+A_B,LIME,1203708372094267392_twitter,1.0,"nigga, ghetto","’, nigga, ghetto, money, with",2
+A_B,LIME,27902074_gab,0.7143,"hate, jews, likes, knows, even","hate, jews, likes, knows, even",7
+A_B,LIME,11498486_gab,1.0,"fucking, beaner, spic","fucking, spic, beaner, divide, fuck",3
+A_B,LIME,26871375_gab,1.0,"boomer, kike","boomer, shall, dumb, kike, is",2
+A_B,LIME,19930942_gab,0.4,"muslime, nigger","will, muslime, gab, nigger, intro",5
+A_B,LIME,21925689_gab,1.0,"niggers, whore, kike","niggers, to, kike, lying, whore",3
+A_B,LIME,20126138_gab,1.0,"vermin, kike","kike, the, hitler, fight, vermin",2
+A_B,LIME,27832444_gab,0.3077,"faggot, trying, nazi, bitch","trying, nazi, bitch, <user>, faggot",13
+A_B,LIME,15422594_gab,0.3077,"white, skins, twat, murdering","twat, white, arabs, skins, murdering",13
+D_B,LIME,5167719_gab,1.0,muzzie,"our, he, favours, culture, muzzie",1
+D_B,LIME,1240029444812791808_twitter,0.2667,"spank, ”, i, negro","negro, spank, i, “, ”",15
+D_B,LIME,1174186731006042114_twitter,1.0,hoe,"hoe, <number>, hits, that, in",1
+D_B,LIME,1179080158340407297_twitter,1.0,hoe,"am, hoe, i, me, trust",1
+D_B,LIME,27402153_gab,0.25,"islam, deport, cancer, eradicated","deport, eradicated, white, cancer, islam",16
+D_B,LIME,1087571270605131776_twitter,0.3846,"will, hoes, gwalla, all, yo","will, hoes, gwalla, yo, you",13
+D_B,LIME,8544506_gab,0.25,"islam, liberals","muslims, liberals, lies, islam, peaceful",8
+D_B,LIME,12867073_gab,0.1282,"vegas, sweden, stupid, islam, radical","vegas, sweden, stupid, islam, radical",39
+D_B,LIME,27692892_gab,1.0,"squad, wetback","wetback, this, put, squad, lose",2
+D_B,LIME,10172622_gab,0.5,"racist, first, the","two, racist, the, first, were",6
+D_B,LIME,1165043319321366528_twitter,0.6667,"ugly, negros","thread, the, <user>, negros, ugly",3
+D_B,LIME,1178915039924895744_twitter,0.6667,"faggots, ugly","likes, <user>, my, faggots, ugly",3
+D_B,LIME,1177392985471934464_twitter,1.0,dyke,"haitian, dyke, post, ugly, disturbing",1
+D_B,LIME,26588782_gab,0.0938,"standard, hucksbee, hollywood","hollywood, doublestandard, hucksbee, doublestandards, boycottabc",32
+D_B,LIME,16625438_gab,0.25,"racist, white, smarter","racist, race, white, iq, smarter",12
+D_B,LIME,1179047042242535425_twitter,0.75,"hoe, whore, retarded","retarded, hoe, worthless, whore, fuck",4
+D_B,LIME,16900430_gab,0.6667,"dykes, queers","dykes, forget, your, our, queers",3
+D_B,LIME,13063961_gab,0.75,"faggot, serial, mudshark","mudshark, serial, also, a, faggot",4
+D_B,LIME,22319846_gab,0.3846,"jews, compromised, why, own, enemy","jews, compromised, why, own, enemy",13
+D_B,LIME,1178637505710583810_twitter,0.5,redneck,"redneck, part, deux, war, civil",2
+D_B,LIME,1178514989436375041_twitter,0.5,"dykes, bitch","dykes, niggas, of, bitch, sum",4
+D_B,LIME,25333312_gab,0.1562,"rd, men, white, 3, destroying","rd, men, white, 3, destroying",32
+D_B,LIME,1178287461560127489_twitter,0.5,niggers,"niggers, u, for, r, kanye",2
+D_B,LIME,25001491_gab,0.2,"retarded, nigger","buffalo, favorite, retarded, turd, nigger",10
+D_B,LIME,22161097_gab,1.0,"sand, nigger","understand, ending, a, nigger, sand",2
+D_B,LIME,20602248_gab,1.0,"cunts, nigger","hollywood, biggest, cunts, one, nigger",2
+D_B,LIME,1114610623072088064_twitter,0.5,gay,"have, <user>, gay, all, morals",2
+D_B,LIME,13713469_gab,0.3,"retarded, thing, see","retarded, welcome, 🐸, thing, see",10
+D_B,LIME,21531589_gab,1.0,nigger,"this, not, i, nigger, twitter",1
+D_B,LIME,23659865_gab,0.1471,"judaism, arabs, anyway, babylon, calling","judaism, arabs, anyway, babylon, calling",34
+D_B,LIME,19089112_gab,0.625,"killed, should, whites, be, nigger","killed, should, whites, be, nigger",8
+D_B,LIME,1203708372094267392_twitter,1.0,"nigga, ghetto","’, nigga, ghetto, money, disrespect",2
+D_B,LIME,27902074_gab,0.7143,"hate, jews, who, knows, even","hate, jews, who, knows, even",7
+D_B,LIME,11498486_gab,1.0,"fucking, beaner, spic","and, spic, beaner, rapists, fuck",3
+D_B,LIME,26871375_gab,0.5,kike,"shall, dumb, kike, only, is",2
+D_B,LIME,19930942_gab,0.4,"muslime, nigger","haters, the, priceless, muslime, nigger",5
+D_B,LIME,21925689_gab,0.6667,"niggers, kike","niggers, to, kike, lying, the",3
+D_B,LIME,20126138_gab,1.0,"vermin, kike","this, kike, the, vermin, beat",2
+D_B,LIME,27832444_gab,0.3846,"unmute, anymore, nazi, bitch, faggot","unmute, anymore, nazi, bitch, faggot",13
+D_B,LIME,15422594_gab,0.3077,"white, skins, twat, murdering","twat, white, arabs, skins, murdering",13

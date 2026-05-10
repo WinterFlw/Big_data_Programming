@@ -1,0 +1,1270 @@
+{
+  "TF-IDF + LR": {
+    "model": "TF-IDF + LR",
+    "seed": 42,
+    "best_c": 0.5,
+    "best_val_macro_f1": 0.6314146081515185,
+    "checkpoint_path": "/Users/winterflw/HateSpeachStudy/outputs/runs/tf_idf_lr/seed_42/model_bundle.pkl",
+    "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/tf_idf_lr/seed_42/metrics.json",
+    "elapsed_seconds": 0.0,
+    "history_path": "",
+    "run_dir": "/Users/winterflw/HateSpeachStudy/outputs/runs/tf_idf_lr/seed_42",
+    "hyperparams": {
+      "batch_size": null,
+      "learning_rate": null,
+      "dropout": null,
+      "epochs": null
+    },
+    "accuracy": 0.648866892419901,
+    "macro_f1": 0.6400258937794545,
+    "macro_precision": 0.640251262638038,
+    "macro_recall": 0.6401590153889675,
+    "auroc": 0.8158285211669067,
+    "per_class_precision": {
+      "hatespeech": 0.7270450751252087,
+      "offensive": 0.5197685631629702,
+      "normal": 0.6739401496259352
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7344013490725126,
+      "offensive": 0.4922374429223744,
+      "normal": 0.6938382541720154
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7307046979865772,
+      "offensive": 0.5056285178236398,
+      "normal": 0.6837444655281467
+    },
+    "confusion_matrix": [
+      [
+        871,
+        161,
+        154
+      ],
+      [
+        187,
+        539,
+        369
+      ],
+      [
+        140,
+        337,
+        1081
+      ]
+    ]
+  },
+  "TF-IDF + SVM": {
+    "model": "TF-IDF + SVM",
+    "seed": 42,
+    "best_c": 0.5,
+    "best_val_macro_f1": 0.6242693478491254,
+    "checkpoint_path": "/Users/winterflw/HateSpeachStudy/outputs/runs/tf_idf_svm/seed_42/model_bundle.pkl",
+    "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/tf_idf_svm/seed_42/metrics.json",
+    "elapsed_seconds": 0.0,
+    "history_path": "",
+    "run_dir": "/Users/winterflw/HateSpeachStudy/outputs/runs/tf_idf_svm/seed_42",
+    "hyperparams": {
+      "batch_size": null,
+      "learning_rate": null,
+      "dropout": null,
+      "epochs": null
+    },
+    "accuracy": 0.6582443344620995,
+    "macro_f1": 0.6382406026949242,
+    "macro_precision": 0.6488749346459911,
+    "macro_recall": 0.6397397859188277,
+    "auroc": 0.8137355252310132,
+    "per_class_precision": {
+      "hatespeech": 0.7271214642262895,
+      "offensive": 0.567258883248731,
+      "normal": 0.6522444564629529
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7369308600337268,
+      "offensive": 0.40821917808219177,
+      "normal": 0.7740693196405648
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7319932998324958,
+      "offensive": 0.4747742963356346,
+      "normal": 0.7079542119166422
+    },
+    "confusion_matrix": [
+      [
+        874,
+        121,
+        191
+      ],
+      [
+        196,
+        447,
+        452
+      ],
+      [
+        132,
+        220,
+        1206
+      ]
+    ]
+  },
+  "A_B": {
+    "model": "A_B",
+    "seed": 62,
+    "checkpoint_path": "/Users/winterflw/HateSpeachStudy/checkpoints/a_b_seed_62.pt",
+    "best_epoch": 4,
+    "best_val_macro_f1": 0.6646822926245054,
+    "elapsed_seconds": 285.521968126297,
+    "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/a_b/seed_62/predictions.pkl",
+    "history_path": "/Users/winterflw/HateSpeachStudy/outputs/runs/a_b/seed_62/history.csv",
+    "run_dir": "/Users/winterflw/HateSpeachStudy/outputs/runs/a_b/seed_62",
+    "hyperparams": {
+      "split_train": 0.7,
+      "split_val": 0.1,
+      "split_test": 0.2,
+      "max_len": 128,
+      "batch_size": 64,
+      "epochs": 5,
+      "learning_rate": 2e-05,
+      "warmup_ratio": 0.1,
+      "weight_decay": 0.01,
+      "dropout": 0.3,
+      "mlp_hidden": 256,
+      "early_stopping_patience": 2,
+      "early_stopping_min_delta": 0.0001,
+      "imbalance_threshold": 0.4,
+      "seeds": [
+        42,
+        52,
+        62
+      ],
+      "tune_learning_rates": [
+        1e-05,
+        2e-05,
+        3e-05
+      ],
+      "tune_batch_sizes": [
+        64
+      ],
+      "tune_dropouts": [
+        0.1,
+        0.2,
+        0.3
+      ],
+      "tune_epochs": [
+        5
+      ],
+      "tuning_seed": 42,
+      "tuning_max_epochs": 5,
+      "xai_sample_size": 50,
+      "lime_num_features": 5,
+      "lime_num_samples": 500,
+      "shap_max_evals": 300,
+      "shap_batch_size": 32,
+      "v2_enabled": true,
+      "alpha_grid": [
+        0.0,
+        0.1,
+        0.3,
+        0.5,
+        0.7,
+        1.0
+      ],
+      "beta_grid": [
+        0.0,
+        0.1,
+        0.3
+      ],
+      "attention_loss_alpha": 0.0,
+      "target_loss_beta": 0.0,
+      "target_labels": [
+        "African",
+        "Arab",
+        "Asexual",
+        "Asian",
+        "Bisexual",
+        "Buddhism",
+        "Caucasian",
+        "Christian",
+        "Disability",
+        "Economic",
+        "Heterosexual",
+        "Hindu",
+        "Hispanic",
+        "Homosexual",
+        "Indian",
+        "Indigenous",
+        "Islam",
+        "Jewish",
+        "Men",
+        "Minority",
+        "Nonreligious",
+        "Other",
+        "Refugee",
+        "Women"
+      ],
+      "xai_context_sample_size": 50,
+      "xai_interaction_pairs": 50,
+      "xai_mss_threshold": 0.8
+    },
+    "accuracy": 0.6837718155769732,
+    "macro_f1": 0.6764693612095258,
+    "macro_precision": 0.6755226876806807,
+    "macro_recall": 0.6779907687987518,
+    "auroc": 0.8478354097177597,
+    "per_class_precision": {
+      "hatespeech": 0.7538586515028433,
+      "offensive": 0.5301418439716312,
+      "normal": 0.7425675675675676
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7824620573355818,
+      "offensive": 0.5461187214611872,
+      "normal": 0.7053915275994865
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7678940835746794,
+      "offensive": 0.5380116959064327,
+      "normal": 0.7235023041474654
+    },
+    "confusion_matrix": [
+      [
+        928,
+        181,
+        77
+      ],
+      [
+        193,
+        598,
+        304
+      ],
+      [
+        110,
+        349,
+        1099
+      ]
+    ],
+    "loss": 0.8510603537162145,
+    "condition": "A_B",
+    "family": "BERT",
+    "use_attention_loss": false,
+    "use_vader": false,
+    "use_target_aux": false,
+    "is_aux_experiment": false,
+    "benchmark_scope": "main_8_condition"
+  },
+  "B_B": {
+    "model": "B_B",
+    "seed": 62,
+    "checkpoint_path": "/Users/winterflw/HateSpeachStudy/checkpoints/b_b_seed_62.pt",
+    "best_epoch": 2,
+    "best_val_macro_f1": 0.6701372827345322,
+    "elapsed_seconds": 287.45880699157715,
+    "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/b_b/seed_62/predictions.pkl",
+    "history_path": "/Users/winterflw/HateSpeachStudy/outputs/runs/b_b/seed_62/history.csv",
+    "run_dir": "/Users/winterflw/HateSpeachStudy/outputs/runs/b_b/seed_62",
+    "hyperparams": {
+      "split_train": 0.7,
+      "split_val": 0.1,
+      "split_test": 0.2,
+      "max_len": 128,
+      "batch_size": 64,
+      "epochs": 5,
+      "learning_rate": 2e-05,
+      "warmup_ratio": 0.1,
+      "weight_decay": 0.01,
+      "dropout": 0.3,
+      "mlp_hidden": 256,
+      "early_stopping_patience": 2,
+      "early_stopping_min_delta": 0.0001,
+      "imbalance_threshold": 0.4,
+      "seeds": [
+        42,
+        52,
+        62
+      ],
+      "tune_learning_rates": [
+        1e-05,
+        2e-05,
+        3e-05
+      ],
+      "tune_batch_sizes": [
+        64
+      ],
+      "tune_dropouts": [
+        0.1,
+        0.2,
+        0.3
+      ],
+      "tune_epochs": [
+        5
+      ],
+      "tuning_seed": 42,
+      "tuning_max_epochs": 5,
+      "xai_sample_size": 50,
+      "lime_num_features": 5,
+      "lime_num_samples": 500,
+      "shap_max_evals": 300,
+      "shap_batch_size": 32,
+      "v2_enabled": true,
+      "alpha_grid": [
+        0.0,
+        0.1,
+        0.3,
+        0.5,
+        0.7,
+        1.0
+      ],
+      "beta_grid": [
+        0.0,
+        0.1,
+        0.3
+      ],
+      "attention_loss_alpha": 1.0,
+      "target_loss_beta": 0.0,
+      "target_labels": [
+        "African",
+        "Arab",
+        "Asexual",
+        "Asian",
+        "Bisexual",
+        "Buddhism",
+        "Caucasian",
+        "Christian",
+        "Disability",
+        "Economic",
+        "Heterosexual",
+        "Hindu",
+        "Hispanic",
+        "Homosexual",
+        "Indian",
+        "Indigenous",
+        "Islam",
+        "Jewish",
+        "Men",
+        "Minority",
+        "Nonreligious",
+        "Other",
+        "Refugee",
+        "Women"
+      ],
+      "xai_context_sample_size": 50,
+      "xai_interaction_pairs": 50,
+      "xai_mss_threshold": 0.8
+    },
+    "accuracy": 0.690804897108622,
+    "macro_f1": 0.6836297824610824,
+    "macro_precision": 0.688492585976944,
+    "macro_recall": 0.6806341149937675,
+    "auroc": 0.8495891616054826,
+    "per_class_precision": {
+      "hatespeech": 0.800187617260788,
+      "offensive": 0.5377932232841007,
+      "normal": 0.7274969173859432
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7192242833052277,
+      "offensive": 0.5652968036529681,
+      "normal": 0.7573812580231065
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7575488454706927,
+      "offensive": 0.5512021371326803,
+      "normal": 0.7421383647798742
+    },
+    "confusion_matrix": [
+      [
+        853,
+        231,
+        102
+      ],
+      [
+        136,
+        619,
+        340
+      ],
+      [
+        77,
+        301,
+        1180
+      ]
+    ],
+    "loss": 0.8152464975913366,
+    "condition": "B_B",
+    "family": "BERT",
+    "use_attention_loss": true,
+    "use_vader": false,
+    "use_target_aux": false,
+    "is_aux_experiment": false,
+    "benchmark_scope": "main_8_condition"
+  },
+  "C_B": {
+    "model": "C_B",
+    "seed": 42,
+    "checkpoint_path": "/Users/winterflw/HateSpeachStudy/checkpoints/c_b_seed_42.pt",
+    "best_epoch": 4,
+    "best_val_macro_f1": 0.6692241665856744,
+    "elapsed_seconds": 352.06280493736267,
+    "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/c_b/seed_42/predictions.pkl",
+    "history_path": "/Users/winterflw/HateSpeachStudy/outputs/runs/c_b/seed_42/history.csv",
+    "run_dir": "/Users/winterflw/HateSpeachStudy/outputs/runs/c_b/seed_42",
+    "hyperparams": {
+      "split_train": 0.7,
+      "split_val": 0.1,
+      "split_test": 0.2,
+      "max_len": 128,
+      "batch_size": 64,
+      "epochs": 5,
+      "learning_rate": 1e-05,
+      "warmup_ratio": 0.1,
+      "weight_decay": 0.01,
+      "dropout": 0.1,
+      "mlp_hidden": 256,
+      "early_stopping_patience": 2,
+      "early_stopping_min_delta": 0.0001,
+      "imbalance_threshold": 0.4,
+      "seeds": [
+        42,
+        52,
+        62
+      ],
+      "tune_learning_rates": [
+        1e-05,
+        2e-05,
+        3e-05
+      ],
+      "tune_batch_sizes": [
+        64
+      ],
+      "tune_dropouts": [
+        0.1,
+        0.2,
+        0.3
+      ],
+      "tune_epochs": [
+        5
+      ],
+      "tuning_seed": 42,
+      "tuning_max_epochs": 5,
+      "xai_sample_size": 50,
+      "lime_num_features": 5,
+      "lime_num_samples": 500,
+      "shap_max_evals": 300,
+      "shap_batch_size": 32,
+      "v2_enabled": true,
+      "alpha_grid": [
+        0.0,
+        0.1,
+        0.3,
+        0.5,
+        0.7,
+        1.0
+      ],
+      "beta_grid": [
+        0.0,
+        0.1,
+        0.3
+      ],
+      "attention_loss_alpha": 0.0,
+      "target_loss_beta": 0.0,
+      "target_labels": [
+        "African",
+        "Arab",
+        "Asexual",
+        "Asian",
+        "Bisexual",
+        "Buddhism",
+        "Caucasian",
+        "Christian",
+        "Disability",
+        "Economic",
+        "Heterosexual",
+        "Hindu",
+        "Hispanic",
+        "Homosexual",
+        "Indian",
+        "Indigenous",
+        "Islam",
+        "Jewish",
+        "Men",
+        "Minority",
+        "Nonreligious",
+        "Other",
+        "Refugee",
+        "Women"
+      ],
+      "xai_context_sample_size": 50,
+      "xai_interaction_pairs": 50,
+      "xai_mss_threshold": 0.8
+    },
+    "accuracy": 0.6892419901015889,
+    "macro_f1": 0.6839059049653983,
+    "macro_precision": 0.6831703428362884,
+    "macro_recall": 0.6871292900597928,
+    "auroc": 0.8497899836510084,
+    "per_class_precision": {
+      "hatespeech": 0.7460567823343849,
+      "offensive": 0.5412765957446809,
+      "normal": 0.7621776504297995
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7976391231028668,
+      "offensive": 0.5808219178082191,
+      "normal": 0.6829268292682927
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7709861450692747,
+      "offensive": 0.560352422907489,
+      "normal": 0.7203791469194313
+    },
+    "confusion_matrix": [
+      [
+        946,
+        162,
+        78
+      ],
+      [
+        205,
+        636,
+        254
+      ],
+      [
+        117,
+        377,
+        1064
+      ]
+    ],
+    "loss": 0.8202892929315567,
+    "condition": "C_B",
+    "family": "BERT",
+    "use_attention_loss": false,
+    "use_vader": true,
+    "use_target_aux": false,
+    "is_aux_experiment": false,
+    "benchmark_scope": "main_8_condition"
+  },
+  "D_B": {
+    "model": "D_B",
+    "seed": 42,
+    "checkpoint_path": "/Users/winterflw/HateSpeachStudy/checkpoints/d_b_seed_42.pt",
+    "best_epoch": 4,
+    "best_val_macro_f1": 0.6683170634935567,
+    "elapsed_seconds": 354.6082718372345,
+    "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/d_b/seed_42/predictions.pkl",
+    "history_path": "/Users/winterflw/HateSpeachStudy/outputs/runs/d_b/seed_42/history.csv",
+    "run_dir": "/Users/winterflw/HateSpeachStudy/outputs/runs/d_b/seed_42",
+    "hyperparams": {
+      "split_train": 0.7,
+      "split_val": 0.1,
+      "split_test": 0.2,
+      "max_len": 128,
+      "batch_size": 64,
+      "epochs": 5,
+      "learning_rate": 2e-05,
+      "warmup_ratio": 0.1,
+      "weight_decay": 0.01,
+      "dropout": 0.3,
+      "mlp_hidden": 256,
+      "early_stopping_patience": 2,
+      "early_stopping_min_delta": 0.0001,
+      "imbalance_threshold": 0.4,
+      "seeds": [
+        42,
+        52,
+        62
+      ],
+      "tune_learning_rates": [
+        1e-05,
+        2e-05,
+        3e-05
+      ],
+      "tune_batch_sizes": [
+        64
+      ],
+      "tune_dropouts": [
+        0.1,
+        0.2,
+        0.3
+      ],
+      "tune_epochs": [
+        5
+      ],
+      "tuning_seed": 42,
+      "tuning_max_epochs": 5,
+      "xai_sample_size": 50,
+      "lime_num_features": 5,
+      "lime_num_samples": 500,
+      "shap_max_evals": 300,
+      "shap_batch_size": 32,
+      "v2_enabled": true,
+      "alpha_grid": [
+        0.0,
+        0.1,
+        0.3,
+        0.5,
+        0.7,
+        1.0
+      ],
+      "beta_grid": [
+        0.0,
+        0.1,
+        0.3
+      ],
+      "attention_loss_alpha": 1.0,
+      "target_loss_beta": 0.0,
+      "target_labels": [
+        "African",
+        "Arab",
+        "Asexual",
+        "Asian",
+        "Bisexual",
+        "Buddhism",
+        "Caucasian",
+        "Christian",
+        "Disability",
+        "Economic",
+        "Heterosexual",
+        "Hindu",
+        "Hispanic",
+        "Homosexual",
+        "Indian",
+        "Indigenous",
+        "Islam",
+        "Jewish",
+        "Men",
+        "Minority",
+        "Nonreligious",
+        "Other",
+        "Refugee",
+        "Women"
+      ],
+      "xai_context_sample_size": 50,
+      "xai_interaction_pairs": 50,
+      "xai_mss_threshold": 0.8
+    },
+    "accuracy": 0.6960145871320657,
+    "macro_f1": 0.68966800173602,
+    "macro_precision": 0.6886518611323469,
+    "macro_recall": 0.6936926574025427,
+    "auroc": 0.8566167759705149,
+    "per_class_precision": {
+      "hatespeech": 0.7453846153846154,
+      "offensive": 0.546400693842151,
+      "normal": 0.7741702741702742
+    },
+    "per_class_recall": {
+      "hatespeech": 0.8170320404721754,
+      "offensive": 0.5753424657534246,
+      "normal": 0.6887034659820283
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7795655671761866,
+      "offensive": 0.5604982206405694,
+      "normal": 0.7289402173913043
+    },
+    "confusion_matrix": [
+      [
+        969,
+        152,
+        65
+      ],
+      [
+        217,
+        630,
+        248
+      ],
+      [
+        114,
+        371,
+        1073
+      ]
+    ],
+    "loss": 0.83124112089475,
+    "condition": "D_B",
+    "family": "BERT",
+    "use_attention_loss": true,
+    "use_vader": true,
+    "use_target_aux": false,
+    "is_aux_experiment": false,
+    "benchmark_scope": "main_8_condition"
+  },
+  "A_R": {
+    "model": "A_R",
+    "seed": 52,
+    "checkpoint_path": "/Users/winterflw/HateSpeachStudy/checkpoints/a_r_seed_52.pt",
+    "best_epoch": 4,
+    "best_val_macro_f1": 0.657641534657353,
+    "elapsed_seconds": 418.4913351535797,
+    "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/a_r/seed_52/predictions.pkl",
+    "history_path": "/Users/winterflw/HateSpeachStudy/outputs/runs/a_r/seed_52/history.csv",
+    "run_dir": "/Users/winterflw/HateSpeachStudy/outputs/runs/a_r/seed_52",
+    "hyperparams": {
+      "split_train": 0.7,
+      "split_val": 0.1,
+      "split_test": 0.2,
+      "max_len": 128,
+      "batch_size": 64,
+      "epochs": 5,
+      "learning_rate": 3e-05,
+      "warmup_ratio": 0.1,
+      "weight_decay": 0.01,
+      "dropout": 0.3,
+      "mlp_hidden": 256,
+      "early_stopping_patience": 2,
+      "early_stopping_min_delta": 0.0001,
+      "imbalance_threshold": 0.4,
+      "seeds": [
+        42,
+        52,
+        62
+      ],
+      "tune_learning_rates": [
+        1e-05,
+        2e-05,
+        3e-05
+      ],
+      "tune_batch_sizes": [
+        64
+      ],
+      "tune_dropouts": [
+        0.1,
+        0.2,
+        0.3
+      ],
+      "tune_epochs": [
+        5
+      ],
+      "tuning_seed": 42,
+      "tuning_max_epochs": 5,
+      "xai_sample_size": 50,
+      "lime_num_features": 5,
+      "lime_num_samples": 500,
+      "shap_max_evals": 300,
+      "shap_batch_size": 32,
+      "v2_enabled": true,
+      "alpha_grid": [
+        0.0,
+        0.1,
+        0.3,
+        0.5,
+        0.7,
+        1.0
+      ],
+      "beta_grid": [
+        0.0,
+        0.1,
+        0.3
+      ],
+      "attention_loss_alpha": 0.0,
+      "target_loss_beta": 0.0,
+      "target_labels": [
+        "African",
+        "Arab",
+        "Asexual",
+        "Asian",
+        "Bisexual",
+        "Buddhism",
+        "Caucasian",
+        "Christian",
+        "Disability",
+        "Economic",
+        "Heterosexual",
+        "Hindu",
+        "Hispanic",
+        "Homosexual",
+        "Indian",
+        "Indigenous",
+        "Islam",
+        "Jewish",
+        "Men",
+        "Minority",
+        "Nonreligious",
+        "Other",
+        "Refugee",
+        "Women"
+      ],
+      "xai_context_sample_size": 50,
+      "xai_interaction_pairs": 50,
+      "xai_mss_threshold": 0.8
+    },
+    "accuracy": 0.6895024746027612,
+    "macro_f1": 0.683319163720323,
+    "macro_precision": 0.6829239103979182,
+    "macro_recall": 0.6842385188132584,
+    "auroc": 0.848256668971093,
+    "per_class_precision": {
+      "hatespeech": 0.7668049792531121,
+      "offensive": 0.5378590078328982,
+      "normal": 0.7441077441077442
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7790893760539629,
+      "offensive": 0.5643835616438356,
+      "normal": 0.7092426187419769
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7728983688833124,
+      "offensive": 0.5508021390374331,
+      "normal": 0.7262569832402235
+    },
+    "confusion_matrix": [
+      [
+        924,
+        169,
+        93
+      ],
+      [
+        190,
+        618,
+        287
+      ],
+      [
+        91,
+        362,
+        1105
+      ]
+    ],
+    "loss": 0.8386117806037267,
+    "condition": "A_R",
+    "family": "RoBERTa",
+    "use_attention_loss": false,
+    "use_vader": false,
+    "use_target_aux": false,
+    "is_aux_experiment": false,
+    "benchmark_scope": "main_8_condition"
+  },
+  "B_R": {
+    "model": "B_R",
+    "seed": 52,
+    "checkpoint_path": "/Users/winterflw/HateSpeachStudy/checkpoints/b_r_seed_52.pt",
+    "best_epoch": 4,
+    "best_val_macro_f1": 0.6524099880545743,
+    "elapsed_seconds": 423.0782859325409,
+    "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/b_r/seed_52/predictions.pkl",
+    "history_path": "/Users/winterflw/HateSpeachStudy/outputs/runs/b_r/seed_52/history.csv",
+    "run_dir": "/Users/winterflw/HateSpeachStudy/outputs/runs/b_r/seed_52",
+    "hyperparams": {
+      "split_train": 0.7,
+      "split_val": 0.1,
+      "split_test": 0.2,
+      "max_len": 128,
+      "batch_size": 64,
+      "epochs": 5,
+      "learning_rate": 2e-05,
+      "warmup_ratio": 0.1,
+      "weight_decay": 0.01,
+      "dropout": 0.3,
+      "mlp_hidden": 256,
+      "early_stopping_patience": 2,
+      "early_stopping_min_delta": 0.0001,
+      "imbalance_threshold": 0.4,
+      "seeds": [
+        42,
+        52,
+        62
+      ],
+      "tune_learning_rates": [
+        1e-05,
+        2e-05,
+        3e-05
+      ],
+      "tune_batch_sizes": [
+        64
+      ],
+      "tune_dropouts": [
+        0.1,
+        0.2,
+        0.3
+      ],
+      "tune_epochs": [
+        5
+      ],
+      "tuning_seed": 42,
+      "tuning_max_epochs": 5,
+      "xai_sample_size": 50,
+      "lime_num_features": 5,
+      "lime_num_samples": 500,
+      "shap_max_evals": 300,
+      "shap_batch_size": 32,
+      "v2_enabled": true,
+      "alpha_grid": [
+        0.0,
+        0.1,
+        0.3,
+        0.5,
+        0.7,
+        1.0
+      ],
+      "beta_grid": [
+        0.0,
+        0.1,
+        0.3
+      ],
+      "attention_loss_alpha": 1.0,
+      "target_loss_beta": 0.0,
+      "target_labels": [
+        "African",
+        "Arab",
+        "Asexual",
+        "Asian",
+        "Bisexual",
+        "Buddhism",
+        "Caucasian",
+        "Christian",
+        "Disability",
+        "Economic",
+        "Heterosexual",
+        "Hindu",
+        "Hispanic",
+        "Homosexual",
+        "Indian",
+        "Indigenous",
+        "Islam",
+        "Jewish",
+        "Men",
+        "Minority",
+        "Nonreligious",
+        "Other",
+        "Refugee",
+        "Women"
+      ],
+      "xai_context_sample_size": 50,
+      "xai_interaction_pairs": 50,
+      "xai_mss_threshold": 0.8
+    },
+    "accuracy": 0.6905444126074498,
+    "macro_f1": 0.6847760882442427,
+    "macro_precision": 0.6837619541523886,
+    "macro_recall": 0.6876562506286055,
+    "auroc": 0.849111268358449,
+    "per_class_precision": {
+      "hatespeech": 0.7496038034865293,
+      "offensive": 0.543572044866264,
+      "normal": 0.7581100141043724
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7976391231028668,
+      "offensive": 0.5753424657534246,
+      "normal": 0.689987163029525
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7728758169934641,
+      "offensive": 0.5590062111801242,
+      "normal": 0.7224462365591398
+    },
+    "confusion_matrix": [
+      [
+        946,
+        168,
+        72
+      ],
+      [
+        194,
+        630,
+        271
+      ],
+      [
+        122,
+        361,
+        1075
+      ]
+    ],
+    "loss": 0.833199629187584,
+    "condition": "B_R",
+    "family": "RoBERTa",
+    "use_attention_loss": true,
+    "use_vader": false,
+    "use_target_aux": false,
+    "is_aux_experiment": false,
+    "benchmark_scope": "main_8_condition"
+  },
+  "C_R": {
+    "model": "C_R",
+    "seed": 52,
+    "checkpoint_path": "/Users/winterflw/HateSpeachStudy/checkpoints/c_r_seed_52.pt",
+    "best_epoch": 4,
+    "best_val_macro_f1": 0.6603539769167833,
+    "elapsed_seconds": 420.38346695899963,
+    "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/c_r/seed_52/predictions.pkl",
+    "history_path": "/Users/winterflw/HateSpeachStudy/outputs/runs/c_r/seed_52/history.csv",
+    "run_dir": "/Users/winterflw/HateSpeachStudy/outputs/runs/c_r/seed_52",
+    "hyperparams": {
+      "split_train": 0.7,
+      "split_val": 0.1,
+      "split_test": 0.2,
+      "max_len": 128,
+      "batch_size": 64,
+      "epochs": 5,
+      "learning_rate": 3e-05,
+      "warmup_ratio": 0.1,
+      "weight_decay": 0.01,
+      "dropout": 0.3,
+      "mlp_hidden": 256,
+      "early_stopping_patience": 2,
+      "early_stopping_min_delta": 0.0001,
+      "imbalance_threshold": 0.4,
+      "seeds": [
+        42,
+        52,
+        62
+      ],
+      "tune_learning_rates": [
+        1e-05,
+        2e-05,
+        3e-05
+      ],
+      "tune_batch_sizes": [
+        64
+      ],
+      "tune_dropouts": [
+        0.1,
+        0.2,
+        0.3
+      ],
+      "tune_epochs": [
+        5
+      ],
+      "tuning_seed": 42,
+      "tuning_max_epochs": 5,
+      "xai_sample_size": 50,
+      "lime_num_features": 5,
+      "lime_num_samples": 500,
+      "shap_max_evals": 300,
+      "shap_batch_size": 32,
+      "v2_enabled": true,
+      "alpha_grid": [
+        0.0,
+        0.1,
+        0.3,
+        0.5,
+        0.7,
+        1.0
+      ],
+      "beta_grid": [
+        0.0,
+        0.1,
+        0.3
+      ],
+      "attention_loss_alpha": 0.0,
+      "target_loss_beta": 0.0,
+      "target_labels": [
+        "African",
+        "Arab",
+        "Asexual",
+        "Asian",
+        "Bisexual",
+        "Buddhism",
+        "Caucasian",
+        "Christian",
+        "Disability",
+        "Economic",
+        "Heterosexual",
+        "Hindu",
+        "Hispanic",
+        "Homosexual",
+        "Indian",
+        "Indigenous",
+        "Islam",
+        "Jewish",
+        "Men",
+        "Minority",
+        "Nonreligious",
+        "Other",
+        "Refugee",
+        "Women"
+      ],
+      "xai_context_sample_size": 50,
+      "xai_interaction_pairs": 50,
+      "xai_mss_threshold": 0.8
+    },
+    "accuracy": 0.6884605365980724,
+    "macro_f1": 0.6826648332578474,
+    "macro_precision": 0.682311360126576,
+    "macro_recall": 0.6841005078962669,
+    "auroc": 0.8511249796638457,
+    "per_class_precision": {
+      "hatespeech": 0.7651888341543513,
+      "offensive": 0.5303678357570573,
+      "normal": 0.7513774104683195
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7858347386172007,
+      "offensive": 0.5662100456621004,
+      "normal": 0.7002567394094994
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7753743760399334,
+      "offensive": 0.5477031802120141,
+      "normal": 0.7249169435215946
+    },
+    "confusion_matrix": [
+      [
+        932,
+        173,
+        81
+      ],
+      [
+        195,
+        620,
+        280
+      ],
+      [
+        91,
+        376,
+        1091
+      ]
+    ],
+    "loss": 0.8369623074928919,
+    "condition": "C_R",
+    "family": "RoBERTa",
+    "use_attention_loss": false,
+    "use_vader": true,
+    "use_target_aux": false,
+    "is_aux_experiment": false,
+    "benchmark_scope": "main_8_condition"
+  },
+  "D_R": {
+    "model": "D_R",
+    "seed": 42,
+    "checkpoint_path": "/Users/winterflw/HateSpeachStudy/checkpoints/d_r_seed_42.pt",
+    "best_epoch": 4,
+    "best_val_macro_f1": 0.6558274745337819,
+    "elapsed_seconds": 422.67862820625305,
+    "prediction_artifact": "/Users/winterflw/HateSpeachStudy/outputs/runs/d_r/seed_42/predictions.pkl",
+    "history_path": "/Users/winterflw/HateSpeachStudy/outputs/runs/d_r/seed_42/history.csv",
+    "run_dir": "/Users/winterflw/HateSpeachStudy/outputs/runs/d_r/seed_42",
+    "hyperparams": {
+      "split_train": 0.7,
+      "split_val": 0.1,
+      "split_test": 0.2,
+      "max_len": 128,
+      "batch_size": 64,
+      "epochs": 5,
+      "learning_rate": 2e-05,
+      "warmup_ratio": 0.1,
+      "weight_decay": 0.01,
+      "dropout": 0.3,
+      "mlp_hidden": 256,
+      "early_stopping_patience": 2,
+      "early_stopping_min_delta": 0.0001,
+      "imbalance_threshold": 0.4,
+      "seeds": [
+        42,
+        52,
+        62
+      ],
+      "tune_learning_rates": [
+        1e-05,
+        2e-05,
+        3e-05
+      ],
+      "tune_batch_sizes": [
+        64
+      ],
+      "tune_dropouts": [
+        0.1,
+        0.2,
+        0.3
+      ],
+      "tune_epochs": [
+        5
+      ],
+      "tuning_seed": 42,
+      "tuning_max_epochs": 5,
+      "xai_sample_size": 50,
+      "lime_num_features": 5,
+      "lime_num_samples": 500,
+      "shap_max_evals": 300,
+      "shap_batch_size": 32,
+      "v2_enabled": true,
+      "alpha_grid": [
+        0.0,
+        0.1,
+        0.3,
+        0.5,
+        0.7,
+        1.0
+      ],
+      "beta_grid": [
+        0.0,
+        0.1,
+        0.3
+      ],
+      "attention_loss_alpha": 1.0,
+      "target_loss_beta": 0.0,
+      "target_labels": [
+        "African",
+        "Arab",
+        "Asexual",
+        "Asian",
+        "Bisexual",
+        "Buddhism",
+        "Caucasian",
+        "Christian",
+        "Disability",
+        "Economic",
+        "Heterosexual",
+        "Hindu",
+        "Hispanic",
+        "Homosexual",
+        "Indian",
+        "Indigenous",
+        "Islam",
+        "Jewish",
+        "Men",
+        "Minority",
+        "Nonreligious",
+        "Other",
+        "Refugee",
+        "Women"
+      ],
+      "xai_context_sample_size": 50,
+      "xai_interaction_pairs": 50,
+      "xai_mss_threshold": 0.8
+    },
+    "accuracy": 0.6866371450898672,
+    "macro_f1": 0.6788862784316197,
+    "macro_precision": 0.6771634748352348,
+    "macro_recall": 0.6832998974932977,
+    "auroc": 0.8491659775656735,
+    "per_class_precision": {
+      "hatespeech": 0.730566037735849,
+      "offensive": 0.5468607825295724,
+      "normal": 0.7540636042402827
+    },
+    "per_class_recall": {
+      "hatespeech": 0.8161888701517707,
+      "offensive": 0.5488584474885845,
+      "normal": 0.6848523748395379
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7710075667064914,
+      "offensive": 0.5478577939835916,
+      "normal": 0.7177934746047763
+    },
+    "confusion_matrix": [
+      [
+        968,
+        147,
+        71
+      ],
+      [
+        217,
+        601,
+        277
+      ],
+      [
+        140,
+        351,
+        1067
+      ]
+    ],
+    "loss": 0.8373821546634038,
+    "condition": "D_R",
+    "family": "RoBERTa",
+    "use_attention_loss": true,
+    "use_vader": true,
+    "use_target_aux": false,
+    "is_aux_experiment": false,
+    "benchmark_scope": "main_8_condition"
+  }
+}

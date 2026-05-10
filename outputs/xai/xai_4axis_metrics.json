@@ -1,0 +1,58 @@
+{
+  "baseline_model": "A_B",
+  "improved_model": "D_B",
+  "baseline": {
+    "ci": {
+      "mean": 0.5013,
+      "std": 0.1184,
+      "count": 50
+    },
+    "mss": {
+      "mean": 6.3,
+      "std": 4.9528,
+      "count": 50
+    },
+    "loo": {
+      "mean": 0.1206,
+      "std": 0.1415,
+      "count": 50
+    },
+    "interaction_strength": {
+      "mean": 0.1439,
+      "std": 0.0815,
+      "count": 4
+    },
+    "attention_rollout_entropy": {
+      "mean": 2.5831,
+      "std": 0.4714,
+      "count": 50
+    }
+  },
+  "improved": {
+    "ci": {
+      "mean": 0.5234,
+      "std": 0.1337,
+      "count": 50
+    },
+    "mss": {
+      "mean": 5.68,
+      "std": 4.2541,
+      "count": 50
+    },
+    "loo": {
+      "mean": 0.1105,
+      "std": 0.139,
+      "count": 50
+    },
+    "interaction_strength": {
+      "mean": 0.0382,
+      "std": 0.0508,
+      "count": 4
+    },
+    "attention_rollout_entropy": {
+      "mean": 2.5897,
+      "std": 0.4836,
+      "count": 50
+    }
+  }
+}

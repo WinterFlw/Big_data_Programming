@@ -1,0 +1,1600 @@
+{
+  "baseline": {
+    "comprehensiveness_mean": 0.2986,
+    "sufficiency_mean": 0.24,
+    "comprehensiveness_std": 0.3165,
+    "sufficiency_std": 0.276,
+    "sample_count": 50,
+    "details": [
+      {
+        "sample_idx": 0,
+        "text": "some suggestions a visit to qcurtius com for his excellent articles podcasts on our culture greats he also favours muzzie classics but we can almost forgive him that in view of his splendid scholarship in white classics <wink> on war check out william lind his book recommendations",
+        "top_tokens": [
+          "mu",
+          "e",
+          "recommendations",
+          "but",
+          "zzi"
+        ],
+        "original_prob": 0.4338,
+        "removed_prob": 0.2232,
+        "kept_prob": 0.6716,
+        "comprehensiveness": 0.2107,
+        "sufficiency": -0.2377
+      },
+      {
+        "sample_idx": 1,
+        "text": "“ i wanna spank ur creamy ass until it turns pink ” sir i am a negro",
+        "top_tokens": [
+          "am",
+          "negro",
+          "a",
+          "i",
+          "creamy"
+        ],
+        "original_prob": 0.6,
+        "removed_prob": 0.2013,
+        "kept_prob": 0.3381,
+        "comprehensiveness": 0.3986,
+        "sufficiency": 0.2618
+      },
+      {
+        "sample_idx": 2,
+        "text": "made that hoe in <number> hits",
+        "top_tokens": [
+          "ho",
+          ">",
+          "hits",
+          "made",
+          "number"
+        ],
+        "original_prob": 0.5676,
+        "removed_prob": 0.19,
+        "kept_prob": 0.2576,
+        "comprehensiveness": 0.3776,
+        "sufficiency": 0.31
+      },
+      {
+        "sample_idx": 3,
+        "text": "never trust a hoe it me i am the hoe i trusted myself 🤡",
+        "top_tokens": [
+          "ho",
+          "the",
+          "🤡",
+          "a",
+          "trusted"
+        ],
+        "original_prob": 0.5993,
+        "removed_prob": 0.1892,
+        "kept_prob": 0.3644,
+        "comprehensiveness": 0.4101,
+        "sufficiency": 0.2349
+      },
+      {
+        "sample_idx": 4,
+        "text": "time for realjustice bcuz islam is a cancer on humanity that needs to be eradicated not enabled purge deport crusade white europeans have to get their mojo back fireuptheovens",
+        "top_tokens": [
+          "de",
+          "dicated",
+          "islam",
+          "europeans",
+          "is"
+        ],
+        "original_prob": 0.6297,
+        "removed_prob": 0.7504,
+        "kept_prob": 0.6316,
+        "comprehensiveness": -0.1207,
+        "sufficiency": -0.0019
+      },
+      {
+        "sample_idx": 5,
+        "text": "you know these hoes wishy washy they will fuck yo potna and take all of yo gwalla",
+        "top_tokens": [
+          "g",
+          "will",
+          "ho",
+          "they",
+          "wall"
+        ],
+        "original_prob": 0.7855,
+        "removed_prob": 0.1132,
+        "kept_prob": 0.2371,
+        "comprehensiveness": 0.6723,
+        "sufficiency": 0.5483
+      },
+      {
+        "sample_idx": 6,
+        "text": "love brigitte gabriel completely destroys the mainstream media pro islam message and the liberals elites lies about islam and muslims being peaceful",
+        "top_tokens": [
+          "message",
+          "being",
+          "islam",
+          "peaceful",
+          "mainstream"
+        ],
+        "original_prob": 0.7179,
+        "removed_prob": 0.232,
+        "kept_prob": 0.3298,
+        "comprehensiveness": 0.4859,
+        "sufficiency": 0.3881
+      },
+      {
+        "sample_idx": 7,
+        "text": "the terror attack in las vegas is only the beginning if you stupid americans refuse to wake up and take action america will look like sweden in a very short time if you do not elect good people into office and protest radical islam",
+        "top_tokens": [
+          "and",
+          "terror",
+          "islam",
+          "attack",
+          "is"
+        ],
+        "original_prob": 0.64,
+        "removed_prob": 0.1392,
+        "kept_prob": 0.1376,
+        "comprehensiveness": 0.5009,
+        "sufficiency": 0.5024
+      },
+      {
+        "sample_idx": 8,
+        "text": "need to put on my germany jersey can not lose this to this wetback squad",
+        "top_tokens": [
+          "to",
+          "put",
+          "lose",
+          "germany"
+        ],
+        "original_prob": 0.5344,
+        "removed_prob": 0.675,
+        "kept_prob": 0.6205,
+        "comprehensiveness": -0.1406,
+        "sufficiency": -0.0861
+      },
+      {
+        "sample_idx": 9,
+        "text": "those two were the first racist in the white house",
+        "top_tokens": [
+          "the",
+          "house",
+          "white",
+          "in",
+          "those"
+        ],
+        "original_prob": 0.6501,
+        "removed_prob": 0.2422,
+        "kept_prob": 0.3473,
+        "comprehensiveness": 0.4078,
+        "sufficiency": 0.3028
+      },
+      {
+        "sample_idx": 10,
+        "text": "<user> notice how all the negros i in this thread ugly asf lmao",
+        "top_tokens": [
+          "negro",
+          "<",
+          "user",
+          "ugly",
+          "l"
+        ],
+        "original_prob": 0.6195,
+        "removed_prob": 0.4459,
+        "kept_prob": 0.1179,
+        "comprehensiveness": 0.1735,
+        "sufficiency": 0.5016
+      },
+      {
+        "sample_idx": 11,
+        "text": "<user> <user> this is why no one likes ugly faggots out of my sight you roach",
+        "top_tokens": [
+          "gg",
+          "fa",
+          "ots",
+          ">",
+          "sight"
+        ],
+        "original_prob": 0.4964,
+        "removed_prob": 0.7323,
+        "kept_prob": 0.6619,
+        "comprehensiveness": -0.2359,
+        "sufficiency": -0.1656
+      },
+      {
+        "sample_idx": 12,
+        "text": "imma start blocking anybody that post that lil ugly dyke haitian boy on the tl it disturbing af",
+        "top_tokens": [
+          "dyke",
+          "ma",
+          "im",
+          "ugly",
+          "lil"
+        ],
+        "original_prob": 0.5997,
+        "removed_prob": 0.5815,
+        "kept_prob": 0.7248,
+        "comprehensiveness": 0.0182,
+        "sufficiency": -0.1251
+      },
+      {
+        "sample_idx": 13,
+        "text": "imagine if hollywood held all actors to the same standard as roseanne they d be cancelling shows movies every day remember the hatred targeted at women like melania trump sarah palin sarah hucksbee sanders etc doublestandard doublestandards boycottabc westandwithroseanne",
+        "top_tokens": [
+          "and",
+          "dar",
+          "etc",
+          "with",
+          "rose"
+        ],
+        "original_prob": 0.7405,
+        "removed_prob": 0.2386,
+        "kept_prob": 0.4782,
+        "comprehensiveness": 0.5019,
+        "sufficiency": 0.2623
+      },
+      {
+        "sample_idx": 14,
+        "text": "interestingly i saw an article bemoaning the fact that the smarter a white person is the more likely he is to be racist so i am sure our average iq is higher than that of our race generally so we have a higher proportion of super smart as well",
+        "top_tokens": [
+          "racist",
+          "proportion",
+          "iq",
+          "smart",
+          "as"
+        ],
+        "original_prob": 0.6772,
+        "removed_prob": 0.2889,
+        "kept_prob": 0.2439,
+        "comprehensiveness": 0.3882,
+        "sufficiency": 0.4333
+      },
+      {
+        "sample_idx": 15,
+        "text": "if the jury is fucked up over that white whore retarded cop in texas then they need to get common sense they are spending too much time on the life of a worthless hoe that did not give a damn about jean life fuck that hoe to death hell",
+        "top_tokens": [
+          "ho",
+          "that",
+          "whore",
+          "death",
+          "fuck"
+        ],
+        "original_prob": 0.5357,
+        "removed_prob": 0.1154,
+        "kept_prob": 0.1218,
+        "comprehensiveness": 0.4203,
+        "sufficiency": 0.4139
+      },
+      {
+        "sample_idx": 16,
+        "text": "so when our youngens are grown up and the fight is theres too late our government has indoctrinated them to be queers and dykes forget your ancesters and their achievments 1 1 th <user>",
+        "top_tokens": [
+          "s",
+          "dyke",
+          "ters",
+          "queer"
+        ],
+        "original_prob": 0.503,
+        "removed_prob": 0.3643,
+        "kept_prob": 0.7309,
+        "comprehensiveness": 0.1387,
+        "sufficiency": -0.2279
+      },
+      {
+        "sample_idx": 17,
+        "text": "also that he a faggot and serial mudshark",
+        "top_tokens": [
+          "and",
+          "gg",
+          "fa",
+          "ot",
+          "that"
+        ],
+        "original_prob": 0.5968,
+        "removed_prob": 0.7543,
+        "kept_prob": 0.5742,
+        "comprehensiveness": -0.1575,
+        "sufficiency": 0.0226
+      },
+      {
+        "sample_idx": 18,
+        "text": "i believe the us military is compromised and our enemy why jews own",
+        "top_tokens": [
+          "and",
+          "jews",
+          "own",
+          "the",
+          "i"
+        ],
+        "original_prob": 0.4938,
+        "removed_prob": 0.6113,
+        "kept_prob": 0.6502,
+        "comprehensiveness": -0.1174,
+        "sufficiency": -0.1564
+      },
+      {
+        "sample_idx": 19,
+        "text": "tv a mental ghetto where thought goes to die",
+        "top_tokens": [
+          "thought",
+          "mental",
+          "ghetto",
+          "a",
+          "tv"
+        ],
+        "original_prob": 0.6611,
+        "removed_prob": 0.6332,
+        "kept_prob": 0.6419,
+        "comprehensiveness": 0.0279,
+        "sufficiency": 0.0192
+      },
+      {
+        "sample_idx": 20,
+        "text": "sherry fatso kim is not a threat yet the mil indus complex pretends that he is trump spoke about protecting our friends it is all bullshit",
+        "top_tokens": [
+          "friends",
+          "all",
+          "fat",
+          "sherry",
+          "spoke"
+        ],
+        "original_prob": 0.4846,
+        "removed_prob": 0.5877,
+        "kept_prob": 0.6164,
+        "comprehensiveness": -0.1031,
+        "sufficiency": -0.1317
+      },
+      {
+        "sample_idx": 21,
+        "text": "stoked for civil war part deux redneck revenge this week",
+        "top_tokens": [
+          "week",
+          "d",
+          "part",
+          "neck",
+          "deux"
+        ],
+        "original_prob": 0.5407,
+        "removed_prob": 0.2623,
+        "kept_prob": 0.2527,
+        "comprehensiveness": 0.2784,
+        "sufficiency": 0.288
+      },
+      {
+        "sample_idx": 22,
+        "text": "you bitch niggas actin hard you remind me of sum dykes 😬 🤣",
+        "top_tokens": [
+          "s",
+          "dyke",
+          "bitch",
+          "you"
+        ],
+        "original_prob": 0.5781,
+        "removed_prob": 0.0588,
+        "kept_prob": 0.1957,
+        "comprehensiveness": 0.5193,
+        "sufficiency": 0.3824
+      },
+      {
+        "sample_idx": 23,
+        "text": "good she deserved it i have no sympathy for these assholes who are destroying what white men built if these jackasses think 3 rd world men are going to make the world a better place she got her better place",
+        "top_tokens": [
+          "s",
+          "men",
+          "asse",
+          "asshole",
+          "who"
+        ],
+        "original_prob": 0.5687,
+        "removed_prob": 0.7309,
+        "kept_prob": 0.6808,
+        "comprehensiveness": -0.1622,
+        "sufficiency": -0.1121
+      },
+      {
+        "sample_idx": 24,
+        "text": "u niggers r coonin for that kanye shit",
+        "top_tokens": [
+          "u",
+          "ni",
+          "r",
+          "kanye",
+          "gger"
+        ],
+        "original_prob": 0.4136,
+        "removed_prob": 0.0991,
+        "kept_prob": 0.1533,
+        "comprehensiveness": 0.3146,
+        "sufficiency": 0.2604
+      },
+      {
+        "sample_idx": 25,
+        "text": "perhaps because she a screaming ugly overweight retarded black nigger whose favorite snack is a buffalo turd",
+        "top_tokens": [
+          "buffalo",
+          "ni",
+          "ugly",
+          "gger",
+          "black"
+        ],
+        "original_prob": 0.8847,
+        "removed_prob": 0.1459,
+        "kept_prob": 0.7433,
+        "comprehensiveness": 0.7388,
+        "sufficiency": 0.1414
+      },
+      {
+        "sample_idx": 26,
+        "text": "i understand it took hussein a long time to die a fitting ending for a sand nigger",
+        "top_tokens": [
+          "die",
+          "for",
+          "ni",
+          "ending",
+          "gger"
+        ],
+        "original_prob": 0.9159,
+        "removed_prob": 0.1114,
+        "kept_prob": 0.7913,
+        "comprehensiveness": 0.8044,
+        "sufficiency": 0.1246
+      },
+      {
+        "sample_idx": 27,
+        "text": "real niggahs do not get in to that",
+        "top_tokens": [
+          "to",
+          "not",
+          "that",
+          "gga",
+          "ni"
+        ],
+        "original_prob": 0.8618,
+        "removed_prob": 0.2483,
+        "kept_prob": 0.3038,
+        "comprehensiveness": 0.6135,
+        "sufficiency": 0.558
+      },
+      {
+        "sample_idx": 28,
+        "text": "you went behind my back for a sophomore yet shes playing you by fw one of your homeboys 💀 which you dont even know about still but ok 😆",
+        "top_tokens": [
+          "ok",
+          "😆",
+          "but",
+          "still",
+          "boys"
+        ],
+        "original_prob": 0.712,
+        "removed_prob": 0.1965,
+        "kept_prob": 0.3269,
+        "comprehensiveness": 0.5155,
+        "sufficiency": 0.3851
+      },
+      {
+        "sample_idx": 29,
+        "text": "one of hollywood biggest cunts and a nigger lover for good measure",
+        "top_tokens": [
+          "good",
+          "ni",
+          "cu",
+          "a",
+          "gger"
+        ],
+        "original_prob": 0.8861,
+        "removed_prob": 0.1196,
+        "kept_prob": 0.7515,
+        "comprehensiveness": 0.7665,
+        "sufficiency": 0.1346
+      },
+      {
+        "sample_idx": 30,
+        "text": "<user> idk man apparently you gotta be a queer to have morals we all must be gay then only explanation",
+        "top_tokens": [
+          "gotta",
+          "gay",
+          "<",
+          "all",
+          "man"
+        ],
+        "original_prob": 0.506,
+        "removed_prob": 0.7254,
+        "kept_prob": 0.6428,
+        "comprehensiveness": -0.2194,
+        "sufficiency": -0.1368
+      },
+      {
+        "sample_idx": 31,
+        "text": "hmhmhm now i can not pay off rent for a few more months mumbling to himself he d toss a shiny jewel into the air before catching it",
+        "top_tokens": [
+          "shiny",
+          "jewel",
+          "it",
+          "air",
+          "catching"
+        ],
+        "original_prob": 0.8783,
+        "removed_prob": 0.1888,
+        "kept_prob": 0.4187,
+        "comprehensiveness": 0.6895,
+        "sufficiency": 0.4596
+      },
+      {
+        "sample_idx": 32,
+        "text": "this is the most retarded thing you will see today you are welcome 🐸",
+        "top_tokens": [
+          "tar",
+          "re",
+          "🐸",
+          "ded",
+          "you"
+        ],
+        "original_prob": 0.8193,
+        "removed_prob": 0.4915,
+        "kept_prob": 0.747,
+        "comprehensiveness": 0.3277,
+        "sufficiency": 0.0723
+      },
+      {
+        "sample_idx": 33,
+        "text": "nigger can not say that on twitter btw this is why i gotongab",
+        "top_tokens": [
+          "can",
+          "not",
+          "gger",
+          "twitter",
+          "ni"
+        ],
+        "original_prob": 0.8226,
+        "removed_prob": 0.0949,
+        "kept_prob": 0.7998,
+        "comprehensiveness": 0.7277,
+        "sufficiency": 0.0228
+      },
+      {
+        "sample_idx": 34,
+        "text": "i will apologize for calling you a muslim if you are not one but the talmud does not represent traditional judaism anyway it represents the mongrelization that occurred in babylon and yes the arabs were infected by the same",
+        "top_tokens": [
+          "same",
+          "arabs",
+          "were",
+          "in",
+          "muslim"
+        ],
+        "original_prob": 0.5432,
+        "removed_prob": 0.6202,
+        "kept_prob": 0.6683,
+        "comprehensiveness": -0.077,
+        "sufficiency": -0.1251
+      },
+      {
+        "sample_idx": 35,
+        "text": "no because the nigger word should only be used by blax when whites use it they should be killed",
+        "top_tokens": [
+          "should",
+          "only",
+          "be",
+          "gger",
+          "ni"
+        ],
+        "original_prob": 0.9232,
+        "removed_prob": 0.129,
+        "kept_prob": 0.7399,
+        "comprehensiveness": 0.7942,
+        "sufficiency": 0.1833
+      },
+      {
+        "sample_idx": 36,
+        "text": "never let a nigga with no money disrespect you that ’ ghetto 🥴",
+        "top_tokens": [
+          "🥴",
+          "ghetto",
+          "money",
+          "with",
+          "no"
+        ],
+        "original_prob": 0.7349,
+        "removed_prob": 0.7645,
+        "kept_prob": 0.6295,
+        "comprehensiveness": -0.0296,
+        "sufficiency": 0.1054
+      },
+      {
+        "sample_idx": 37,
+        "text": "<user> <user> plato would have fucking hated jordan peterson",
+        "top_tokens": [
+          "jordan",
+          "hated",
+          "<",
+          ">"
+        ],
+        "original_prob": 0.867,
+        "removed_prob": 0.1955,
+        "kept_prob": 0.2965,
+        "comprehensiveness": 0.6715,
+        "sufficiency": 0.5705
+      },
+      {
+        "sample_idx": 38,
+        "text": "nobody who knows jews likes jews even jews hate jews",
+        "top_tokens": [
+          "hate",
+          "jews",
+          "nobody",
+          "likes",
+          "knows"
+        ],
+        "original_prob": 0.7696,
+        "removed_prob": 0.1283,
+        "kept_prob": 0.595,
+        "comprehensiveness": 0.6414,
+        "sufficiency": 0.1747
+      },
+      {
+        "sample_idx": 39,
+        "text": "divide you are a fucking spic rapists and criminals get the fuck out beaner",
+        "top_tokens": [
+          "bean",
+          "er",
+          "ic",
+          "sp",
+          "divide"
+        ],
+        "original_prob": 0.9178,
+        "removed_prob": 0.8884,
+        "kept_prob": 0.3964,
+        "comprehensiveness": 0.0294,
+        "sufficiency": 0.5215
+      },
+      {
+        "sample_idx": 40,
+        "text": "<user> <user> yeah make the women take the stairs c",
+        "top_tokens": [
+          "c",
+          "the",
+          "<",
+          "yeah",
+          "user"
+        ],
+        "original_prob": 0.6466,
+        "removed_prob": 0.2826,
+        "kept_prob": 0.4166,
+        "comprehensiveness": 0.3639,
+        "sufficiency": 0.23
+      },
+      {
+        "sample_idx": 41,
+        "text": "<user> <user> are not criminals the “ sworn enemy of the police ” if we are robbed raped attacked we call the police",
+        "top_tokens": [
+          "<",
+          "if",
+          ">",
+          "police"
+        ],
+        "original_prob": 0.8703,
+        "removed_prob": 0.4334,
+        "kept_prob": 0.3268,
+        "comprehensiveness": 0.437,
+        "sufficiency": 0.5435
+      },
+      {
+        "sample_idx": 42,
+        "text": "ibor is dumb boomer kike shill proposition only paul nehlen shall not censor is worth a while",
+        "top_tokens": [
+          "shall",
+          "while",
+          "ke",
+          "en",
+          "ki"
+        ],
+        "original_prob": 0.9211,
+        "removed_prob": 0.9076,
+        "kept_prob": 0.1251,
+        "comprehensiveness": 0.0135,
+        "sufficiency": 0.796
+      },
+      {
+        "sample_idx": 43,
+        "text": "priceless intro to gab i will follow just because you said shithole country lmfao welcome to gab home of the anti semites also home of the muslime and nigger haters <happy>",
+        "top_tokens": [
+          "rs",
+          "happy",
+          "<",
+          "gger",
+          "ni"
+        ],
+        "original_prob": 0.8762,
+        "removed_prob": 0.236,
+        "kept_prob": 0.2784,
+        "comprehensiveness": 0.6401,
+        "sufficiency": 0.5978
+      },
+      {
+        "sample_idx": 44,
+        "text": "no one did it to the niggers you lying kike whore",
+        "top_tokens": [
+          "lying",
+          "ni",
+          "ke",
+          "ki",
+          "gger"
+        ],
+        "original_prob": 0.9211,
+        "removed_prob": 0.8803,
+        "kept_prob": 0.7998,
+        "comprehensiveness": 0.0408,
+        "sufficiency": 0.1213
+      },
+      {
+        "sample_idx": 45,
+        "text": "you are the epitome of stupidity you could not beat the kike vermin alone last time so this time your goal is wait for it to fight the kike vermin alone again and lose again you have the strategic sense hitler did moron",
+        "top_tokens": [
+          "ve",
+          "ke",
+          "ki"
+        ],
+        "original_prob": 0.9164,
+        "removed_prob": 0.9164,
+        "kept_prob": 0.0738,
+        "comprehensiveness": 0.0,
+        "sufficiency": 0.8425
+      },
+      {
+        "sample_idx": 46,
+        "text": "wished you would unmute me nazi faggot <user> you are not even trying anymore bitch",
+        "top_tokens": [
+          "gg",
+          "fa",
+          "anymore",
+          "nazi",
+          "bitch"
+        ],
+        "original_prob": 0.7857,
+        "removed_prob": 0.7698,
+        "kept_prob": 0.6456,
+        "comprehensiveness": 0.0159,
+        "sufficiency": 0.1402
+      },
+      {
+        "sample_idx": 47,
+        "text": "what wonderful news arabs are getting sweet deals and trade with us meanwhile we are over run by low iq shit skins murdering white women and this fucking useless twat wants to play lets make a deal never elect businessmen",
+        "top_tokens": [
+          "wants",
+          "skins",
+          "t",
+          "wat",
+          "murdering"
+        ],
+        "original_prob": 0.8975,
+        "removed_prob": 0.1928,
+        "kept_prob": 0.1599,
+        "comprehensiveness": 0.7047,
+        "sufficiency": 0.7376
+      },
+      {
+        "sample_idx": 48,
+        "text": "dressing your characters in big bud press is now tv shorthand for non denominational queer",
+        "top_tokens": [
+          "al",
+          "short",
+          "is",
+          "denomination",
+          "characters"
+        ],
+        "original_prob": 0.8245,
+        "removed_prob": 0.2848,
+        "kept_prob": 0.4091,
+        "comprehensiveness": 0.5397,
+        "sufficiency": 0.4154
+      },
+      {
+        "sample_idx": 49,
+        "text": "<user> when i see or hear news about any country electing a moslem politician it like getting news of someone dying of a deadly disease then just waiting for their name to show on the obituaries in the coming days weeks or months",
+        "top_tokens": [
+          "or",
+          ">",
+          "<",
+          "sle",
+          "mo"
+        ],
+        "original_prob": 0.827,
+        "removed_prob": 0.8529,
+        "kept_prob": 0.331,
+        "comprehensiveness": -0.0259,
+        "sufficiency": 0.496
+      }
+    ]
+  },
+  "improved": {
+    "comprehensiveness_mean": 0.3497,
+    "sufficiency_mean": 0.2102,
+    "comprehensiveness_std": 0.3111,
+    "sufficiency_std": 0.2168,
+    "sample_count": 50,
+    "details": [
+      {
+        "sample_idx": 0,
+        "text": "some suggestions a visit to qcurtius com for his excellent articles podcasts on our culture greats he also favours muzzie classics but we can almost forgive him that in view of his splendid scholarship in white classics <wink> on war check out william lind his book recommendations",
+        "top_tokens": [
+          "s",
+          "mu",
+          "favour",
+          "e",
+          "zzi"
+        ],
+        "original_prob": 0.8605,
+        "removed_prob": 0.0449,
+        "kept_prob": 0.4312,
+        "comprehensiveness": 0.8157,
+        "sufficiency": 0.4294
+      },
+      {
+        "sample_idx": 1,
+        "text": "“ i wanna spank ur creamy ass until it turns pink ” sir i am a negro",
+        "top_tokens": [
+          "negro",
+          "ur",
+          "ass",
+          "wanna",
+          "creamy"
+        ],
+        "original_prob": 0.4343,
+        "removed_prob": 0.6476,
+        "kept_prob": 0.4209,
+        "comprehensiveness": -0.2133,
+        "sufficiency": 0.0134
+      },
+      {
+        "sample_idx": 2,
+        "text": "made that hoe in <number> hits",
+        "top_tokens": [
+          "ho",
+          "<",
+          "hits",
+          "made",
+          "that"
+        ],
+        "original_prob": 0.7685,
+        "removed_prob": 0.7847,
+        "kept_prob": 0.575,
+        "comprehensiveness": -0.0162,
+        "sufficiency": 0.1935
+      },
+      {
+        "sample_idx": 3,
+        "text": "never trust a hoe it me i am the hoe i trusted myself 🤡",
+        "top_tokens": [
+          "🤡",
+          "e",
+          "ho",
+          "trust"
+        ],
+        "original_prob": 0.7115,
+        "removed_prob": 0.7344,
+        "kept_prob": 0.2578,
+        "comprehensiveness": -0.023,
+        "sufficiency": 0.4537
+      },
+      {
+        "sample_idx": 4,
+        "text": "time for realjustice bcuz islam is a cancer on humanity that needs to be eradicated not enabled purge deport crusade white europeans have to get their mojo back fireuptheovens",
+        "top_tokens": [
+          "de",
+          "white",
+          "islam",
+          "port",
+          "is"
+        ],
+        "original_prob": 0.8027,
+        "removed_prob": 0.2219,
+        "kept_prob": 0.4117,
+        "comprehensiveness": 0.5807,
+        "sufficiency": 0.391
+      },
+      {
+        "sample_idx": 5,
+        "text": "you know these hoes wishy washy they will fuck yo potna and take all of yo gwalla",
+        "top_tokens": [
+          "ho",
+          "yo",
+          "y",
+          "es"
+        ],
+        "original_prob": 0.8145,
+        "removed_prob": 0.2251,
+        "kept_prob": 0.5859,
+        "comprehensiveness": 0.5894,
+        "sufficiency": 0.2286
+      },
+      {
+        "sample_idx": 6,
+        "text": "love brigitte gabriel completely destroys the mainstream media pro islam message and the liberals elites lies about islam and muslims being peaceful",
+        "top_tokens": [
+          "muslims",
+          "liberals",
+          "lies",
+          "islam",
+          "peaceful"
+        ],
+        "original_prob": 0.6944,
+        "removed_prob": 0.5959,
+        "kept_prob": 0.5736,
+        "comprehensiveness": 0.0984,
+        "sufficiency": 0.1208
+      },
+      {
+        "sample_idx": 7,
+        "text": "the terror attack in las vegas is only the beginning if you stupid americans refuse to wake up and take action america will look like sweden in a very short time if you do not elect good people into office and protest radical islam",
+        "top_tokens": [
+          "will",
+          "las",
+          "stupid",
+          "radical",
+          "you"
+        ],
+        "original_prob": 0.6452,
+        "removed_prob": 0.5965,
+        "kept_prob": 0.5636,
+        "comprehensiveness": 0.0487,
+        "sufficiency": 0.0816
+      },
+      {
+        "sample_idx": 8,
+        "text": "need to put on my germany jersey can not lose this to this wetback squad",
+        "top_tokens": [
+          "jersey",
+          "can",
+          "back",
+          "wet",
+          "germany"
+        ],
+        "original_prob": 0.8705,
+        "removed_prob": 0.1785,
+        "kept_prob": 0.7713,
+        "comprehensiveness": 0.692,
+        "sufficiency": 0.0992
+      },
+      {
+        "sample_idx": 9,
+        "text": "those two were the first racist in the white house",
+        "top_tokens": [
+          "racist",
+          "the",
+          "house",
+          "white",
+          "those"
+        ],
+        "original_prob": 0.7372,
+        "removed_prob": 0.415,
+        "kept_prob": 0.5588,
+        "comprehensiveness": 0.3222,
+        "sufficiency": 0.1783
+      },
+      {
+        "sample_idx": 10,
+        "text": "<user> notice how all the negros i in this thread ugly asf lmao",
+        "top_tokens": [
+          "negro",
+          "l",
+          "ma",
+          "ugly",
+          "f"
+        ],
+        "original_prob": 0.5059,
+        "removed_prob": 0.1402,
+        "kept_prob": 0.4623,
+        "comprehensiveness": 0.3657,
+        "sufficiency": 0.0436
+      },
+      {
+        "sample_idx": 11,
+        "text": "<user> <user> this is why no one likes ugly faggots out of my sight you roach",
+        "top_tokens": [
+          "roach",
+          "gg",
+          "user",
+          "fa"
+        ],
+        "original_prob": 0.5919,
+        "removed_prob": 0.5062,
+        "kept_prob": 0.1272,
+        "comprehensiveness": 0.0858,
+        "sufficiency": 0.4648
+      },
+      {
+        "sample_idx": 12,
+        "text": "imma start blocking anybody that post that lil ugly dyke haitian boy on the tl it disturbing af",
+        "top_tokens": [
+          "haitian",
+          "dyke",
+          "blocking",
+          "ugly",
+          "boy"
+        ],
+        "original_prob": 0.6422,
+        "removed_prob": 0.0916,
+        "kept_prob": 0.3735,
+        "comprehensiveness": 0.5506,
+        "sufficiency": 0.2687
+      },
+      {
+        "sample_idx": 13,
+        "text": "imagine if hollywood held all actors to the same standard as roseanne they d be cancelling shows movies every day remember the hatred targeted at women like melania trump sarah palin sarah hucksbee sanders etc doublestandard doublestandards boycottabc westandwithroseanne",
+        "top_tokens": [
+          "d",
+          "sarah",
+          "dar",
+          "ds"
+        ],
+        "original_prob": 0.7573,
+        "removed_prob": 0.7584,
+        "kept_prob": 0.5926,
+        "comprehensiveness": -0.001,
+        "sufficiency": 0.1647
+      },
+      {
+        "sample_idx": 14,
+        "text": "interestingly i saw an article bemoaning the fact that the smarter a white person is the more likely he is to be racist so i am sure our average iq is higher than that of our race generally so we have a higher proportion of super smart as well",
+        "top_tokens": [
+          "super",
+          "racist",
+          "smart",
+          "as",
+          "article"
+        ],
+        "original_prob": 0.4832,
+        "removed_prob": 0.6988,
+        "kept_prob": 0.6952,
+        "comprehensiveness": -0.2156,
+        "sufficiency": -0.212
+      },
+      {
+        "sample_idx": 15,
+        "text": "if the jury is fucked up over that white whore retarded cop in texas then they need to get common sense they are spending too much time on the life of a worthless hoe that did not give a damn about jean life fuck that hoe to death hell",
+        "top_tokens": [
+          "whore",
+          "ho",
+          "tar",
+          "re"
+        ],
+        "original_prob": 0.5135,
+        "removed_prob": 0.57,
+        "kept_prob": 0.5976,
+        "comprehensiveness": -0.0565,
+        "sufficiency": -0.0841
+      },
+      {
+        "sample_idx": 16,
+        "text": "so when our youngens are grown up and the fight is theres too late our government has indoctrinated them to be queers and dykes forget your ancesters and their achievments 1 1 th <user>",
+        "top_tokens": [
+          "s",
+          "forget",
+          "dyke",
+          "your",
+          "queer"
+        ],
+        "original_prob": 0.8419,
+        "removed_prob": 0.1069,
+        "kept_prob": 0.7294,
+        "comprehensiveness": 0.735,
+        "sufficiency": 0.1125
+      },
+      {
+        "sample_idx": 17,
+        "text": "also that he a faggot and serial mudshark",
+        "top_tokens": [
+          "and",
+          "gg",
+          "serial",
+          "fa",
+          "mud"
+        ],
+        "original_prob": 0.638,
+        "removed_prob": 0.2548,
+        "kept_prob": 0.346,
+        "comprehensiveness": 0.3832,
+        "sufficiency": 0.2921
+      },
+      {
+        "sample_idx": 18,
+        "text": "i believe the us military is compromised and our enemy why jews own",
+        "top_tokens": [
+          "and",
+          "jews",
+          "why",
+          "our",
+          "enemy"
+        ],
+        "original_prob": 0.5548,
+        "removed_prob": 0.2733,
+        "kept_prob": 0.4641,
+        "comprehensiveness": 0.2815,
+        "sufficiency": 0.0906
+      },
+      {
+        "sample_idx": 19,
+        "text": "tv a mental ghetto where thought goes to die",
+        "top_tokens": [
+          "thought",
+          "die",
+          "to",
+          "ghetto",
+          "tv"
+        ],
+        "original_prob": 0.7517,
+        "removed_prob": 0.1781,
+        "kept_prob": 0.1072,
+        "comprehensiveness": 0.5736,
+        "sufficiency": 0.6445
+      },
+      {
+        "sample_idx": 20,
+        "text": "sherry fatso kim is not a threat yet the mil indus complex pretends that he is trump spoke about protecting our friends it is all bullshit",
+        "top_tokens": [
+          "friends",
+          "it",
+          "all",
+          "fat",
+          "sherry"
+        ],
+        "original_prob": 0.6587,
+        "removed_prob": 0.1633,
+        "kept_prob": 0.1977,
+        "comprehensiveness": 0.4954,
+        "sufficiency": 0.4609
+      },
+      {
+        "sample_idx": 21,
+        "text": "stoked for civil war part deux redneck revenge this week",
+        "top_tokens": [
+          "red",
+          "stoke",
+          "revenge",
+          "neck",
+          "war"
+        ],
+        "original_prob": 0.7793,
+        "removed_prob": 0.5735,
+        "kept_prob": 0.7923,
+        "comprehensiveness": 0.2058,
+        "sufficiency": -0.013
+      },
+      {
+        "sample_idx": 22,
+        "text": "you bitch niggas actin hard you remind me of sum dykes 😬 🤣",
+        "top_tokens": [
+          "s",
+          "dyke",
+          "hard",
+          "bitch",
+          "ni"
+        ],
+        "original_prob": 0.7634,
+        "removed_prob": 0.2233,
+        "kept_prob": 0.5862,
+        "comprehensiveness": 0.54,
+        "sufficiency": 0.1771
+      },
+      {
+        "sample_idx": 23,
+        "text": "good she deserved it i have no sympathy for these assholes who are destroying what white men built if these jackasses think 3 rd world men are going to make the world a better place she got her better place",
+        "top_tokens": [
+          "white",
+          "men",
+          "destroying",
+          "are"
+        ],
+        "original_prob": 0.5687,
+        "removed_prob": 0.1703,
+        "kept_prob": 0.2508,
+        "comprehensiveness": 0.3984,
+        "sufficiency": 0.3178
+      },
+      {
+        "sample_idx": 24,
+        "text": "u niggers r coonin for that kanye shit",
+        "top_tokens": [
+          "s",
+          "u",
+          "ni",
+          "kanye",
+          "gger"
+        ],
+        "original_prob": 0.395,
+        "removed_prob": 0.133,
+        "kept_prob": 0.3638,
+        "comprehensiveness": 0.2619,
+        "sufficiency": 0.0311
+      },
+      {
+        "sample_idx": 25,
+        "text": "perhaps because she a screaming ugly overweight retarded black nigger whose favorite snack is a buffalo turd",
+        "top_tokens": [
+          "rd",
+          "favorite",
+          "ni",
+          "snack",
+          "gger"
+        ],
+        "original_prob": 0.8379,
+        "removed_prob": 0.232,
+        "kept_prob": 0.8148,
+        "comprehensiveness": 0.6059,
+        "sufficiency": 0.023
+      },
+      {
+        "sample_idx": 26,
+        "text": "i understand it took hussein a long time to die a fitting ending for a sand nigger",
+        "top_tokens": [
+          "understand",
+          "for",
+          "ni",
+          "ending",
+          "gger"
+        ],
+        "original_prob": 0.8341,
+        "removed_prob": 0.3121,
+        "kept_prob": 0.8423,
+        "comprehensiveness": 0.522,
+        "sufficiency": -0.0082
+      },
+      {
+        "sample_idx": 27,
+        "text": "real niggahs do not get in to that",
+        "top_tokens": [
+          "to",
+          "hs",
+          "that",
+          "gga",
+          "ni"
+        ],
+        "original_prob": 0.8641,
+        "removed_prob": 0.1833,
+        "kept_prob": 0.2275,
+        "comprehensiveness": 0.6809,
+        "sufficiency": 0.6366
+      },
+      {
+        "sample_idx": 28,
+        "text": "you went behind my back for a sophomore yet shes playing you by fw one of your homeboys 💀 which you dont even know about still but ok 😆",
+        "top_tokens": [
+          "ok",
+          "😆",
+          "💀",
+          "which",
+          "playing"
+        ],
+        "original_prob": 0.8044,
+        "removed_prob": 0.1633,
+        "kept_prob": 0.5345,
+        "comprehensiveness": 0.6411,
+        "sufficiency": 0.2698
+      },
+      {
+        "sample_idx": 29,
+        "text": "one of hollywood biggest cunts and a nigger lover for good measure",
+        "top_tokens": [
+          "hollywood",
+          "nts",
+          "ni",
+          "lover",
+          "gger"
+        ],
+        "original_prob": 0.8559,
+        "removed_prob": 0.2801,
+        "kept_prob": 0.7706,
+        "comprehensiveness": 0.5757,
+        "sufficiency": 0.0852
+      },
+      {
+        "sample_idx": 30,
+        "text": "<user> idk man apparently you gotta be a queer to have morals we all must be gay then only explanation",
+        "top_tokens": [
+          "gotta",
+          "gay",
+          "we",
+          "then",
+          "apparently"
+        ],
+        "original_prob": 0.583,
+        "removed_prob": 0.7214,
+        "kept_prob": 0.6036,
+        "comprehensiveness": -0.1383,
+        "sufficiency": -0.0206
+      },
+      {
+        "sample_idx": 31,
+        "text": "hmhmhm now i can not pay off rent for a few more months mumbling to himself he d toss a shiny jewel into the air before catching it",
+        "top_tokens": [
+          "shiny",
+          "jewel",
+          "it",
+          "air",
+          "catching"
+        ],
+        "original_prob": 0.8538,
+        "removed_prob": 0.1579,
+        "kept_prob": 0.3619,
+        "comprehensiveness": 0.6959,
+        "sufficiency": 0.4918
+      },
+      {
+        "sample_idx": 32,
+        "text": "this is the most retarded thing you will see today you are welcome 🐸",
+        "top_tokens": [
+          "today",
+          "tar",
+          "re",
+          "ded",
+          "you"
+        ],
+        "original_prob": 0.8756,
+        "removed_prob": 0.2354,
+        "kept_prob": 0.696,
+        "comprehensiveness": 0.6402,
+        "sufficiency": 0.1796
+      },
+      {
+        "sample_idx": 33,
+        "text": "nigger can not say that on twitter btw this is why i gotongab",
+        "top_tokens": [
+          "can",
+          "ni",
+          "twitter",
+          "gger",
+          "bt"
+        ],
+        "original_prob": 0.8699,
+        "removed_prob": 0.1219,
+        "kept_prob": 0.8614,
+        "comprehensiveness": 0.748,
+        "sufficiency": 0.0084
+      },
+      {
+        "sample_idx": 34,
+        "text": "i will apologize for calling you a muslim if you are not one but the talmud does not represent traditional judaism anyway it represents the mongrelization that occurred in babylon and yes the arabs were infected by the same",
+        "top_tokens": [
+          "apologize",
+          "judaism",
+          "will",
+          "anyway",
+          "you"
+        ],
+        "original_prob": 0.4831,
+        "removed_prob": 0.5389,
+        "kept_prob": 0.4973,
+        "comprehensiveness": -0.0558,
+        "sufficiency": -0.0142
+      },
+      {
+        "sample_idx": 35,
+        "text": "no because the nigger word should only be used by blax when whites use it they should be killed",
+        "top_tokens": [
+          "killed",
+          "x",
+          "ni",
+          "whites",
+          "gger"
+        ],
+        "original_prob": 0.9014,
+        "removed_prob": 0.0814,
+        "kept_prob": 0.8653,
+        "comprehensiveness": 0.82,
+        "sufficiency": 0.0361
+      },
+      {
+        "sample_idx": 36,
+        "text": "never let a nigga with no money disrespect you that ’ ghetto 🥴",
+        "top_tokens": [
+          "🥴",
+          "ghetto",
+          "a",
+          "never",
+          "gga"
+        ],
+        "original_prob": 0.6627,
+        "removed_prob": 0.5117,
+        "kept_prob": 0.7761,
+        "comprehensiveness": 0.151,
+        "sufficiency": -0.1134
+      },
+      {
+        "sample_idx": 37,
+        "text": "<user> <user> plato would have fucking hated jordan peterson",
+        "top_tokens": [
+          "<",
+          "fucking",
+          "user",
+          "would"
+        ],
+        "original_prob": 0.8418,
+        "removed_prob": 0.3221,
+        "kept_prob": 0.1948,
+        "comprehensiveness": 0.5196,
+        "sufficiency": 0.647
+      },
+      {
+        "sample_idx": 38,
+        "text": "nobody who knows jews likes jews even jews hate jews",
+        "top_tokens": [
+          "hate",
+          "jews",
+          "nobody",
+          "even"
+        ],
+        "original_prob": 0.5499,
+        "removed_prob": 0.3182,
+        "kept_prob": 0.4617,
+        "comprehensiveness": 0.2317,
+        "sufficiency": 0.0882
+      },
+      {
+        "sample_idx": 39,
+        "text": "divide you are a fucking spic rapists and criminals get the fuck out beaner",
+        "top_tokens": [
+          "bean",
+          "er",
+          "ic",
+          "sp",
+          "divide"
+        ],
+        "original_prob": 0.9009,
+        "removed_prob": 0.8539,
+        "kept_prob": 0.7719,
+        "comprehensiveness": 0.0471,
+        "sufficiency": 0.1291
+      },
+      {
+        "sample_idx": 40,
+        "text": "<user> <user> yeah make the women take the stairs c",
+        "top_tokens": [
+          "c",
+          "yeah",
+          "user",
+          "<"
+        ],
+        "original_prob": 0.7227,
+        "removed_prob": 0.1732,
+        "kept_prob": 0.5412,
+        "comprehensiveness": 0.5495,
+        "sufficiency": 0.1815
+      },
+      {
+        "sample_idx": 41,
+        "text": "<user> <user> are not criminals the “ sworn enemy of the police ” if we are robbed raped attacked we call the police",
+        "top_tokens": [
+          "user",
+          "police",
+          "criminals"
+        ],
+        "original_prob": 0.8861,
+        "removed_prob": 0.1227,
+        "kept_prob": 0.4461,
+        "comprehensiveness": 0.7633,
+        "sufficiency": 0.4399
+      },
+      {
+        "sample_idx": 42,
+        "text": "ibor is dumb boomer kike shill proposition only paul nehlen shall not censor is worth a while",
+        "top_tokens": [
+          "shall",
+          "boom",
+          "ke",
+          "nsor",
+          "ki"
+        ],
+        "original_prob": 0.9039,
+        "removed_prob": 0.8863,
+        "kept_prob": 0.2695,
+        "comprehensiveness": 0.0177,
+        "sufficiency": 0.6345
+      },
+      {
+        "sample_idx": 43,
+        "text": "priceless intro to gab i will follow just because you said shithole country lmfao welcome to gab home of the anti semites also home of the muslime and nigger haters <happy>",
+        "top_tokens": [
+          "e",
+          "ni",
+          "intro",
+          "gger",
+          "muslim"
+        ],
+        "original_prob": 0.8834,
+        "removed_prob": 0.1105,
+        "kept_prob": 0.8118,
+        "comprehensiveness": 0.773,
+        "sufficiency": 0.0716
+      },
+      {
+        "sample_idx": 44,
+        "text": "no one did it to the niggers you lying kike whore",
+        "top_tokens": [
+          "ni",
+          "ke",
+          "ki",
+          "whore",
+          "gger"
+        ],
+        "original_prob": 0.9042,
+        "removed_prob": 0.8907,
+        "kept_prob": 0.8345,
+        "comprehensiveness": 0.0135,
+        "sufficiency": 0.0696
+      },
+      {
+        "sample_idx": 45,
+        "text": "you are the epitome of stupidity you could not beat the kike vermin alone last time so this time your goal is wait for it to fight the kike vermin alone again and lose again you have the strategic sense hitler did moron",
+        "top_tokens": [
+          "ve",
+          "ke",
+          "ki"
+        ],
+        "original_prob": 0.9028,
+        "removed_prob": 0.9028,
+        "kept_prob": 0.2563,
+        "comprehensiveness": 0.0,
+        "sufficiency": 0.6465
+      },
+      {
+        "sample_idx": 46,
+        "text": "wished you would unmute me nazi faggot <user> you are not even trying anymore bitch",
+        "top_tokens": [
+          "gg",
+          "nazi",
+          "bitch",
+          "ot",
+          "<"
+        ],
+        "original_prob": 0.6553,
+        "removed_prob": 0.753,
+        "kept_prob": 0.5994,
+        "comprehensiveness": -0.0976,
+        "sufficiency": 0.056
+      },
+      {
+        "sample_idx": 47,
+        "text": "what wonderful news arabs are getting sweet deals and trade with us meanwhile we are over run by low iq shit skins murdering white women and this fucking useless twat wants to play lets make a deal never elect businessmen",
+        "top_tokens": [
+          "trade",
+          "white",
+          "skins",
+          "with",
+          "murdering"
+        ],
+        "original_prob": 0.889,
+        "removed_prob": 0.3446,
+        "kept_prob": 0.5384,
+        "comprehensiveness": 0.5444,
+        "sufficiency": 0.3506
+      },
+      {
+        "sample_idx": 48,
+        "text": "dressing your characters in big bud press is now tv shorthand for non denominational queer",
+        "top_tokens": [
+          "al",
+          "short",
+          "is",
+          "non",
+          "characters"
+        ],
+        "original_prob": 0.7611,
+        "removed_prob": 0.1057,
+        "kept_prob": 0.4283,
+        "comprehensiveness": 0.6554,
+        "sufficiency": 0.3328
+      },
+      {
+        "sample_idx": 49,
+        "text": "<user> when i see or hear news about any country electing a moslem politician it like getting news of someone dying of a deadly disease then just waiting for their name to show on the obituaries in the coming days weeks or months",
+        "top_tokens": [
+          "someone",
+          ">",
+          "<",
+          "user",
+          "sle"
+        ],
+        "original_prob": 0.7937,
+        "removed_prob": 0.7104,
+        "kept_prob": 0.4554,
+        "comprehensiveness": 0.0833,
+        "sufficiency": 0.3383
+      }
+    ]
+  }
+}

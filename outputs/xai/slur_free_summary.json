@@ -1,0 +1,16 @@
+{
+  "baseline": {
+    "slur_free_accuracy": 0.3376,
+    "mean_prob_drop": 0.3744,
+    "std_prob_drop": 0.4042,
+    "sample_count": 1262,
+    "retention_count": 426
+  },
+  "improved": {
+    "slur_free_accuracy": 0.3368,
+    "mean_prob_drop": 0.3841,
+    "std_prob_drop": 0.3874,
+    "sample_count": 1262,
+    "retention_count": 425
+  }
+}

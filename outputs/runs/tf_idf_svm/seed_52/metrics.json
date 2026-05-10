@@ -1,0 +1,65 @@
+{
+  "display_name": "TF-IDF + SVM",
+  "seed": 52,
+  "best_c": 0.5,
+  "best_val_macro_f1": 0.6242693478491254,
+  "class_weight": {
+    "counts": {
+      "hatespeech": 4151,
+      "offensive": 3830,
+      "normal": 5452
+    },
+    "ratios": {
+      "hatespeech": 0.3090151120375195,
+      "offensive": 0.28511873743765354,
+      "normal": 0.40586615052482694
+    },
+    "minority_ratio": 0.28511873743765354,
+    "use_class_weight": true,
+    "threshold": 0.4,
+    "weights": {
+      "hatespeech": 1.0786958965711073,
+      "offensive": 1.1691035683202784,
+      "normal": 0.8212888236732697
+    }
+  },
+  "metrics": {
+    "accuracy": 0.6582443344620995,
+    "macro_f1": 0.6382406026949242,
+    "macro_precision": 0.6488749346459911,
+    "macro_recall": 0.6397397859188277,
+    "auroc": 0.8137356190273778,
+    "per_class_precision": {
+      "hatespeech": 0.7271214642262895,
+      "offensive": 0.567258883248731,
+      "normal": 0.6522444564629529
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7369308600337268,
+      "offensive": 0.40821917808219177,
+      "normal": 0.7740693196405648
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7319932998324958,
+      "offensive": 0.4747742963356346,
+      "normal": 0.7079542119166422
+    },
+    "confusion_matrix": [
+      [
+        874,
+        121,
+        191
+      ],
+      [
+        196,
+        447,
+        452
+      ],
+      [
+        132,
+        220,
+        1206
+      ]
+    ]
+  }
+}

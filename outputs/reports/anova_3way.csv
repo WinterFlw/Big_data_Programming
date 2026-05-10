@@ -1,0 +1,8 @@
+term,metric,df_num,df_den,sum_sq,f_value,p_value,significant
+family,macro_f1,1,16,0.00014,1.742043,0.205454,False
+use_attention_loss,macro_f1,1,16,1.9e-05,0.235838,0.633812,False
+use_vader,macro_f1,1,16,0.0,0.001345,0.971197,False
+family * use_attention_loss,macro_f1,1,16,5e-06,0.066233,0.800183,False
+family * use_vader,macro_f1,1,16,6e-06,0.078287,0.783217,False
+use_attention_loss * use_vader,macro_f1,1,16,2.4e-05,0.296924,0.593332,False
+family * use_attention_loss * use_vader,macro_f1,1,16,2.9e-05,0.36234,0.555644,False

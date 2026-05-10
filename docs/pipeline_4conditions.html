@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HateSpeachStudy — 4조건 Ablation 파이프라인</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', -apple-system, sans-serif; background: #f0f4f8; color: #2C3E50; padding: 32px; }
+  h1 { text-align: center; font-size: 28px; color: #1B4F72; margin-bottom: 8px; }
+  .subtitle { text-align: center; color: #5D6D7E; font-size: 15px; margin-bottom: 36px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; max-width: 1200px; margin: 0 auto; }
+  .card { background: #fff; border-radius: 16px; padding: 28px 24px; box-shadow: 0 2px 12px rgba(0,0,0,.07); border-top: 5px solid; position: relative; }
+  .card-a { border-color: #7f8c8d; }
+  .card-b { border-color: #e67e22; }
+  .card-c { border-color: #2e86c1; }
+  .card-d { border-color: #1e8449; }
+  .badge { display: inline-block; font-size: 13px; font-weight: 700; padding: 3px 12px; border-radius: 20px; color: #fff; margin-bottom: 12px; }
+  .badge-a { background: #7f8c8d; }
+  .badge-b { background: #e67e22; }
+  .badge-c { background: #2e86c1; }
+  .badge-d { background: #1e8449; }
+  .card h2 { font-size: 18px; margin-bottom: 4px; }
+  .card .desc { font-size: 13px; color: #5D6D7E; margin-bottom: 18px; }
+  .pipeline { display: flex; flex-direction: column; gap: 0; align-items: center; }
+  .step { width: 100%; border-radius: 10px; padding: 12px 16px; text-align: center; font-size: 13.5px; line-height: 1.5; position: relative; }
+  .step-data { background: #eaf2f8; border: 1.5px solid #aed6f1; }
+  .step-aug { background: #fef9e7; border: 1.5px dashed #f0b27a; }
+  .step-model { background: #f4ecf7; border: 1.5px solid #d2b4de; }
+  .step-loss-ce { background: #fadbd8; border: 1.5px solid #f1948a; }
+  .step-loss-attn { background: #fdebd0; border: 1.5px solid #f0b27a; }
+  .step-loss-combined { background: linear-gradient(135deg, #fadbd8 50%, #fdebd0 50%); border: 1.5px solid #e67e22; }
+  .step-xai { background: #e8f8f5; border: 1.5px solid #76d7c4; }
+  .step-eval { background: #eafaf1; border: 1.5px solid #82e0aa; }
+  .arrow { display: flex; justify-content: center; align-items: center; height: 28px; color: #aab; font-size: 20px; }
+  .step b { color: #1B4F72; }
+  .step code { background: rgba(0,0,0,.06); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: 'SF Mono', 'Fira Code', monospace; }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-top: 4px; }
+  .tag-new { background: #e67e22; color: #fff; }
+  .tag-same { background: #d5dbdb; color: #2C3E50; }
+  .highlight { font-weight: 700; }
+  .diff-marker { position: absolute; top: 6px; right: 10px; font-size: 10px; font-weight: 700; color: #e67e22; }
+
+  .legend { max-width: 1200px; margin: 32px auto 0; display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #5D6D7E; }
+  .legend-box { width: 20px; height: 14px; border-radius: 3px; border: 1.5px solid; flex-shrink: 0; }
+
+  .formula-row { max-width: 1200px; margin: 28px auto 0; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+  .formula-card { background: #fff; border-radius: 10px; padding: 14px 16px; text-align: center; box-shadow: 0 1px 6px rgba(0,0,0,.05); }
+  .formula-card .label { font-size: 12px; color: #5D6D7E; margin-bottom: 6px; }
+  .formula-card .eq { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 14px; font-weight: 600; color: #1B4F72; }
+</style>
+</head>
+<body>
+
+<h1>4조건 Ablation 파이프라인 시각화</h1>
+<p class="subtitle">HateSpeachStudy — Loss 구조 × 데이터 증강의 효과를 분리 검증하는 실험 설계</p>
+
+<div class="formula-row">
+  <div class="formula-card">
+    <div class="label">조건 A (Baseline)</div>
+    <div class="eq">L = CE(logits, y)</div>
+  </div>
+  <div class="formula-card" style="border: 2px solid #e67e22;">
+    <div class="label">조건 B (+Attn Loss)</div>
+    <div class="eq">L = CE + α · BCE(attn, r)</div>
+  </div>
+  <div class="formula-card" style="border: 2px solid #2e86c1;">
+    <div class="label">조건 C (+Augmentation)</div>
+    <div class="eq">L = CE(logits, y)</div>
+  </div>
+  <div class="formula-card" style="border: 2px solid #1e8449;">
+    <div class="label">조건 D (병행)</div>
+    <div class="eq">L = CE + α · BCE(attn, r)</div>
+  </div>
+</div>
+
+<div style="height: 28px;"></div>
+
+<div class="grid">
+
+  <!-- ============ 조건 A ============ -->
+  <div class="card card-a">
+    <span class="badge badge-a">조건 A</span>
+    <h2>CE only + 원본 데이터</h2>
+    <p class="desc">현재 기준점 (Baseline) — 기존 파이프라인과 동일</p>
+    <div class="pipeline">
+      <div class="step step-data">
+        <b>HateXplain 원본 데이터</b><br>
+        19,192 samples · 3-class<br>
+        <span class="tag tag-same">변경 없음</span>
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-model">
+        <b>BERT+VADER / RoBERTa+VADER</b><br>
+        forward → logits<br>
+        <code>output_attentions=False</code>
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-loss-ce">
+        <b>Loss = CrossEntropyLoss(logits, labels)</b><br>
+        분류 정확도만 최적화<br>
+        <span class="tag tag-same">기존 방식</span>
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-xai">
+        <b>XAI 3축 검증</b><br>
+        SHAP(서브워드 aggregation) · LIME · Masking<br>
+        Comprehensiveness · Sufficiency · Slur-Free
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-eval">
+        <b>평가</b><br>
+        Macro F1 · Rationale Overlap · 마스킹 지표
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 조건 B ============ -->
+  <div class="card card-b">
+    <span class="badge badge-b">조건 B</span>
+    <h2>CE + α·Attn Loss + 원본 데이터</h2>
+    <p class="desc">Loss 구조만 변경 — Rationale-aware Attention Loss 추가</p>
+    <div class="pipeline">
+      <div class="step step-data">
+        <b>HateXplain 원본 데이터</b><br>
+        19,192 samples · 3-class<br>
+        <span class="tag tag-same">변경 없음</span>
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-model" style="border-color: #e67e22;">
+        <div class="diff-marker">CHANGED</div>
+        <b>BERT+VADER / RoBERTa+VADER</b><br>
+        forward → logits, <span class="highlight" style="color:#e67e22;">cls_attention</span><br>
+        <code>output_attentions=True</code>
+        <span class="tag tag-new">변경</span>
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-loss-combined">
+        <div class="diff-marker">NEW</div>
+        <b>L = CE(logits, y) + α · BCE(attn, rationale)</b><br>
+        분류 정확도 + <span class="highlight" style="color:#e67e22;">attention → rationale 정렬</span><br>
+        <span class="tag tag-new">핵심 변경</span>
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-xai">
+        <b>XAI 3축 검증</b><br>
+        SHAP(서브워드 aggregation) · LIME · Masking<br>
+        Comprehensiveness · Sufficiency · Slur-Free
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-eval">
+        <b>평가 → 가설 H1 검증</b><br>
+        Rationale Overlap ↑? · Comprehensiveness ↑?
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 조건 C ============ -->
+  <div class="card card-c">
+    <span class="badge badge-c">조건 C</span>
+    <h2>CE only + Slur-Masking 증강</h2>
+    <p class="desc">데이터만 변경 — 비하어를 [MASK]로 치환한 augmented 샘플 추가</p>
+    <div class="pipeline">
+      <div class="step step-aug">
+        <div class="diff-marker" style="color:#2e86c1;">NEW</div>
+        <b>HateXplain 원본 + Slur-Masking Augmentation</b><br>
+        원본 19,192 + augmented (p=0.3, 비하어 포함 샘플 대상)<br>
+        <code>"niggers are ..." → "[MASK] are ..."</code><br>
+        <span class="tag tag-new">데이터 증강</span>
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-model">
+        <b>BERT+VADER / RoBERTa+VADER</b><br>
+        forward → logits<br>
+        <code>output_attentions=False</code>
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-loss-ce">
+        <b>Loss = CrossEntropyLoss(logits, labels)</b><br>
+        분류 정확도만 최적화<br>
+        <span class="tag tag-same">기존 방식</span>
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-xai">
+        <b>XAI 3축 검증</b><br>
+        SHAP(서브워드 aggregation) · LIME · Masking<br>
+        Comprehensiveness · Sufficiency · Slur-Free
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-eval">
+        <b>평가 → 가설 H2 검증</b><br>
+        Slur-Free Accuracy ↑? · Prob Drop ↓?
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 조건 D ============ -->
+  <div class="card card-d">
+    <span class="badge badge-d">조건 D</span>
+    <h2>CE + α·Attn Loss + Slur-Masking 증강</h2>
+    <p class="desc">Loss + 데이터 모두 변경 — 시너지 효과 검증</p>
+    <div class="pipeline">
+      <div class="step step-aug">
+        <div class="diff-marker" style="color:#1e8449;">NEW</div>
+        <b>HateXplain 원본 + Slur-Masking Augmentation</b><br>
+        원본 19,192 + augmented (p=0.3, 비하어 포함 샘플 대상)<br>
+        <code>"niggers are ..." → "[MASK] are ..."</code><br>
+        <span class="tag tag-new">데이터 증강</span>
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-model" style="border-color: #1e8449;">
+        <div class="diff-marker" style="color:#1e8449;">CHANGED</div>
+        <b>BERT+VADER / RoBERTa+VADER</b><br>
+        forward → logits, <span class="highlight" style="color:#1e8449;">cls_attention</span><br>
+        <code>output_attentions=True</code>
+        <span class="tag tag-new">변경</span>
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step" style="background: linear-gradient(135deg, #fadbd8 50%, #fdebd0 50%); border: 2px solid #1e8449;">
+        <div class="diff-marker" style="color:#1e8449;">NEW</div>
+        <b>L = CE(logits, y) + α · BCE(attn, rationale)</b><br>
+        분류 정확도 + <span class="highlight" style="color:#1e8449;">attention → rationale 정렬</span><br>
+        <span class="tag tag-new">핵심 변경</span>
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-xai">
+        <b>XAI 3축 검증</b><br>
+        SHAP(서브워드 aggregation) · LIME · Masking<br>
+        Comprehensiveness · Sufficiency · Slur-Free
+      </div>
+      <div class="arrow">▼</div>
+      <div class="step step-eval" style="border-color: #1e8449; border-width: 2px;">
+        <b>평가 → 가설 H3 검증</b><br>
+        <span class="highlight">전 지표 종합 비교 · 시너지 존재 여부</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 범례 -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-box" style="background:#eaf2f8; border-color:#aed6f1;"></div>원본 데이터</div>
+  <div class="legend-item"><div class="legend-box" style="background:#fef9e7; border-color:#f0b27a; border-style:dashed;"></div>증강 데이터</div>
+  <div class="legend-item"><div class="legend-box" style="background:#f4ecf7; border-color:#d2b4de;"></div>모델 forward</div>
+  <div class="legend-item"><div class="legend-box" style="background:#fadbd8; border-color:#f1948a;"></div>CE Loss</div>
+  <div class="legend-item"><div class="legend-box" style="background:linear-gradient(135deg,#fadbd8 50%,#fdebd0 50%); border-color:#f0b27a;"></div>CE + Attn Loss</div>
+  <div class="legend-item"><div class="legend-box" style="background:#e8f8f5; border-color:#76d7c4;"></div>XAI 검증</div>
+  <div class="legend-item"><div class="legend-box" style="background:#eafaf1; border-color:#82e0aa;"></div>평가</div>
+</div>
+
+<!-- 비교 요약 테이블 -->
+<div style="max-width: 1200px; margin: 36px auto 0;">
+  <h2 style="font-size: 20px; color: #1B4F72; margin-bottom: 14px; text-align: center;">조건별 차이 요약</h2>
+  <table style="width: 100%; border-collapse: collapse; font-size: 14px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,.05);">
+    <thead>
+      <tr style="background: #d4e6f1;">
+        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #aed6f1;">구분</th>
+        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #aed6f1;">A (Baseline)</th>
+        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #aed6f1;">B (+Attn Loss)</th>
+        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #aed6f1;">C (+Aug)</th>
+        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #aed6f1;">D (병행)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #eee; font-weight: 600;">Loss 함수</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">CE</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; background: #fef9e7; font-weight: 600;">CE + α·Attn</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">CE</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; background: #eafaf1; font-weight: 600;">CE + α·Attn</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #eee; font-weight: 600;">학습 데이터</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">원본</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">원본</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; background: #ebf5fb; font-weight: 600;">원본 + Aug</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; background: #eafaf1; font-weight: 600;">원본 + Aug</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #eee; font-weight: 600;">output_attentions</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">False</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; font-weight: 600; color: #e67e22;">True</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">False</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; font-weight: 600; color: #1e8449;">True</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #eee; font-weight: 600;">Rationale Mask</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">미사용</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; font-weight: 600; color: #e67e22;">사용</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee;">미사용</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; font-weight: 600; color: #1e8449;">사용</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #eee; font-weight: 600;">검증 가설</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; color: #7f8c8d;">기준점</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; font-weight: 600; color: #e67e22;">H1</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; font-weight: 600; color: #2e86c1;">H2</td>
+        <td style="padding: 10px; text-align: center; border-bottom: 1px solid #eee; font-weight: 600; color: #1e8449;">H3</td>
+      </tr>
+      <tr>
+        <td style="padding: 10px 12px; font-weight: 600;">핵심 질문</td>
+        <td style="padding: 10px; text-align: center; font-size: 12.5px; color: #5D6D7E;">현재 성능은?</td>
+        <td style="padding: 10px; text-align: center; font-size: 12.5px;">Loss가 맥락 학습에<br>도움이 되는가?</td>
+        <td style="padding: 10px; text-align: center; font-size: 12.5px;">데이터 증강만으로도<br>되는가?</td>
+        <td style="padding: 10px; text-align: center; font-size: 12.5px;">둘의 시너지가<br>존재하는가?</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<p style="text-align: center; color: #aab; font-size: 12px; margin-top: 32px;">HateSpeachStudy · 한성대학교 빅데이터프로그래밍 · 2026</p>
+
+</body>
+</html>

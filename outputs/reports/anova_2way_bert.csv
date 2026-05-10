@@ -1,0 +1,4 @@
+term,metric,df_num,df_den,sum_sq,f_value,p_value,significant
+use_attention_loss,macro_f1,1,8,1.9e-05,0.456645,0.518249,False
+use_vader,macro_f1,1,8,0.0,0.002604,0.96055,False
+use_attention_loss * use_vader,macro_f1,1,8,2.4e-05,0.574923,0.470054,False

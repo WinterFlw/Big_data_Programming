@@ -1,0 +1,9 @@
+sample_id,category,baseline_top_tokens,improved_top_tokens,baseline_overlap_at_5,improved_overlap_at_5
+5,fixed_error,"mu, zzi, e, but, recommendations","e, mu, zzi, favour, s",0.2,0.4
+7,fixed_error,"i, creamy, negro, am, a","negro, wanna, ass, creamy, ur",0.4,0.2
+44,fixed_error,"hits, ho, >, number, made","ho, <, made, hits, that",0.6,0.4
+52,fixed_error,"🤡, a, trusted, ho, the","ho, ho, trust, e, 🤡",0.4,0.2
+63,fixed_error,"dicated, is, islam, europeans, de","de, white, port, islam, is",0.0,0.6
+82,fixed_error,"wall, g, will, ho, they","es, yo, ho, y, y",0.4,0.2
+100,fixed_error,"peaceful, being, message, mainstream, islam","islam, peaceful, liberals, muslims, lies",0.2,1.0
+105,fixed_error,"islam, attack, terror, is, and","stupid, you, las, radical, will",0.4,0.4
