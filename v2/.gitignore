@@ -1,0 +1,19 @@
+# Python caches
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Generated v2 run artifacts
+outputs/*
+!outputs/.gitkeep
+
+# Heavy model artifacts, kept here as a second guard if outputs/ is ever
+# partially unignored for report samples.
+outputs/**/checkpoints/*.pt
+outputs/**/runs/**/*.pt
+outputs/**/runs/**/*.pkl
+
+# Temporary files
+*.tmp
+.DS_Store
