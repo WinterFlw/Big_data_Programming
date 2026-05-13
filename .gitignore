@@ -32,6 +32,17 @@ outputs/vader_features.pkl
 
 # Reference papers (저작권)
 빅데프 참고문헌pdf/
+v1/빅데프 참고문헌pdf/
+
+# v1 legacy generated / large artifacts
+v1/checkpoints/
+v1/models/
+v1/models.zip
+v1/outputs/runs/**/model_*.pt
+v1/outputs/runs/**/model_bundle.pkl
+v1/outputs/runs/**/predictions.pkl
+v1/outputs/data_splits.pkl
+v1/outputs/vader_features.pkl
 
 # IDE
 .vscode/

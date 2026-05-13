@@ -121,6 +121,7 @@
 - [x] VADER feature 재생성 (`./run.sh vader --force`)
 - [x] 구형 v1 checkpoint/model bundle/backup 및 stale benchmark/tuning/xai/dashboard 산출물 제거
 - [x] dashboard Playground를 `models/` 고정 경로에서 `best_models.json` 기반 v2 checkpoint 로더로 전환
+- [x] XAI 한계와 방어선 문서화 (README + v2 명세서)
 - [ ] α/β 그리드 서치 (`./run.sh tune --force`)
 - [ ] 8조건 + D_B target aux 재학습 (`./run.sh benchmark`)
 - [ ] v2.1 XAI 4축 재실행 (`./run.sh xai`)
@@ -139,6 +140,10 @@
 | IS (Shapley interaction) 계산 부담 | 중 | 인지됨 | 50쌍 × 200 샘플로 축소 |
 | L_target multi-task negative transfer 위험 | 중 | 인지됨 | D_B 부가 실험으로 분리, 결과 안 좋으면 한계로 솔직히 보고 |
 | v1 checkpoint/benchmark/xai 산출물 | 높음 | stale | v2.1 구조와 달라 재학습·재생성 필요 |
+| XAI fixed_error 샘플링 편향 | 중 | 문서화됨 | 정량 stratified sample과 정성 fixed_error sample 분리 보강 |
+| VADER 4차원 직접 기여도 미분해 | 중 | 문서화됨 | VADER neutralization/sensitivity 분석 후보 |
+| Top-5 단일 XAI 지표 민감도 | 중 | 문서화됨 | Overlap@K, Faithfulness@K 민감도 분석 후보 |
+| Human rationale 주관성·normal rationale 부재 | 중 | 문서화됨 | Plausibility는 보조 지표로 제한, agreement별 분석 후보 |
 
 ---
 
