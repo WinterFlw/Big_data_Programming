@@ -69,6 +69,18 @@ case visualization cherry-picking 위험 감소
 중간 산출물과 최종 산출물 분리
 ```
 
+### 1.6 XAI evidence bundle stage 명시
+
+Primary, Deep, Ablation XAI 결과를 그대로 흩어 두지 않고 별도 `xai-bundle` stage에서 통합한다.
+
+효과:
+
+```text
+TF-IDF 대비 v2 강점을 "설명 가능한 근거 묶음"으로 방어 가능
+report/dashboard가 raw case가 아니라 계약된 JSON/CSV를 직접 읽을 수 있음
+XAI 결과를 그림 몇 장이 아니라 재현 가능한 산출물 묶음으로 남길 수 있음
+```
+
 ---
 
 ## 2. 바꿔야 할 코드
@@ -131,6 +143,7 @@ run_e2e_xai_ablation()
 select_stratified_xai_samples()
 select_median_seed()
 compute_xai_seed_stability()
+build_xai_evidence_bundle()
 ```
 
 ### 2.5 `utils.py`
@@ -154,6 +167,7 @@ manifest load/save
 run_id 기반 dashboard bundle 생성
 15 seed 통계표 표시
 XAI seed stability 표시
+evidence bundle 요약 표시
 ```
 
 ---
@@ -207,6 +221,7 @@ same sample set across seeds
 representative sample과 fixed_error sample 분리
 median seed 선택 기준 기록
 XAI 실패 run 재시도 가능
+evidence bundle JSON/JSONL/CSV contract 검증
 ```
 
 ### 3.6 최종 출력 검증
@@ -217,6 +232,7 @@ final_report.docx 생성
 dashboard/index.html 생성
 manifest와 report 설정 일치
 모든 표가 v2_15seed artifact를 참조
+xai_claims.json과 xai_dashboard_bundle.json이 report/dashboard 입력과 일치
 ```
 
 ---
@@ -314,4 +330,3 @@ dashboard/index.html
 ```
 
 세 파일이 모두 `outputs/experiments/v2_15seed/` 아래에 존재한다.
-

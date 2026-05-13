@@ -16,6 +16,7 @@ Canonical output root: outputs/experiments/v2_15seed/
 Main CLI: ./run.sh e2e ...
 Config: configs/v2_15seed.json
 Pipeline package: pipeline/
+Runtime code: runtime/
 Design docs: docs/
 ```
 
@@ -32,6 +33,7 @@ docs/02_e2e_pipeline.md
 docs/07_output_and_report_contract.md
 docs/10_code_implementation_notes.md
 docs/11_team_tasking_and_server_run_plan.md
+docs/15_runtime_code_validation_matrix.md
 docs/12_code_commenting_guide.md
 docs/13_commit_message_policy.md
 ```
@@ -52,7 +54,7 @@ docs/13_commit_message_policy.md
 문법 확인:
 
 ```bash
-python3 -m compileall run_experiments.py pipeline
+python3 -m compileall pipeline scripts/validate_commit_message.py
 python3 -m json.tool configs/v2_15seed.json >/tmp/v2_config_check.json
 ```
 
@@ -66,13 +68,16 @@ python3 -m json.tool configs/v2_15seed.json >/tmp/v2_config_check.json
 outputs/experiments/v2_15seed/
 ```
 
-기존 경로는 참고용으로만 쓴다.
+아래 경로는 archive/reference 용도다. 결과 비교를 위해 읽을 수는 있지만,
+새 v2 실행의 입력/출력 기준으로 삼지 않는다.
 
 ```text
 outputs/reports/
 outputs/xai/
 outputs/runs/
 checkpoints/
+../v1/outputs/
+../v1/checkpoints/
 ```
 
 v2 canonical 결과로 쓰면 안 되는 경로:
@@ -82,6 +87,8 @@ outputs/reports
 outputs/xai
 outputs/runs
 checkpoints
+../v1/outputs
+../v1/checkpoints
 ```
 
 ---

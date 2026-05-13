@@ -15,6 +15,20 @@
 4. XAI 지표도 seed 반복 기준으로 안정적인지 확인
 ```
 
+이 문서의 역할은 "성능과 XAI 지표가 통계적으로 반복되는가"를 검증하는 것이다.
+
+```text
+통계 문서가 답하는 질문:
+- 개선이 seed 변동을 넘어서는가?
+- 설명 지표가 반복 가능한가?
+
+통계 문서가 직접 답하지 않는 질문:
+- report/dashboard가 어떤 XAI artifact를 읽어야 하는가?
+- TF-IDF 대비 강점을 어떤 산출물 묶음으로 방어할 것인가?
+```
+
+후자는 `04_xai_protocol.md`, `07_output_and_report_contract.md`, `08_xai_report_template.md`의 `xai-bundle` 계약이 맡는다.
+
 ---
 
 ## 2. Seed 설계
@@ -219,6 +233,24 @@ Attention Loss 단독 효과가 명확하다
 XAI가 개선 원인을 증명했다
 ```
 
+---
+
+## 11. 통계 결과와 evidence bundle의 관계
+
+TF-IDF와 최종 정확도 차이가 크지 않을 가능성은 충분히 있다. 이 경우에도 문서 역할은 분리해서 해석한다.
+
+```text
+03_validation_and_statistics.md:
+  성능 차이가 통계적으로 유의한가?
+  XAI 지표가 seed 반복 기준으로 안정적인가?
+
+04_xai_protocol.md / 07_output_and_report_contract.md / 08_xai_report_template.md:
+  어떤 판단 근거와 취약성을 evidence bundle로 남길 것인가?
+  report/dashboard는 어떤 JSON/CSV를 우선 소비할 것인가?
+```
+
+즉 성능 검정은 v2의 "얼마나 나아졌는가"를 답하고, evidence bundle은 v2의 "무엇을 더 남기는가"를 답한다.
+
 권장 표현:
 
 ```text
@@ -226,4 +258,3 @@ XAI가 개선 원인을 증명했다
 paired comparison 기준 유의한 차이를 보였다.
 효과크기와 신뢰구간을 함께 고려할 때 실질적 개선으로 해석된다.
 ```
-

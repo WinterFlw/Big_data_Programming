@@ -43,8 +43,9 @@ pipeline/runner.py
 가급적 수정하지 않을 파일:
 
 ```text
-experiment_core.py
+runtime/experiment_core.py
 pipeline/xai.py
+pipeline/xai_bundle.py
 pipeline/reporting.py
 ```
 
@@ -141,4 +142,3 @@ fake metrics는 최종 결과로 커밋하지 않는다.
 p-value가 유의하므로 모델이 완전히 개선되었다.
 XAI가 성능 향상을 증명한다.
 ```
-

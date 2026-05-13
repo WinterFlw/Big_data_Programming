@@ -68,7 +68,7 @@ docs/03_validation_and_statistics.md:
   통계 검정과 seed 반복 근거
 
 docs/04_xai_protocol.md:
-  XAI 분석 원칙과 지표
+  XAI 분석 원칙, 지표, evidence bundle 설계
 
 docs/05_improvements_and_open_checks.md:
   구현 전 개선사항과 검증할 것
@@ -143,6 +143,7 @@ docs/agent_tasks/:
 15 seed 반복으로 stochasticity를 반영한다.
 paired statistical test로 조건 차이를 평가한다.
 XAI로 판단 패턴과 rationale alignment를 사후 점검한다.
+마지막에는 xai-bundle이 report/dashboard용 evidence contract를 고정한다.
 ```
 
 ---

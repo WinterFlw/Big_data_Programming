@@ -28,6 +28,7 @@ STAGE_DIRS = [
     "xai/primary",
     "xai/deep/cases",
     "xai/ablation",
+    "xai/evidence_bundle",
     "reports",
     "dashboard",
 ]

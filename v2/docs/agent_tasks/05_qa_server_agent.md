@@ -45,10 +45,11 @@ configs/v2_15seed.json
 가급적 수정하지 않을 파일:
 
 ```text
-experiment_core.py
-experiment_xai.py
+runtime/experiment_core.py
+runtime/experiment_xai.py
 pipeline/statistics.py
 pipeline/xai.py
+pipeline/xai_bundle.py
 pipeline/reporting.py
 ```
 
@@ -73,12 +74,15 @@ split hash와 manifest hash 기록
 아래 명령이 로컬에서 통과해야 한다.
 
 ```bash
-python3 -m compileall run_experiments.py pipeline
+python3 -m compileall pipeline scripts/validate_commit_message.py
 python3 -m json.tool configs/v2_15seed.json >/tmp/v2_config_check.json
 ./run.sh e2e --help
 ./run.sh e2e plan --run-id v2_15seed --force
 ./run.sh e2e status --run-id v2_15seed
 ./run.sh e2e benchmark --run-id v2_15seed --conditions A_B,D_B --seeds 42 --dry-run
+./run.sh e2e xai-bundle --run-id v2_15seed
+./run.sh e2e report --run-id v2_15seed
+./run.sh e2e dashboard --run-id v2_15seed
 ```
 
 ---
@@ -89,7 +93,7 @@ python3 -m json.tool configs/v2_15seed.json >/tmp/v2_config_check.json
 git status --short
 python3 --version
 nvidia-smi
-python3 -m compileall run_experiments.py pipeline
+python3 -m compileall pipeline scripts/validate_commit_message.py
 ./run.sh e2e status --run-id v2_15seed
 ```
 
@@ -143,4 +147,3 @@ outputs/experiments/v2_15seed/completed_runs.csv
 completed + failed + planned = total
 total = 120
 ```
-

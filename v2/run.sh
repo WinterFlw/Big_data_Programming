@@ -43,6 +43,7 @@ Examples:
   ./run.sh e2e plan --run-id v2_15seed --force
   ./run.sh e2e benchmark --run-id v2_15seed --conditions A_B,D_B --seeds 42 --dry-run
   ./run.sh e2e aggregate --run-id v2_15seed
+  ./run.sh e2e xai-bundle --run-id v2_15seed
   ./run.sh e2e report --run-id v2_15seed
   ./run.sh e2e dashboard --run-id v2_15seed
 EOF

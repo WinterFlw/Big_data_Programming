@@ -44,10 +44,11 @@ pipeline/runner.py
 가급적 수정하지 않을 파일:
 
 ```text
-experiment_core.py
-experiment_xai.py
+runtime/experiment_core.py
+runtime/experiment_xai.py
 pipeline/statistics.py
 pipeline/xai.py
+pipeline/xai_bundle.py
 ```
 
 ---
@@ -131,4 +132,3 @@ best seed 수치를 대표 성능처럼 쓰지 않는다.
 XAI case 하나로 전체 결론을 내리지 않는다.
 top-level outputs/reports를 canonical input으로 쓰지 않는다.
 ```
-

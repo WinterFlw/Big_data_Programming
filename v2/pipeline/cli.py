@@ -49,24 +49,24 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark_parser.add_argument("--conditions", default=None, help="Comma-separated condition subset.")
     benchmark_parser.add_argument("--seeds", default=None, help="Comma-separated seed subset.")
     benchmark_parser.add_argument("--dry-run", action="store_true", help="Only print/write planned units.")
-    benchmark_parser.add_argument("--execute", action="store_true", help="Run the training adapter when implemented.")
-    benchmark_parser.add_argument("--resume", action="store_true", help="Reserved for execution adapter.")
-    benchmark_parser.add_argument("--force", action="store_true", help="Reserved for execution adapter.")
+    benchmark_parser.add_argument("--execute", action="store_true", help="Run selected units through the v2 runtime adapter.")
+    benchmark_parser.add_argument("--resume", action="store_true", help="Skip completed units when executing.")
+    benchmark_parser.add_argument("--force", action="store_true", help="Re-run selected units even when completed.")
 
     # XAI can be even more expensive than training, so each XAI mode is a
     # separate command. That lets us run primary/deep/ablation only after the
     # benchmark and statistics outputs prove the checkpoints are usable.
-    for name in ["xai-primary", "xai-deep", "xai-ablation"]:
+    for name in ["xai-primary", "xai-deep", "xai-ablation", "xai-bundle"]:
         stage_parser = subparsers.add_parser(name, help=f"Plan or execute {name}.")
         _add_common_options(stage_parser)
         stage_parser.add_argument("--dry-run", action="store_true", help="Only show the planned XAI scope.")
-        stage_parser.add_argument("--resume", action="store_true", help="Reserved for execution adapter.")
-        stage_parser.add_argument("--force", action="store_true", help="Reserved for execution adapter.")
+        stage_parser.add_argument("--resume", action="store_true", help="Accepted for future XAI execution support.")
+        stage_parser.add_argument("--force", action="store_true", help="Accepted for future XAI execution support.")
 
     all_parser = subparsers.add_parser("all", help="Create all planned scaffolding artifacts.")
     _add_common_options(all_parser)
     all_parser.add_argument("--force", action="store_true", help="Overwrite existing output manifest.")
-    all_parser.add_argument("--resume", action="store_true", help="Reserved for execution adapter.")
+    all_parser.add_argument("--resume", action="store_true", help="Accepted for command symmetry; all stage is non-expensive.")
 
     return parser
 
@@ -92,6 +92,8 @@ def main(argv: list[str] | None = None) -> int:
             seeds_value=args.seeds,
             dry_run=args.dry_run,
             execute=args.execute,
+            resume=args.resume,
+            force=args.force,
         )
     elif args.stage == "aggregate":
         result = runner.aggregate_stage(args.run_id, args.manifest)
@@ -101,6 +103,8 @@ def main(argv: list[str] | None = None) -> int:
         result = runner.xai_deep(args.run_id, args.manifest, dry_run=args.dry_run)
     elif args.stage == "xai-ablation":
         result = runner.xai_ablation(args.run_id, args.manifest, dry_run=args.dry_run)
+    elif args.stage == "xai-bundle":
+        result = runner.xai_bundle(args.run_id, args.manifest, dry_run=args.dry_run)
     elif args.stage == "report":
         result = runner.report(args.run_id, args.manifest)
     elif args.stage == "dashboard":

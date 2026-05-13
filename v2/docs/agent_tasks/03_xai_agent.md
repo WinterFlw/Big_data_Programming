@@ -23,6 +23,7 @@ docs/08_xai_report_template.md
 docs/07_output_and_report_contract.md
 docs/11_team_tasking_and_server_run_plan.md
 docs/agent_tasks/00_common_agent_rules.md
+docs/agent_tasks/09_e2e_xai_evidence_bundle_agent.md
 ```
 
 ---
@@ -38,17 +39,23 @@ pipeline/xai.py
 필요 시 수정 가능:
 
 ```text
-experiment_xai.py
 pipeline/schema.py
 pipeline/runner.py
+```
+
+읽기 전용 참고:
+
+```text
+runtime/experiment_xai.py
 ```
 
 가급적 수정하지 않을 파일:
 
 ```text
 pipeline/statistics.py
+pipeline/xai_bundle.py
 pipeline/reporting.py
-experiment_core.py
+runtime/experiment_core.py
 ```
 
 ---
@@ -152,4 +159,3 @@ XAI 결과만으로 모델이 맥락을 완전히 이해한다고 볼 수 있다
 ```text
 XAI 결과는 v2 조건의 판단 패턴이 human rationale과 더 정렬되는 경향을 보였다는 사후 근거로 해석한다.
 ```
-

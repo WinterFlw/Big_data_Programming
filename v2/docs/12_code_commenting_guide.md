@@ -39,7 +39,7 @@ v2 코드는 단순히 돌아가는 코드가 아니라 팀원이 읽고 나눠 
 
 ```python
 # Next implementation point:
-#   - call the legacy train_neural_model adapter
+#   - call the v2-local train_neural_model adapter
 #   - redirect checkpoints into unit.run_dir
 #   - honor --resume before launching a GPU job
 ```
@@ -73,7 +73,7 @@ output path decision
 statistics assumption
 XAI sampling rule
 checkpoint loading/saving
-legacy experiment_core.py adapter boundary
+v2/runtime experiment_core.py adapter boundary
 ```
 
 ---
@@ -99,4 +99,3 @@ run_id output root를 지키는 이유가 설명되어 있는가?
 statistics/XAI의 가정이 코드 근처에 적혀 있는가?
 다음 구현자가 이어받을 위치가 명확한가?
 ```
-

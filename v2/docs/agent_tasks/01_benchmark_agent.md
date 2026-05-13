@@ -9,7 +9,7 @@
 ```text
 당신은 HateSpeachStudy v2_15seed 파이프라인의 Benchmark 담당 에이전트입니다.
 목표는 ./run.sh e2e benchmark --run-id v2_15seed --conditions A_B --seeds 42 --execute 명령이 실제 학습 1개를 수행하게 만드는 것입니다.
-기존 experiment_core.py의 학습 로직을 재사용하되, 모든 v2 산출물은 outputs/experiments/v2_15seed/ 아래에 저장되어야 합니다.
+기존 runtime/experiment_core.py의 학습 로직을 참고하거나 adapter로 재사용하되, 모든 v2 산출물은 outputs/experiments/v2_15seed/ 아래에 저장되어야 합니다.
 역할 밖 파일 수정은 최소화하고, 수정 이유를 명확히 기록하세요.
 ```
 
@@ -35,6 +35,7 @@ docs/agent_tasks/00_common_agent_rules.md
 
 ```text
 pipeline/runner.py
+pipeline/training_adapter.py
 pipeline/artifacts.py
 pipeline/schema.py
 ```
@@ -42,8 +43,14 @@ pipeline/schema.py
 필요 시 수정 가능:
 
 ```text
-experiment_core.py
 configs/v2_15seed.json
+```
+
+읽기 전용 참고:
+
+```text
+runtime/experiment_core.py
+runtime/run_experiments.py
 ```
 
 가급적 수정하지 않을 파일:
@@ -51,6 +58,7 @@ configs/v2_15seed.json
 ```text
 pipeline/statistics.py
 pipeline/xai.py
+pipeline/xai_bundle.py
 pipeline/reporting.py
 ```
 
@@ -123,4 +131,3 @@ full 120-run benchmark를 임의 실행하지 않는다.
 기존 checkpoints/를 v2 checkpoint root로 쓰지 않는다.
 condition별 hyperparameter를 임의로 다르게 주지 않는다.
 ```
-

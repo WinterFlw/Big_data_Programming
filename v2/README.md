@@ -1,92 +1,78 @@
 # v2 Workspace
 
-> 이 폴더가 v2 작업의 새 기준점이다. 팀원은 여기만 열고 시작한다.
+> v2는 현재 연구의 단일 기준 작업 공간이다. 팀원은 v1을 열지 않고 `v2/` 안의 코드와 문서만 기준으로 작업한다.
 
 ---
 
-## 1. 왜 새 폴더인가
+## 1. 원칙
 
-과거 루트에 섞여 있던 1차 파이프라인, 기존 산출물, 발표 문서는 `../v1/`로 이동했다.
-이 폴더는 `v2_15seed` 실험을 위해 필요한 현재 기준 작업 공간이다.
+```text
+v1/은 archive다.
+v2 실행 중 v1 코드를 import하지 않는다.
+학습/추론/XAI runtime은 v2/runtime/에 둔다.
+end-to-end orchestration은 v2/pipeline/에 둔다.
+모든 새 산출물은 v2/outputs/experiments/v2_15seed/ 아래에 둔다.
+```
+
+과거 루트에 섞여 있던 1차 파이프라인, 기존 산출물, 발표 문서는 `../v1/`로 이동했다. v2 실행에 필요한 학습/XAI/대시보드 코드는 `runtime/` 아래에 복사되어 있으므로, v2는 독립 실행 기준으로 검증한다.
+
+---
+
+## 2. 폴더 구조
 
 ```text
 v2/
   README.md
   run.sh
+  requirements.txt
   configs/
   docs/
+  ai_skills/
   pipeline/
+  runtime/
   outputs/
   scripts/
 ```
 
+| 위치 | 책임 |
+|---|---|
+| `configs/` | `v2_15seed` 실행 설정 |
+| `docs/` | 모델 정의, E2E 설계, 통계, XAI, 서버 실행, 업무 분담 |
+| `docs/agent_tasks/` | 팀원이 AI 에이전트에게 줄 역할별 지시서 |
+| `ai_skills/` | Codex, Claude, Gemini, Cursor, Antigravity 공용 AI 작업 지시서 |
+| `pipeline/` | stage orchestration, manifest/status, adapter, 통계, report/dashboard |
+| `runtime/` | 실제 학습, 평가, 추론, XAI, 대시보드 실행 코드 |
+| `outputs/` | v2 canonical 산출물 위치 |
+| `scripts/` | 커밋 훅과 보조 검증 스크립트 |
+
 ---
 
-## 2. 먼저 볼 것
+## 3. 빠른 실행
 
-처음 온 사람은 아래 순서로 읽는다.
+repo root에서 실행:
 
-```text
-README.md
-docs/00_reading_order.md
-docs/01_model_definition.md
-docs/02_e2e_pipeline.md
-docs/10_code_implementation_notes.md
-docs/11_team_tasking_and_server_run_plan.md
-docs/12_code_commenting_guide.md
-docs/13_commit_message_policy.md
-docs/agent_tasks/README.md
+```bash
+./v2/run.sh e2e status --run-id v2_15seed
+./v2/run.sh e2e plan --run-id v2_15seed --force
+./v2/run.sh e2e benchmark --run-id v2_15seed --conditions A_B,D_B --seeds 42 --dry-run
 ```
 
-역할별 에이전트를 쓸 사람은 `docs/agent_tasks/`에서 자기 역할 문서를 고른다.
-
----
-
-## 3. 실행 방법
-
-이 폴더 안에서 실행한다.
+`v2/` 안에서 실행:
 
 ```bash
 cd v2
 ./run.sh e2e status --run-id v2_15seed
-./run.sh e2e plan --run-id v2_15seed --force
-./run.sh e2e benchmark --run-id v2_15seed --conditions A_B,D_B --seeds 42 --dry-run
 ```
 
-또는 repo root에서 실행한다.
+서버 virtualenv를 명시할 때:
 
 ```bash
-./v2/run.sh e2e status --run-id v2_15seed
+PYTHON_BIN=/path/to/venv/bin/python ./run.sh e2e status --run-id v2_15seed
 ```
 
 ---
 
-## 4. 폴더별 책임
-
-| 폴더 | 역할 |
-|---|---|
-| `configs/` | v2 실행 manifest/config |
-| `docs/` | v2 설계, 통계, XAI, 서버 실행, 팀 업무 문서 |
-| `docs/agent_tasks/` | 팀원이 에이전트에게 줄 역할별 지시서 |
-| `pipeline/` | v2 전용 orchestration 코드 |
-| `outputs/` | v2 실행 산출물 |
-| `scripts/` | 커밋 훅/검증 등 보조 스크립트 |
-
----
-
-## 5. Canonical output
-
-이 새 workspace 안에서는 canonical output이 아래다.
-
-```text
-v2/outputs/experiments/v2_15seed/
-```
-
-문서와 코드 안의 `outputs/experiments/v2_15seed/`는 `v2/` 기준 상대 경로다.
-
----
-
-## 6. 현재 코드 상태
+## 4. 현재 코드 상태
 
 현재 가능한 것:
 
@@ -94,38 +80,139 @@ v2/outputs/experiments/v2_15seed/
 manifest 생성
 execution_status.csv 생성
 120개 condition x seed planned unit 생성
-benchmark aggregate 골격 생성
-XAI 산출물 골격 생성
-report/dashboard 초안 생성
+benchmark --execute adapter 연결
+metrics/history/config/predictions/checkpoint v2 output 정규화 경로 준비
+aggregate/statistics CSV 생성
+paired test / Holm / CI / effect size 계산
+XAI stage별 산출물 골격 생성
+xai-bundle stage 생성
+report/dashboard scaffold 생성
 ```
 
-아직 실제 학습 실행은 연결 전이다.
-다음 구현 1순위는 `pipeline/runner.py`의 `benchmark --execute` adapter다.
-
----
-
-## 7. 팀원에게 줄 최소 지시
+아직 실제로 수행하지 않은 것:
 
 ```text
-v2/ 폴더만 기준으로 작업하세요.
-공통 규칙은 docs/agent_tasks/00_common_agent_rules.md를 읽고,
-자기 역할 문서는 docs/agent_tasks/에서 고르세요.
-모든 산출물은 v2/outputs/experiments/v2_15seed/ 아래에 저장해야 합니다.
-코드 주석은 docs/12_code_commenting_guide.md 기준을 따르세요.
-커밋 메시지는 docs/13_commit_message_policy.md 기준을 따르세요.
+A_B seed 42 실제 학습 smoke
+A_B/D_B seed 42 paired smoke
+full 8 conditions x 15 seeds benchmark
+실제 SHAP/LIME/faithfulness XAI 계산
+실제 결과 기반 final report/dashboard 작성
+```
+
+다음 gate는 아래 명령이다.
+
+```bash
+PYTHON_BIN=/path/to/venv/bin/python ./run.sh e2e benchmark --run-id v2_15seed --conditions A_B --seeds 42 --execute --resume
 ```
 
 ---
 
-## 8. 커밋 메시지 훅 설치
+## 5. End-to-End Flow
 
-v2 커밋 메시지 규칙을 로컬 Git hook으로 적용한다.
+```text
+benchmark
+-> aggregate
+-> xai-primary
+-> xai-deep
+-> xai-ablation
+-> xai-bundle
+-> report
+-> dashboard
+```
+
+v2의 목표는 단순 성능표가 아니다. 15 seed 통계 검증과 full XAI evidence bundle을 함께 남겨, “얼마나 나아졌는가”와 “무엇을 더 남기는가”를 동시에 답한다.
+
+핵심 산출물:
+
+```text
+outputs/experiments/v2_15seed/benchmark/benchmark_runs.csv
+outputs/experiments/v2_15seed/benchmark/paired_tests_holm.csv
+outputs/experiments/v2_15seed/xai/evidence_bundle/xai_claims.json
+outputs/experiments/v2_15seed/xai/evidence_bundle/xai_dashboard_bundle.json
+outputs/experiments/v2_15seed/reports/final_report.md
+outputs/experiments/v2_15seed/reports/final_report.docx
+outputs/experiments/v2_15seed/dashboard/index.html
+```
+
+---
+
+## 6. 먼저 읽을 문서
+
+처음 합류한 사람:
+
+```text
+docs/00_reading_order.md
+docs/01_model_definition.md
+docs/02_e2e_pipeline.md
+docs/10_code_implementation_notes.md
+docs/11_team_tasking_and_server_run_plan.md
+docs/14_team_assignment_matrix.md
+docs/15_runtime_code_validation_matrix.md
+```
+
+팀원에게 업무를 나눌 사람:
+
+```text
+docs/14_team_assignment_matrix.md
+docs/15_runtime_code_validation_matrix.md
+docs/agent_tasks/10_team_dispatch_prompts.md
+docs/16_portable_ai_agent_skills_guide.md
+docs/v2_end_to_end_team_brief.docx
+```
+
+AI 에이전트를 쓸 사람:
+
+```text
+CLAUDE.md 또는 GEMINI.md
+docs/16_portable_ai_agent_skills_guide.md
+ai_skills/README.md
+ai_skills/common_project_rules.md
+ai_skills/<자기 역할>/SKILL.md
+docs/agent_tasks/README.md
+docs/agent_tasks/00_common_agent_rules.md
+docs/agent_tasks/<자기 역할 문서>.md
+docs/agent_tasks/08_handoff_template.md
+```
+
+---
+
+## 7. 5명 기준 역할
+
+| 사람 | 역할 | 기준 문서 |
+|---|---|---|
+| 1번 | Runtime Training 검증 | `docs/15_runtime_code_validation_matrix.md` |
+| 2번 | Adapter/CLI 검증 | `docs/15_runtime_code_validation_matrix.md` |
+| 3번 | Statistics/Inference Output 검증 | `docs/15_runtime_code_validation_matrix.md` |
+| 4번 | XAI Runtime 검증 | `docs/15_runtime_code_validation_matrix.md` |
+| 5번 | Integration/Report/Server gate | `docs/15_runtime_code_validation_matrix.md` |
+
+작업 하달과 일정은 `docs/14_team_assignment_matrix.md`를 따르고, 실제 코드 검증 범위는 `docs/15_runtime_code_validation_matrix.md`를 따른다.
+
+---
+
+## 8. Full Run 금지 조건
+
+아래가 통과하기 전에는 full 120 benchmark를 시작하지 않는다.
+
+```text
+v2_runtime_import_smoke 통과
+A_B seed 42 단일 smoke 성공
+A_B/D_B seed 42 paired smoke 성공
+metrics.json/history.csv/run_config.json/predictions.csv/checkpoint 생성
+aggregate가 smoke 결과를 읽고 paired row 생성
+checkpoint와 predictions_path가 v2/outputs/experiments/v2_15seed/ 내부를 가리킴
+report/dashboard stage가 실패하지 않음
+```
+
+---
+
+## 9. 커밋 메시지 훅
 
 ```bash
 ./v2/scripts/install_commit_msg_hook.sh
 ```
 
-설치 후 커밋 메시지는 아래 형식을 만족해야 한다.
+커밋 메시지 형식:
 
 ```text
 feat(benchmark): wire v2 smoke-run training adapter

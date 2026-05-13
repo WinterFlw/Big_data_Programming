@@ -24,7 +24,13 @@
 12. 11_team_tasking_and_server_run_plan.md
 13. 12_code_commenting_guide.md
 14. 13_commit_message_policy.md
-15. agent_tasks/README.md
+15. 14_team_assignment_matrix.md
+16. 15_runtime_code_validation_matrix.md
+17. 16_portable_ai_agent_skills_guide.md
+18. ../ai_skills/README.md
+19. ../ai_skills/common_project_rules.md
+20. agent_tasks/README.md
+21. agent_tasks/09_e2e_xai_evidence_bundle_agent.md
 ```
 
 이 순서의 의도:
@@ -123,6 +129,7 @@ XAI 분석자는 아래 순서로 읽는다.
 04_xai_protocol.md
 08_xai_report_template.md
 07_output_and_report_contract.md
+agent_tasks/09_e2e_xai_evidence_bundle_agent.md
 ```
 
 XAI에서 가장 중요한 원칙:
@@ -131,6 +138,7 @@ XAI에서 가장 중요한 원칙:
 XAI는 사후 검증이다.
 XAI는 성능 개선 원인의 절대 증명이 아니다.
 XAI는 모델 판단 패턴이 선행 가설과 일관적인지 확인하는 보조 근거다.
+TF-IDF 대비 강점은 full XAI evidence bundle로 방어한다.
 ```
 
 확인해야 할 질문:
@@ -206,6 +214,8 @@ XAI seed stability 결과
 06_execution_runbook.md
 10_code_implementation_notes.md
 11_team_tasking_and_server_run_plan.md
+14_team_assignment_matrix.md
+15_runtime_code_validation_matrix.md
 07_output_and_report_contract.md
 ```
 
@@ -215,6 +225,8 @@ XAI seed stability 결과
 누가 benchmark execute adapter를 맡는가?
 누가 통계 집계를 맡는가?
 누가 XAI sample과 seed stability를 맡는가?
+누가 xai-bundle stage와 evidence contract를 맡는가?
+누가 report/dashboard에서 evidence bundle을 우선 소비하도록 연결하는가?
 서버에 올리기 전 smoke test 통과 기준은 무엇인가?
 서버에서 전체 실행을 시작해도 되는 중단/진행 기준은 무엇인가?
 실패 run을 누가 확인하고 재실행하는가?
@@ -227,9 +239,15 @@ XAI seed stability 결과
 팀원이 개인 에이전트를 붙여 작업할 때는 아래 순서로 읽는다.
 
 ```text
+../CLAUDE.md 또는 ../GEMINI.md
+16_portable_ai_agent_skills_guide.md
+../ai_skills/README.md
+../ai_skills/common_project_rules.md
+../ai_skills/<자기 역할>/SKILL.md
 agent_tasks/README.md
 agent_tasks/00_common_agent_rules.md
 agent_tasks/<자기 역할 문서>.md
+agent_tasks/10_team_dispatch_prompts.md
 agent_tasks/08_handoff_template.md
 12_code_commenting_guide.md
 13_commit_message_policy.md
@@ -245,6 +263,7 @@ Report/Dashboard: agent_tasks/04_report_dashboard_agent.md
 QA/Server: agent_tasks/05_qa_server_agent.md
 Integration: agent_tasks/06_integration_lead_agent.md
 Review: agent_tasks/07_review_agent.md
+Dispatch Prompts: agent_tasks/10_team_dispatch_prompts.md
 ```
 
 ---
@@ -262,6 +281,7 @@ Review: agent_tasks/07_review_agent.md
 | `Primary XAI` | 핵심 모델 비교를 15 seed 전체에서 수행하는 XAI |
 | `Deep XAI` | median seed에서 더 많은 샘플을 자세히 분석하는 XAI |
 | `Ablation XAI` | 8조건 전체를 가볍게 비교하는 XAI |
+| `xai-bundle` | XAI raw artifact를 report/dashboard용 evidence bundle로 통합하는 stage |
 | `seed stability` | seed가 바뀌어도 설명 패턴이 유지되는지 보는 지표 |
 
 ---

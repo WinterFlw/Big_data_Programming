@@ -68,6 +68,7 @@ outputs/experiments/v2_15seed/
 | `xai-primary` | A_B vs D_B × 15 seed × 200 samples | seed-level XAI metrics |
 | `xai-deep` | median seed × 500 samples | case plots, detailed XAI |
 | `xai-ablation` | 8조건 × median seed × 50 samples | ablation XAI matrix |
+| `xai-bundle` | primary/deep/ablation XAI 산출물을 full evidence bundle로 통합 | report/dashboard용 XAI evidence bundle |
 | `report` | 최종 markdown/docx 생성 | final report |
 | `dashboard` | run_id 기준 dashboard 생성 | index.html |
 
@@ -86,6 +87,7 @@ outputs/experiments/v2_15seed/
 ./run.sh e2e xai-primary --run-id v2_15seed --resume
 ./run.sh e2e xai-deep --run-id v2_15seed
 ./run.sh e2e xai-ablation --run-id v2_15seed
+./run.sh e2e xai-bundle --run-id v2_15seed
 ./run.sh e2e report --run-id v2_15seed
 ./run.sh e2e dashboard --run-id v2_15seed
 ```
@@ -181,4 +183,3 @@ target: outputs/dashboard/index.html
 ```
 
 기본은 run_id 내부를 canonical output으로 둔다.
-

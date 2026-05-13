@@ -58,6 +58,25 @@ cd /path/to/HateSpeachStudy
 - `v2/docs/00_reading_order.md`
 - `v2/docs/agent_tasks/00_common_agent_rules.md`
 
+6. Claude, Gemini, Cursor, Antigravity처럼 Codex Skill을 직접 쓰지 않는 도구에는 portable AI skill 문서를 같이 제공한다.
+
+- `v2/CLAUDE.md`
+- `v2/GEMINI.md`
+- `v2/ai_skills/README.md`
+- `v2/ai_skills/common_project_rules.md`
+- `v2/ai_skills/<역할>/SKILL.md`
+
+역할별 skill은 아래 중 하나를 고른다.
+
+| 역할 | portable skill |
+|---|---|
+| 전체 E2E/통합 | `v2/ai_skills/hatespeech-v2-e2e/SKILL.md` |
+| 학습/benchmark | `v2/ai_skills/hatespeech-v2-benchmark/SKILL.md` |
+| 통계/aggregate | `v2/ai_skills/hatespeech-v2-statistics/SKILL.md` |
+| XAI/evidence bundle | `v2/ai_skills/hatespeech-v2-xai/SKILL.md` |
+| report/dashboard | `v2/ai_skills/hatespeech-v2-report-dashboard/SKILL.md` |
+| 리뷰/서버 preflight | `v2/ai_skills/hatespeech-v2-review/SKILL.md` |
+
 ## 5. Codex CLI 설치 및 사용
 
 Codex CLI는 OpenAI의 터미널 기반 코딩 에이전트다. 저장소 수정, 명령 실행, 검증 루프에 가장 잘 맞는다.
@@ -134,7 +153,7 @@ claude
 
 ```text
 You are reviewing the v2 experiment pipeline.
-Read v2/docs/00_reading_order.md and v2/docs/agent_tasks/07_review_agent.md.
+Read v2/CLAUDE.md, v2/ai_skills/common_project_rules.md, and v2/ai_skills/hatespeech-v2-review/SKILL.md.
 Focus on bugs, reproducibility risks, statistical mistakes, and missing validation.
 Do not rewrite unrelated files.
 ```
@@ -156,7 +175,7 @@ Gemini CLI는 Google Gemini 기반 명령줄 도구다. 문서 정리, 실험 �
 ### 권장 프롬프트
 
 ```text
-Read v2/docs/03_validation_and_statistics.md and v2/docs/04_xai_protocol.md.
+Read v2/GEMINI.md, v2/ai_skills/common_project_rules.md, and v2/ai_skills/hatespeech-v2-statistics/SKILL.md.
 Check whether the 15-seed plan is statistically defensible.
 List assumptions, risks, and what evidence must be collected.
 Do not edit files unless explicitly asked.
@@ -195,6 +214,7 @@ Cursor CLI가 없다면 앱을 열고 `v2/` 폴더를 직접 연다.
 ### 권장 프롬프트
 
 ```text
+Read v2/ai_skills/common_project_rules.md and choose the role skill matching this task.
 Use the existing v2 style.
 Only modify files required for this task.
 Keep comments detailed enough for teammates to understand the pipeline.
@@ -393,4 +413,3 @@ feat(v2): add xai artifact collector
 - Google Antigravity download: https://antigravity.google/download
 - Google Antigravity announcement: https://blog.google/technology/developers/gemini-3-developers/
 - Google Gemini CLI getting started: https://github.com/google-gemini/gemini-cli/blob/main/docs/get-started/index.md
-

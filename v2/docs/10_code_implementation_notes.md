@@ -14,11 +14,13 @@ v2 전용 명령은 아래 형태로 실행한다.
 ./run.sh e2e benchmark --run-id v2_15seed --dry-run
 ./run.sh e2e aggregate --run-id v2_15seed
 ./run.sh e2e xai-primary --run-id v2_15seed
+./run.sh e2e xai-bundle --run-id v2_15seed
 ./run.sh e2e report --run-id v2_15seed
 ./run.sh e2e dashboard --run-id v2_15seed
 ```
 
-기존 v2.1 명령은 그대로 둔다.
+runtime 단독 점검 명령은 보조용으로 남긴다. 팀 작업과 서버 실행의 기준은
+항상 `e2e` 명령이다.
 
 ```bash
 ./run.sh data
@@ -33,6 +35,14 @@ v2 전용 명령은 아래 형태로 실행한다.
 
 ```text
 configs/v2_15seed.json
+runtime/
+  utils.py
+  experiment_core.py
+  experiment_xai.py
+  experiment_dashboard.py
+  experiment_eda.py
+  run_experiments.py
+  dashboard_app.py
 pipeline/
   __init__.py
   paths.py
@@ -41,6 +51,7 @@ pipeline/
   artifacts.py
   statistics.py
   xai.py
+  xai_bundle.py
   reporting.py
   runner.py
   cli.py
@@ -54,12 +65,13 @@ pipeline/
 |---|---|---|
 | `configs/v2_15seed.json` | 15 seed v2 실행 설정 | 실제 GPU 환경에 맞춘 batch/epoch 조정 |
 | `pipeline/cli.py` | `./run.sh e2e ...` CLI | 옵션 추가, help 정리 |
-| `pipeline/runner.py` | stage orchestration | 실제 training adapter 연결 |
+| `pipeline/runner.py` | stage orchestration | smoke/full run gate와 실패 복구 고도화 |
 | `pipeline/manifest.py` | manifest 로드/검증/저장 | manifest schema 강화 |
 | `pipeline/artifacts.py` | run unit과 status 관리 | 실패 run 감지 고도화 |
-| `pipeline/statistics.py` | benchmark 집계 골격 | paired t-test, Wilcoxon, Holm 보정 구현 |
-| `pipeline/xai.py` | XAI 산출물 골격 | SHAP/LIME 실행 함수 연결 |
-| `pipeline/reporting.py` | report/dashboard 생성 골격 | 실제 결과표/그림 삽입 |
+| `pipeline/statistics.py` | benchmark 집계와 paired 통계 | full 결과에서 CI/effect size/p-value 검수 |
+| `pipeline/xai.py` | XAI 산출물 골격 | SHAP/LIME 실행 함수 연결, sample selection, seed stability |
+| `pipeline/xai_bundle.py` | XAI evidence bundle 계약 | primary/deep/ablation 결과를 `xai_claims.json`, `xai_dashboard_bundle.json`으로 통합 |
+| `pipeline/reporting.py` | report/dashboard 생성 골격 | `xai_claims.json`, `xai_dashboard_bundle.json` 우선 연결 |
 | `pipeline/schema.py` | condition metadata와 CSV schema | 산출물 스키마 확정 |
 
 ---
@@ -73,19 +85,24 @@ manifest 생성
 output directory 생성
 condition x seed 실행 계획 생성
 execution_status.csv 생성
+benchmark --execute adapter 연결
+metrics/history/config/predictions/checkpoint v2 output 정규화
 benchmark aggregate용 빈/부분 CSV 생성
+paired test/Holm/effect size/CI 계산
 XAI stage별 산출물 파일 골격 생성
+xai/evidence_bundle/ 계약 반영
+xai-bundle CLI stage 생성
 final_report.md 초안 생성
 dashboard/index.html 초안 생성
 ```
 
-아직 실제 학습 실행은 연결하지 않았다. 의도적으로 `runner.benchmark(..., execute=True)`는 `NotImplementedError`를 내도록 두었다.
+`runner.benchmark(..., execute=True)`는 `pipeline/training_adapter.py`를 통해 `runtime/experiment_core.py`의 v2-local 학습 로직을 호출한다.
 
-이유:
+주의:
 
 ```text
-기존 experiment_core.py의 학습 함수는 존재하지만,
-checkpoint path와 output root를 v2 run_id 내부로 완전히 격리하는 작업이 먼저 필요하다.
+실제 학습 smoke는 아직 이 문서 작업에서 수행하지 않았다.
+서버 또는 로컬 GPU 환경에서 A_B seed 42를 먼저 실행해 학습 시간, 메모리, checkpoint load를 검증해야 한다.
 ```
 
 ---
@@ -95,15 +112,16 @@ checkpoint path와 output root를 v2 run_id 내부로 완전히 격리하는 작
 권장 구현 순서:
 
 ```text
-1. pipeline.runner.benchmark execute adapter 구현
-2. experiment_core.train_neural_model checkpoint output_root 분리
-3. condition x seed 단위 resume/skip 구현
-4. statistics.py paired test/Holm 보정 구현
+1. A_B seed 42 단일 smoke 학습 실행
+2. A_B/D_B seed 42 paired smoke 학습 실행
+3. aggregate가 smoke metrics를 읽어 paired row를 생성하는지 확인
+4. full 120 benchmark 실행
 5. xai.py primary/deep/ablation runner 구현
-6. reporting.py 최종 report/docx/dashboard 연결
+6. xai_bundle.py evidence bundle builder가 실제 XAI artifact를 읽도록 구현
+7. reporting.py 최종 report/docx/dashboard가 evidence bundle을 우선 읽도록 연결
 ```
 
-가장 먼저 할 일은 benchmark 실행 adapter다.
+가장 먼저 할 일은 benchmark adapter smoke 검증이다.
 
 ---
 
@@ -115,13 +133,15 @@ checkpoint path와 output root를 v2 run_id 내부로 완전히 격리하는 작
 Person A: benchmark adapter + resume
 Person B: statistics aggregate + paired tests
 Person C: XAI sample selection + seed stability
-Person D: report/dashboard generation
-Person E: QA/preflight/status checks
+Person D: XAI evidence bundle + XAI runtime 검증
+Person E: report/dashboard + QA/preflight/status checks
 ```
 
 각 담당자는 자기 파일을 중심으로 작업하고, 산출물 계약은 `07_output_and_report_contract.md`를 따른다.
 
 서버 실행 기회가 제한된 상황의 구체적인 업무하달, 서버 preflight, 실패 보고 양식은 `11_team_tasking_and_server_run_plan.md`를 따른다.
+
+팀원별 기간과 코드 책임 범위는 `14_team_assignment_matrix.md`를 따른다.
 
 팀원이 에이전트를 사용해 각자 작업할 경우에는 `agent_tasks/` 아래 역할별 지시서를 사용한다.
 

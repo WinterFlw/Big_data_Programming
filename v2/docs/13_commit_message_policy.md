@@ -34,7 +34,7 @@ What:
 - Redirect run artifacts into v2/outputs/experiments/v2_15seed.
 
 Validation:
-- python3 -m compileall run_experiments.py v2/pipeline
+- python3 -m compileall v2/pipeline v2/scripts/validate_commit_message.py
 - ./v2/run.sh e2e benchmark --run-id v2_15seed --conditions A_B --seeds 42 --execute
 ```
 
@@ -127,4 +127,3 @@ python3 v2/scripts/validate_commit_message.py <commit-msg-file>
 Why/What/Validation 섹션이 없으면 commit-msg hook에서 거절됩니다.
 서버에서 실행하지 않은 검증은 실행한 척 쓰지 말고 "Not run:"으로 이유를 남기세요.
 ```
-

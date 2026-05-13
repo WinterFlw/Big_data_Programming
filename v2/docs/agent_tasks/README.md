@@ -39,6 +39,8 @@
 06_integration_lead_agent.md
 07_review_agent.md
 08_handoff_template.md
+09_e2e_xai_evidence_bundle_agent.md
+10_team_dispatch_prompts.md
 ```
 
 ---
@@ -55,6 +57,8 @@
 | 여러 팀원 작업 통합 | `06_integration_lead_agent.md` |
 | 다른 팀원 코드 검토 | `07_review_agent.md` |
 | 작업 완료 보고 | `08_handoff_template.md` |
+| TF-IDF 대비 강점 방어용 full XAI evidence bundle 구축 | `09_e2e_xai_evidence_bundle_agent.md` |
+| 팀원에게 그대로 보낼 업무 하달 문장 | `10_team_dispatch_prompts.md` |
 
 ---
 
@@ -64,7 +68,7 @@
 
 ```text
 우리는 HateSpeachStudy의 v2_15seed end-to-end 파이프라인을 구현 중입니다.
-기존 v2.1 결과를 덮어쓰지 않고, 모든 새 산출물은 outputs/experiments/v2_15seed/ 아래에 저장해야 합니다.
+실행 기준 코드는 v2/runtime과 v2/pipeline이며, 모든 새 산출물은 outputs/experiments/v2_15seed/ 아래에 저장해야 합니다.
 내 역할은 아래 역할 문서에 정의된 범위만 담당하는 것입니다.
 역할 밖 파일을 수정해야 한다면 먼저 이유를 설명하고, 최소 변경으로 제안해주세요.
 ```
@@ -82,4 +86,3 @@
 통계 결과가 없는데 보고서 문장을 확정적으로 쓰지 않는다.
 XAI를 성능 개선의 인과적 증명처럼 표현하지 않는다.
 ```
-

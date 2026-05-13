@@ -19,11 +19,6 @@ from pathlib import Path
 # stable workspace root regardless of where the command was launched from.
 BASE_DIR = Path(__file__).resolve().parents[1]
 
-# REPO_ROOT is kept only for future adapters that need to import legacy modules
-# from the original repository root, for example experiment_core.py. The v2
-# orchestration itself should prefer BASE_DIR so outputs stay inside v2/.
-REPO_ROOT = BASE_DIR.parent
-
 DEFAULT_RUN_ID = "v2_15seed"
 
 # All v2-owned inputs and outputs are kept under BASE_DIR. This is the point of

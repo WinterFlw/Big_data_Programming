@@ -23,6 +23,7 @@ docs/07_output_and_report_contract.md
 docs/10_code_implementation_notes.md
 docs/11_team_tasking_and_server_run_plan.md
 docs/agent_tasks/00_common_agent_rules.md
+docs/agent_tasks/09_e2e_xai_evidence_bundle_agent.md
 ```
 
 ---
@@ -33,7 +34,6 @@ docs/agent_tasks/00_common_agent_rules.md
 
 ```text
 run.sh
-run_experiments.py
 configs/v2_15seed.json
 pipeline/
 docs/
@@ -59,13 +59,14 @@ CSV schema가 07_output_and_report_contract.md와 맞는가?
 ## 5. 통합 검증 명령
 
 ```bash
-python3 -m compileall run_experiments.py pipeline
+python3 -m compileall pipeline scripts/validate_commit_message.py
 python3 -m json.tool configs/v2_15seed.json >/tmp/v2_config_check.json
 ./run.sh e2e --help
 ./run.sh e2e plan --run-id v2_15seed --force
 ./run.sh e2e status --run-id v2_15seed
 ./run.sh e2e benchmark --run-id v2_15seed --conditions A_B,D_B --seeds 42 --dry-run
 ./run.sh e2e aggregate --run-id v2_15seed
+./run.sh e2e xai-bundle --run-id v2_15seed
 ./run.sh e2e report --run-id v2_15seed
 ./run.sh e2e dashboard --run-id v2_15seed
 ```
@@ -96,4 +97,3 @@ Fail:
 Blocking issue:
 Ready for server smoke: yes/no
 ```
-

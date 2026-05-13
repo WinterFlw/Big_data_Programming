@@ -42,8 +42,10 @@ P1:
 ```text
 resume/skip이 작동하지 않는 문제
 CSV schema 불일치
+training_adapter가 metrics/history/config/predictions/checkpoint 계약을 깨는 문제
 XAI sample set이 seed마다 달라지는 문제
 checkpoint path가 불안정한 문제
+xai-bundle이 report/dashboard 입력 계약을 깨는 문제
 ```
 
 P2:
@@ -60,11 +62,29 @@ P2:
 ## 4. 리뷰 명령
 
 ```bash
-python3 -m compileall run_experiments.py pipeline
+python3 -m compileall pipeline scripts/validate_commit_message.py
 python3 -m json.tool configs/v2_15seed.json >/tmp/v2_config_check.json
 ./run.sh e2e --help
 ./run.sh e2e status --run-id v2_15seed
 ./run.sh e2e benchmark --run-id v2_15seed --conditions A_B,D_B --seeds 42 --dry-run
+./run.sh e2e aggregate --run-id v2_15seed
+./run.sh e2e xai-bundle --run-id v2_15seed
+./run.sh e2e report --run-id v2_15seed
+./run.sh e2e dashboard --run-id v2_15seed
+python3 - <<'PY'
+from pipeline.statistics import compute_paired_tests, apply_holm_correction
+manifest = {'statistics': {'paired_tests': ['A_B:D_B']}}
+rows = []
+for seed, a, d in [(42, .60, .65), (52, .61, .66), (62, .62, .67)]:
+    rows.append({'condition':'A_B','seed':seed,'status':'completed','macro_f1':a,'accuracy':a,'weighted_f1':a})
+    rows.append({'condition':'D_B','seed':seed,'status':'completed','macro_f1':d,'accuracy':d,'weighted_f1':d})
+paired = compute_paired_tests(manifest, rows)
+corrected = apply_holm_correction(paired)
+assert paired[0]['n_pairs'] == 3
+assert round(float(paired[0]['mean_diff']), 4) == 0.05
+assert corrected[0]['p_value_holm'] != ''
+print('paired_statistics_smoke: ok')
+PY
 ```
 
 ---
@@ -91,4 +111,3 @@ Summary
 No blocking findings.
 Remaining risk: full GPU execution has not been validated yet.
 ```
-

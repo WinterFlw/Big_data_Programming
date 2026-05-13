@@ -48,10 +48,10 @@ condition x seed 단위 학습 adapter 연결
 
 Files changed:
 pipeline/runner.py
-experiment_core.py
+pipeline/training_adapter.py
 
 Commands run:
-python3 -m compileall run_experiments.py pipeline
+python3 -m compileall pipeline scripts/validate_commit_message.py
 ./run.sh e2e benchmark --run-id v2_15seed --conditions A_B --seeds 42 --execute
 ./run.sh e2e aggregate --run-id v2_15seed
 
