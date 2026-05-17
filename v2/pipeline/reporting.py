@@ -3,10 +3,17 @@
 The reporting stage should be able to run before full results exist. That lets
 the team verify links, sections, and output paths locally, then rerun the same
 command after the server fills benchmark and XAI artifacts.
+
+v2.1 추가: benchmark_summary / paired_tests_holm / xai_dashboard_bundle 입력이
+들어오면 markdown/docx 본문에 실제 표·문장을 자동으로 삽입한다. 입력이 비어 있으면
+"_no XAI evidence yet — populate by running xai-primary/deep/ablation_" 같은
+placeholder 메시지를 둔다.
 """
 
 from __future__ import annotations
 
+import csv
+import json
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -23,8 +30,175 @@ def _artifact_state(root: Path, relative_path: str) -> str:
     return "present" if (root / relative_path).exists() else "planned"
 
 
+def _read_csv_rows(path: Path) -> list[dict[str, str]]:
+    """Tiny CSV reader: missing file → []."""
+    if not path.exists():
+        return []
+    with open(path, newline="", encoding="utf-8") as handle:
+        return list(csv.DictReader(handle))
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    """Tiny JSON reader: missing or invalid → {}."""
+    if not path.exists():
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except (OSError, ValueError):
+        return {}
+
+
+def _fmt_float(value: Any, digits: int = 4) -> str:
+    """Format a CSV cell that might be empty string into either '?.????' or '-'."""
+    if value in ("", None):
+        return "-"
+    try:
+        return f"{float(value):.{digits}f}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+# ───────────────────────────────────────────────────────────
+# 본문 섹션 자동 렌더링
+# ───────────────────────────────────────────────────────────
+
+
+def _render_benchmark_summary_table(root: Path) -> str:
+    """benchmark_summary.csv 행을 mean ± std + 95% CI 마크다운 표로."""
+    summary_rows = _read_csv_rows(root / "benchmark" / "benchmark_summary.csv")
+    completed_rows = [row for row in summary_rows if row.get("n_seeds") and row["n_seeds"] not in ("", "0")]
+    if not completed_rows:
+        return "_no benchmark results yet — populate by running ./run.sh e2e benchmark --execute_"
+
+    lines = [
+        "| Condition | Backbone | N seeds | Macro F1 (mean ± std) | 95% CI |",
+        "|---|---|---|---|---|",
+    ]
+    for row in completed_rows:
+        mean = _fmt_float(row.get("macro_f1_mean"))
+        std = _fmt_float(row.get("macro_f1_std"))
+        low = _fmt_float(row.get("macro_f1_ci_low"))
+        high = _fmt_float(row.get("macro_f1_ci_high"))
+        lines.append(
+            f"| {row.get('condition', '?')} | {row.get('backbone', '?')} | {row.get('n_seeds', '?')} "
+            f"| {mean} ± {std} | [{low}, {high}] |"
+        )
+    return "\n".join(lines)
+
+
+def _render_paired_tests_table(root: Path, metric: str = "macro_f1") -> str:
+    """paired_tests_holm.csv에서 metric에 해당하는 행만 추출해 표로."""
+    paired_rows = _read_csv_rows(root / "benchmark" / "paired_tests_holm.csv")
+    filtered = [row for row in paired_rows if row.get("metric") == metric and row.get("n_pairs") not in ("", "0")]
+    if not filtered:
+        return f"_no paired tests yet for metric `{metric}` — populate by running ./run.sh e2e aggregate_"
+
+    lines = [
+        "| Comparison | n pairs | Mean diff | p (raw) | p (Holm) | Cohen dz | sig@0.05 |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for row in filtered:
+        lines.append(
+            f"| {row.get('comparison', '?')} | {row.get('n_pairs', '?')} | "
+            f"{_fmt_float(row.get('mean_diff'))} | {_fmt_float(row.get('p_value'))} | "
+            f"{_fmt_float(row.get('p_value_holm'))} | {_fmt_float(row.get('effect_size'))} | "
+            f"{row.get('significant_0_05', '?')} |"
+        )
+    return "\n".join(lines)
+
+
+def _render_anova_table(root: Path, name: str) -> str:
+    """ANOVA CSV 한 파일을 마크다운 표로 렌더."""
+    rows = _read_csv_rows(root / "benchmark" / f"{name}.csv")
+    if not rows:
+        return f"_no ANOVA rows yet for `{name}` — populate by running ./run.sh e2e aggregate after seeds complete_"
+
+    columns = list(rows[0].keys())
+    lines = [
+        "| " + " | ".join(columns) + " |",
+        "|" + "|".join("---" for _ in columns) + "|",
+    ]
+    for row in rows:
+        lines.append("| " + " | ".join(_fmt_float(row.get(col)) for col in columns) + " |")
+    return "\n".join(lines)
+
+
+def _render_xai_claims(root: Path) -> str:
+    """xai_dashboard_bundle.json + xai_claims.json에서 요약 카드·claim을 본문에."""
+    bundle = _read_json(root / "xai" / "evidence_bundle" / "xai_dashboard_bundle.json")
+    claims_payload = _read_json(root / "xai" / "evidence_bundle" / "xai_claims.json")
+    parts: list[str] = []
+
+    summary_cards = bundle.get("summary_cards") or []
+    if summary_cards:
+        parts.append("### Summary Cards")
+        parts.append("")
+        for card in summary_cards:
+            title = card.get("title", "?")
+            value = card.get("value", "?")
+            source = card.get("source", "?")
+            parts.append(f"- **{title}**: {value} (source: `{source}`)")
+        parts.append("")
+
+    claims = claims_payload.get("claims") or []
+    if claims:
+        parts.append("### Statistically-supported Claims")
+        parts.append("")
+        parts.append("| ID | Strength | Statement | Source |")
+        parts.append("|---|---|---|---|")
+        for claim in claims:
+            sources = ", ".join(f"`{src}`" for src in claim.get("source_artifacts", []))
+            parts.append(
+                f"| {claim.get('id', '?')} | {claim.get('strength', '?')} | "
+                f"{claim.get('text', '?')} | {sources} |"
+            )
+
+    if not parts:
+        return (
+            "_no XAI evidence yet — populate by running "
+            "`./run.sh e2e xai-primary/xai-deep/xai-ablation` followed by `./run.sh e2e xai-bundle`._"
+        )
+    return "\n".join(parts)
+
+
+def _render_seed_stability(root: Path) -> str:
+    """seed_stability.csv 행을 표로."""
+    rows = _read_csv_rows(root / "xai" / "primary" / "seed_stability.csv")
+    if not rows:
+        return "_no seed stability rows yet — populate by running ./run.sh e2e xai-primary after multiple seeds complete_"
+    lines = [
+        "| Condition | Metric | Mean | Std | CI Low | CI High |",
+        "|---|---|---|---|---|---|",
+    ]
+    for row in rows:
+        lines.append(
+            f"| {row.get('condition', '?')} | {row.get('metric', '?')} | "
+            f"{_fmt_float(row.get('mean'))} | {_fmt_float(row.get('std'))} | "
+            f"{_fmt_float(row.get('ci_low'))} | {_fmt_float(row.get('ci_high'))} |"
+        )
+    return "\n".join(lines)
+
+
+def _render_limitations_text(root: Path) -> str:
+    """xai_risk_flags.csv를 한계 서술의 출발점으로 사용."""
+    rows = _read_csv_rows(root / "xai" / "evidence_bundle" / "xai_risk_flags.csv")
+    if not rows:
+        return (
+            "_no automatic limitations recorded yet — limitations are populated_ "
+            "_when XAI evidence is incomplete or paired test sample sizes are small._"
+        )
+    bullets = []
+    for row in rows:
+        bullets.append(
+            f"- [{row.get('severity', '?')}] {row.get('flag_type', '?')}: "
+            f"{row.get('evidence', '?')} (recommendation: {row.get('recommended_report_note', '?')})"
+        )
+    return "\n".join(bullets)
+
+
 def _report_markdown_text(manifest: dict[str, Any], root: Path, counts: dict[str, int]) -> str:
-    """Build conservative report text from the current artifact state."""
+    """Build report text. Tables are auto-filled from CSV/JSON when available."""
     return f"""# v2 Final Report
 
 ## Run
@@ -44,15 +218,49 @@ def _report_markdown_text(manifest: dict[str, Any], root: Path, counts: dict[str
 
 The v2 model family evaluates rationale-aware attention loss and VADER sentiment features through an 8-condition ablation matrix across BERT and RoBERTa backbones.
 
-## Statistics
+## Benchmark Summary
 
-The primary comparison uses same-seed paired tests across 15 seeds. Holm correction is reserved for multiple comparisons.
+{_render_benchmark_summary_table(root)}
 
-## XAI
+## Paired Tests (Holm-corrected, macro_f1)
+
+The primary comparison uses same-seed paired tests across all seeds. Holm correction is applied for multiple comparisons.
+
+{_render_paired_tests_table(root, metric="macro_f1")}
+
+## ANOVA — BERT family (2-way)
+
+Factors: attention loss × VADER.
+
+{_render_anova_table(root, "anova_2way_bert")}
+
+## ANOVA — RoBERTa family (2-way)
+
+{_render_anova_table(root, "anova_2way_roberta")}
+
+## ANOVA — Cross-family (3-way)
+
+Factors: backbone × attention loss × VADER.
+
+{_render_anova_table(root, "anova_3way")}
+
+## XAI Evidence Summary
 
 XAI is treated as post-hoc verification. Primary XAI compares A_B and D_B across all seeds, while deep XAI uses median-performing checkpoints for detailed cases.
 
-## XAI Evidence Bundle
+{_render_xai_claims(root)}
+
+## Seed Stability
+
+Top-k Jaccard and rank correlation across seed checkpoints — high stability means explanations stay consistent under seed variation.
+
+{_render_seed_stability(root)}
+
+## Limitations
+
+{_render_limitations_text(root)}
+
+## XAI Evidence Bundle (file links)
 
 Report and dashboard generation should prefer the evidence bundle before reading raw XAI case files.
 
@@ -62,13 +270,18 @@ Report and dashboard generation should prefer the evidence bundle before reading
 - `xai/evidence_bundle/xai_run_metadata.json`: {_artifact_state(root, "xai/evidence_bundle/xai_run_metadata.json")}
 - `xai/evidence_bundle/token_attributions.jsonl`: {_artifact_state(root, "xai/evidence_bundle/token_attributions.jsonl")}
 
-## Next Implementation Hooks
+## Reproducibility
 
-- Fill `benchmark/benchmark_runs.csv` from completed condition x seed runs.
-- Fill `benchmark/paired_tests_holm.csv` after aggregation.
-- Fill `xai/primary/seed_level_metrics.csv` after XAI execution.
-- Fill `xai/evidence_bundle/xai_claims.json` from completed primary/deep/ablation XAI outputs.
-- Replace conservative placeholder paragraphs after real benchmark/XAI results are populated.
+- Manifest hash: `{manifest_hash(manifest)}`
+- Conditions: {", ".join(manifest["benchmark"]["conditions"])}
+- Seeds: {", ".join(str(seed) for seed in manifest["benchmark"]["seeds"])}
+- Commands to reproduce (from `v2/`):
+  - `./run.sh e2e plan --run-id {manifest["run_id"]}`
+  - `./run.sh e2e benchmark --run-id {manifest["run_id"]} --execute`
+  - `./run.sh e2e aggregate --run-id {manifest["run_id"]}`
+  - `./run.sh e2e xai-primary --run-id {manifest["run_id"]}`
+  - `./run.sh e2e xai-bundle --run-id {manifest["run_id"]}`
+  - `./run.sh e2e report --run-id {manifest["run_id"]}`
 """
 
 
@@ -213,6 +426,48 @@ def generate_dashboard(manifest: dict[str, Any]) -> Path:
             "xai/evidence_bundle/token_attributions.jsonl",
         ]
     )
+    # benchmark summary와 XAI summary cards를 dashboard에도 노출.
+    benchmark_rows_html = ""
+    summary_rows = _read_csv_rows(root / "benchmark" / "benchmark_summary.csv")
+    completed_rows = [r for r in summary_rows if r.get("n_seeds") and r["n_seeds"] not in ("", "0")]
+    if completed_rows:
+        body = "\n".join(
+            (
+                "<tr>"
+                f"<td>{escape(row.get('condition', '?'))}</td>"
+                f"<td>{escape(row.get('backbone', '?'))}</td>"
+                f"<td>{escape(row.get('n_seeds', '?'))}</td>"
+                f"<td>{_fmt_float(row.get('macro_f1_mean'))} ± {_fmt_float(row.get('macro_f1_std'))}</td>"
+                "</tr>"
+            )
+            for row in completed_rows
+        )
+        benchmark_rows_html = (
+            "<h2>Benchmark Summary</h2>"
+            "<table><thead><tr><th>Condition</th><th>Backbone</th><th>N seeds</th>"
+            "<th>Macro F1</th></tr></thead><tbody>"
+            f"{body}</tbody></table>"
+        )
+
+    xai_cards_html = ""
+    dashboard_bundle = _read_json(root / "xai" / "evidence_bundle" / "xai_dashboard_bundle.json")
+    summary_cards = dashboard_bundle.get("summary_cards") or []
+    if summary_cards:
+        body = "\n".join(
+            (
+                "<tr>"
+                f"<td>{escape(str(card.get('title', '?')))}</td>"
+                f"<td>{escape(str(card.get('value', '?')))}</td>"
+                f"<td><code>{escape(str(card.get('source', '?')))}</code></td>"
+                "</tr>"
+            )
+            for card in summary_cards
+        )
+        xai_cards_html = (
+            "<h2>XAI Summary Cards</h2>"
+            "<table><thead><tr><th>Title</th><th>Value</th><th>Source</th></tr></thead>"
+            f"<tbody>{body}</tbody></table>"
+        )
     html = f"""<!doctype html>
 <html lang="ko">
 <head>
@@ -234,6 +489,8 @@ def generate_dashboard(manifest: dict[str, Any]) -> Path:
       {rows}
     </tbody>
   </table>
+  {benchmark_rows_html}
+  {xai_cards_html}
   <h2>XAI Evidence Bundle</h2>
   <p>Report/dashboard stages should prefer these bundle artifacts before raw XAI case files.</p>
   <table>
