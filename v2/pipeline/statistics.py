@@ -25,6 +25,25 @@ try:
 except ImportError:  # pragma: no cover - exercised only on minimal installs.
     scipy_stats = None
 
+try:
+    import pandas as _pd
+    from statsmodels.formula.api import ols as _ols
+    from statsmodels.stats.anova import anova_lm as _anova_lm
+    _ANOVA_AVAILABLE = True
+except ImportError:  # pragma: no cover - exercised on minimal installs.
+    _pd = None  # type: ignore[assignment]
+    _ols = None  # type: ignore[assignment]
+    _anova_lm = None  # type: ignore[assignment]
+    _ANOVA_AVAILABLE = False
+
+
+# ANOVA 출력 컬럼. statsmodels의 anova_lm은 'df' (degrees of freedom), 'sum_sq',
+# 'F', 'PR(>F)' 컬럼을 갖는 DataFrame을 돌려준다. 우리 CSV로 흘려보낼 때는
+# 'df' 컬럼명이 pandas DataFrame 변수명과 헷갈리지 않도록 그대로 두되,
+# 'PR(>F)'는 'p_value'로 rename 한다.
+ANOVA_2WAY_COLUMNS = ["family", "metric", "factor", "sum_sq", "df", "F", "p_value"]
+ANOVA_3WAY_COLUMNS = ["metric", "factor", "sum_sq", "df", "F", "p_value"]
+
 
 def _read_metrics(path: Path) -> dict[str, Any]:
     """Read a run metrics file, returning an empty dict for missing runs."""
@@ -238,6 +257,136 @@ def apply_holm_correction(rows: list[dict[str, Any]], alpha: float = 0.05) -> li
     return corrected
 
 
+def _filter_anova_rows(rows: list[dict[str, Any]], metric: str) -> list[dict[str, Any]]:
+    """Keep only completed rows that have a usable metric value."""
+    filtered: list[dict[str, Any]] = []
+    for row in rows:
+        if row.get("status") != "completed":
+            continue
+        value = row.get(metric, "")
+        if value == "" or value is None:
+            continue
+        try:
+            float(value)
+        except (TypeError, ValueError):
+            continue
+        filtered.append(row)
+    return filtered
+
+
+def _anova_table_to_rows(table: Any, base_row: dict[str, Any]) -> list[dict[str, Any]]:
+    """Convert a statsmodels ANOVA DataFrame into our flat row list."""
+    out_rows: list[dict[str, Any]] = []
+    # statsmodels는 index에 factor 이름을 둔다. 'C(attention_loss)' 같은 형태.
+    for factor_name, record in table.iterrows():
+        row = dict(base_row)
+        row["factor"] = str(factor_name)
+        row["sum_sq"] = float(record.get("sum_sq", 0.0)) if record.get("sum_sq", None) is not None else ""
+        # 'df'는 degrees of freedom — 컬럼명을 그대로 유지한다.
+        df_value = record.get("df", "")
+        row["df"] = float(df_value) if df_value not in ("", None) else ""
+        f_value = record.get("F", "")
+        # Residual row는 F/p가 NaN으로 들어온다. 빈 문자열로 떨어뜨려 CSV가 깔끔하게.
+        try:
+            row["F"] = float(f_value) if f_value not in ("", None) and not (isinstance(f_value, float) and math.isnan(f_value)) else ""
+        except (TypeError, ValueError):
+            row["F"] = ""
+        p_value = record.get("PR(>F)", "")
+        try:
+            row["p_value"] = float(p_value) if p_value not in ("", None) and not (isinstance(p_value, float) and math.isnan(p_value)) else ""
+        except (TypeError, ValueError):
+            row["p_value"] = ""
+        out_rows.append(row)
+    return out_rows
+
+
+def compute_two_way_anova(
+    rows: list[dict[str, Any]],
+    family: str = "BERT",
+    metric: str = "macro_f1",
+) -> list[dict[str, Any]]:
+    """Two-way ANOVA inside one backbone family (A/B/C/D conditions).
+
+    factor 1 = attention_loss (False/True)
+    factor 2 = vader (False/True)
+    """
+    if not _ANOVA_AVAILABLE or _pd is None:
+        # statsmodels 미설치 환경에서는 빈 리스트로 떨어뜨려 CSV가 헤더만 생성되게.
+        return []
+
+    family_rows = [
+        row for row in _filter_anova_rows(rows, metric) if row.get("backbone") == family
+    ]
+    if len(family_rows) < 4:
+        # 최소 2x2 셀 각 1개씩이라도 채워야 의미 있는 ANOVA.
+        return []
+
+    try:
+        frame = _pd.DataFrame(
+            [
+                {
+                    metric: float(row[metric]),
+                    "attention_loss": str(row.get("use_attention_loss")),
+                    "vader": str(row.get("use_sentiment")),
+                }
+                for row in family_rows
+            ]
+        )
+        # 단일 cell에 모든 데이터가 몰리면 ANOVA가 무의미. cell unique 가 4개 미만이면 skip.
+        cell_combinations = frame.groupby(["attention_loss", "vader"]).size()
+        if len(cell_combinations) < 4:
+            return []
+        model = _ols(f"{metric} ~ C(attention_loss) * C(vader)", data=frame).fit()
+        table = _anova_lm(model, typ=2)
+    except Exception:  # pragma: no cover - statsmodels의 다양한 fit 실패 케이스 방어.
+        return []
+
+    base_row = {"family": family, "metric": metric}
+    return _anova_table_to_rows(table, base_row)
+
+
+def compute_three_way_anova(
+    rows: list[dict[str, Any]],
+    metric: str = "macro_f1",
+) -> list[dict[str, Any]]:
+    """Three-way ANOVA across both backbone families and both ablation factors.
+
+    factor 1 = backbone (BERT / RoBERTa)
+    factor 2 = attention_loss (False/True)
+    factor 3 = vader (False/True)
+    """
+    if not _ANOVA_AVAILABLE or _pd is None:
+        return []
+
+    all_rows = _filter_anova_rows(rows, metric)
+    if len(all_rows) < 8:
+        return []
+
+    try:
+        frame = _pd.DataFrame(
+            [
+                {
+                    metric: float(row[metric]),
+                    "backbone": str(row.get("backbone")),
+                    "attention_loss": str(row.get("use_attention_loss")),
+                    "vader": str(row.get("use_sentiment")),
+                }
+                for row in all_rows
+            ]
+        )
+        cell_combinations = frame.groupby(["backbone", "attention_loss", "vader"]).size()
+        if len(cell_combinations) < 8:
+            return []
+        formula = f"{metric} ~ C(backbone) * C(attention_loss) * C(vader)"
+        model = _ols(formula, data=frame).fit()
+        table = _anova_lm(model, typ=2)
+    except Exception:  # pragma: no cover.
+        return []
+
+    base_row = {"metric": metric}
+    return _anova_table_to_rows(table, base_row)
+
+
 def aggregate(manifest: dict[str, Any]) -> dict[str, Path]:
     """Run the benchmark aggregation stage."""
     root = experiment_root(manifest["run_id"])
@@ -247,15 +396,34 @@ def aggregate(manifest: dict[str, Any]) -> dict[str, Path]:
     paired_tests = compute_paired_tests(manifest, rows)
     holm_tests = apply_holm_correction(paired_tests)
 
+    # ANOVA는 데이터 부족(시드 1개 미만, cell 불완전 등) 시 빈 리스트를 돌려준다.
+    # 빈 리스트여도 CSV는 헤더만이라도 항상 생성한다 — 산출물 contract 유지.
+    anova_bert = compute_two_way_anova(rows, family="BERT")
+    anova_roberta = compute_two_way_anova(rows, family="RoBERTa")
+    anova_3way = compute_three_way_anova(rows)
+
     run_path = write_csv(benchmark_dir / "benchmark_runs.csv", rows, BENCHMARK_RUN_COLUMNS)
     summary_path = write_csv(benchmark_dir / "benchmark_summary.csv", summary, BENCHMARK_SUMMARY_COLUMNS)
     paired_path = write_csv(benchmark_dir / "paired_tests.csv", paired_tests, PAIRED_TEST_COLUMNS)
     holm_path = write_csv(benchmark_dir / "paired_tests_holm.csv", holm_tests, PAIRED_TEST_COLUMNS)
+    anova_bert_path = write_csv(
+        benchmark_dir / "anova_2way_bert.csv", anova_bert, ANOVA_2WAY_COLUMNS
+    )
+    anova_roberta_path = write_csv(
+        benchmark_dir / "anova_2way_roberta.csv", anova_roberta, ANOVA_2WAY_COLUMNS
+    )
+    anova_3way_path = write_csv(
+        benchmark_dir / "anova_3way.csv", anova_3way, ANOVA_3WAY_COLUMNS
+    )
+
     return {
         "benchmark_runs": run_path,
         "benchmark_summary": summary_path,
         "paired_tests": paired_path,
         "paired_tests_holm": holm_path,
+        "anova_2way_bert": anova_bert_path,
+        "anova_2way_roberta": anova_roberta_path,
+        "anova_3way": anova_3way_path,
     }
 
 

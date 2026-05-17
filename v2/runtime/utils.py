@@ -125,6 +125,10 @@ def set_seed(seed: int = 42) -> None:
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+        # 15 seed paired test 재현성 보장을 위해 cudnn 결정성 강제.
+        # 약 5~10% 속도 저하가 있을 수 있지만 시드 변동 측정이 본 연구 핵심 메시지라 절대 끄지 않습니다.
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
     # MPS 시드 — PyTorch 버전에 따라 이 함수가 없을 수도 있어서 체크합니다
     if hasattr(torch.mps, "manual_seed") and torch.backends.mps.is_available():
         torch.mps.manual_seed(seed)

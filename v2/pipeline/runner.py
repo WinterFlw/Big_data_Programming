@@ -11,7 +11,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .artifacts import build_run_units, ensure_experiment_tree, status_counts, write_stage_marker, write_unit_plan
+from .artifacts import (
+    build_run_units,
+    ensure_experiment_tree,
+    status_counts,
+    write_failed_completed_csv,
+    write_stage_marker,
+    write_unit_plan,
+)
 from .manifest import load_manifest, manifest_hash, validate_manifest, write_planned_manifest
 from .paths import DEFAULT_RUN_ID, display_path, experiment_root
 from .reporting import generate_dashboard, generate_report_bundle
@@ -44,7 +51,7 @@ def plan(run_id: str = DEFAULT_RUN_ID, manifest_path: Path | None = None, force:
 
 
 def status(run_id: str = DEFAULT_RUN_ID, manifest_path: Path | None = None) -> dict[str, Any]:
-    """Validate the manifest and refresh execution_status.csv."""
+    """Validate the manifest and refresh execution_status.csv + failed/completed CSVs."""
     manifest = load_manifest(manifest_path, run_id=run_id)
     errors = validate_manifest(manifest)
     if errors:
@@ -53,7 +60,15 @@ def status(run_id: str = DEFAULT_RUN_ID, manifest_path: Path | None = None) -> d
     units = build_run_units(manifest)
     status_path = write_unit_plan(manifest, units)
     counts = status_counts(units)
-    return {"valid": True, "counts": counts, "execution_status": status_path}
+    # QA stage owner가 매일 모니터링할 수 있도록 failed/completed unit을 별도 파일로 분리.
+    extras = write_failed_completed_csv(manifest, units)
+    return {
+        "valid": True,
+        "counts": counts,
+        "execution_status": status_path,
+        "failed_runs": extras["failed"],
+        "completed_runs": extras["completed"],
+    }
 
 
 def data(run_id: str = DEFAULT_RUN_ID, manifest_path: Path | None = None) -> dict[str, Any]:

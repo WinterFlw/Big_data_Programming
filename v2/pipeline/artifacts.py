@@ -156,3 +156,50 @@ def write_stage_marker(root: Path, stage: str, payload: dict[str, Any]) -> Path:
         json.dump(payload, handle, ensure_ascii=False, indent=2, default=str)
         handle.write("\n")
     return marker
+
+
+def write_failed_completed_csv(
+    manifest: dict[str, Any], units: list[RunUnit]
+) -> dict[str, Path]:
+    """Extract failed and completed units into separate CSVs for QA monitoring.
+
+    execution_status.csv 한 파일에 다 들어 있으면 "실패한 것만 빠르게 뽑기"가
+    grep 필요. QA stage owner가 매일 모니터링하니까 별도 파일이 편함.
+    완료 기준은 unit_status()와 동일.
+    """
+    root = experiment_root(manifest["run_id"])
+    columns = [
+        "run_id",
+        "condition",
+        "seed",
+        "backbone",
+        "model_name",
+        "use_attention_loss",
+        "use_sentiment",
+        "status",
+        "run_dir",
+    ]
+    failed_rows: list[dict[str, Any]] = []
+    completed_rows: list[dict[str, Any]] = []
+    for unit in units:
+        metadata = unit.metadata
+        status = unit_status(unit)
+        row = {
+            "run_id": unit.run_id,
+            "condition": unit.condition,
+            "seed": unit.seed,
+            "backbone": metadata["backbone"],
+            "model_name": metadata["model_name"],
+            "use_attention_loss": metadata["use_attention_loss"],
+            "use_sentiment": metadata["use_sentiment"],
+            "status": status,
+            "run_dir": display_path(unit.run_dir),
+        }
+        if status == "failed":
+            failed_rows.append(row)
+        elif status == "completed":
+            completed_rows.append(row)
+
+    failed_path = write_csv(root / "failed_runs.csv", failed_rows, columns)
+    completed_path = write_csv(root / "completed_runs.csv", completed_rows, columns)
+    return {"failed": failed_path, "completed": completed_path}
