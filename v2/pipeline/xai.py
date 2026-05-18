@@ -332,9 +332,19 @@ def _compute_unit_metrics(
     ]
 
     rationale_prf_list = []
+    sample_metrics: list[dict[str, Any]] = []
     for sample, shap_result in zip(samples, shap_results):
         human_tokens = rationale_map.get(str(sample["sample_id"]), [])
-        rationale_prf_list.append(_rationale_prf(shap_result["top_tokens"], human_tokens, k=5))
+        prf = _rationale_prf(shap_result["top_tokens"], human_tokens, k=5)
+        rationale_prf_list.append(prf)
+        sample_metrics.append(
+            {
+                "sample_id": str(sample["sample_id"]),
+                "rationale_precision_at_5": prf[0],
+                "rationale_recall_at_5": prf[1],
+                "rationale_f1_at_5": prf[2],
+            }
+        )
 
     # SHAP top-5 기반 comprehensiveness/sufficiency. runtime의 _compute_masking_metrics
     # 가 sample-level comp/suff details를 돌려준다.
@@ -407,6 +417,8 @@ def _compute_unit_metrics(
         "lime": lime_results,
         "predicted_labels": predicted_labels,
         "metrics": metrics,
+        # sample-level subgroup 분해(xai_bundle._build_subgroup_metrics)가 활용.
+        "sample_metrics": sample_metrics,
     }
 
 
@@ -618,12 +630,24 @@ def plan_primary_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[st
     if dry_run:
         return {"status": "dry-run", "sample_size": str(sample_size)}
 
+    sample_level_path = root / "xai" / "primary" / "sample_level_metrics.csv"
+    sample_level_columns = [
+        "run_id",
+        "condition",
+        "seed",
+        "sample_id",
+        "rationale_precision_at_5",
+        "rationale_recall_at_5",
+        "rationale_f1_at_5",
+    ]
+
     runtime_xai, runtime_core = _runtime_or_none()
     if runtime_xai is None or runtime_core is None:
         # runtime이 비활성이거나 data가 아직 없으면 빈 contract만 만든다.
         return {
             "samples": _empty_sample_csv(sample_path),
             "seed_metrics": write_csv(metric_path, [], XAI_SEED_METRIC_COLUMNS),
+            "sample_level_metrics": write_csv(sample_level_path, [], sample_level_columns),
             "paired_tests": write_csv(paired_path, [], PAIRED_XAI_COLUMNS),
             "seed_stability": write_csv(stability_path, [], SEED_STABILITY_COLUMNS),
         }
@@ -639,6 +663,7 @@ def plan_primary_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[st
     config = _safe_runtime_config(runtime_core)
 
     metric_rows: list[dict[str, Any]] = []
+    sample_level_rows: list[dict[str, Any]] = []
     per_seed_attributions: dict[tuple[str, int], list[dict[str, Any]]] = {}
 
     primary_conditions = list(xai_config.get("models", ["A_B", "D_B"]))
@@ -660,6 +685,7 @@ def plan_primary_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[st
                 # 캐시 히트: 다시 계산하지 않는다.
                 metrics = dict(cached_metrics)
                 shap_results = cached_shap
+                cached_sample_metrics = cache.get("sample_metrics") or []
             else:
                 bundle = _load_bundle(runtime_xai, condition, checkpoint_path, run_config_path)
                 if bundle is None:
@@ -667,6 +693,7 @@ def plan_primary_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[st
                 computed = _compute_unit_metrics(runtime_xai, bundle, samples, config, rationale_map)
                 metrics = computed["metrics"]
                 shap_results = computed["shap"]
+                cached_sample_metrics = computed.get("sample_metrics") or []
                 _save_attribution_cache(
                     cache_path,
                     {
@@ -675,22 +702,59 @@ def plan_primary_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[st
                         "shap": shap_results,
                         "lime": computed["lime"],
                         "metrics": metrics,
+                        "sample_metrics": cached_sample_metrics,
                     },
                 )
 
+            # sample-level metric 누적 (subgroup 분해용).
+            for entry in cached_sample_metrics:
+                sample_level_rows.append(
+                    {
+                        "run_id": manifest["run_id"],
+                        "condition": condition,
+                        "seed": seed,
+                        "sample_id": entry.get("sample_id", ""),
+                        "rationale_precision_at_5": entry.get("rationale_precision_at_5", ""),
+                        "rationale_recall_at_5": entry.get("rationale_recall_at_5", ""),
+                        "rationale_f1_at_5": entry.get("rationale_f1_at_5", ""),
+                    }
+                )
+
             row = {column: metrics.get(column, "") for column in XAI_SEED_METRIC_COLUMNS}
+            extras = metrics.get("_extras") or {}
             row.update(
                 {
                     "run_id": manifest["run_id"],
                     "condition": condition,
                     "seed": seed,
                     "sample_count": len(samples),
+                    # 자동 XAI 4축 — Context Learning. _extras에 담아둔 4개 메트릭을 풀어 박는다.
+                    "ci": extras.get("ci", ""),
+                    "mss": extras.get("mss", ""),
+                    "interaction_strength": extras.get("interaction_strength", ""),
+                    "attention_entropy": extras.get("attention_entropy", ""),
                 }
             )
             metric_rows.append(row)
             per_seed_attributions[(condition, seed)] = shap_results
 
     metric_written = write_csv(metric_path, metric_rows, XAI_SEED_METRIC_COLUMNS)
+
+    # sample-level rationale metric — subgroup 분해의 진짜 입력. checkpoint 없으면 빈 CSV.
+    sample_level_path = root / "xai" / "primary" / "sample_level_metrics.csv"
+    sample_level_written = write_csv(
+        sample_level_path,
+        sample_level_rows,
+        [
+            "run_id",
+            "condition",
+            "seed",
+            "sample_id",
+            "rationale_precision_at_5",
+            "rationale_recall_at_5",
+            "rationale_f1_at_5",
+        ],
+    )
 
     paired_rows: list[dict[str, Any]] = []
     primary_pair = xai_config.get("paired_test", "A_B:D_B")
@@ -704,6 +768,7 @@ def plan_primary_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[st
     return {
         "samples": samples_written,
         "seed_metrics": metric_written,
+        "sample_level_metrics": sample_level_written,
         "paired_tests": paired_written,
         "seed_stability": stability_written,
     }

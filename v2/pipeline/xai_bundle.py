@@ -275,13 +275,12 @@ def _build_context_metrics(
 def _build_subgroup_metrics(
     seed_metrics: list[dict[str, str]],
     sample_rows: list[dict[str, str]],
+    sample_level_rows: list[dict[str, str]] | None = None,
 ) -> list[dict[str, Any]]:
-    """subgroup_xai_metrics.csv. source(gab/twitter)와 target(인종/종교/...) 두 차원 분해.
+    """subgroup_xai_metrics.csv. source × target 두 차원의 sample-level subgroup 평균.
 
-    primary sample의 source/target 분포를 보고 각 subgroup의 표본 수를 헤더에 박는다.
-    seed_metrics는 sample-level이 아닌 (condition, seed) 평균이라, 실제 subgroup 평균은
-    후속 sample-level 메트릭이 들어와야 정확하다. 본 라운드에서는 표본 수 + condition 평균을
-    표 형태로 노출만 한다 (subgroup-aware 분해는 token_attributions.jsonl 기반 후속 단계).
+    sample_level_rows(작업 #14에서 추가) 가 들어오면 진짜 sample-level 평균을 계산.
+    없으면 condition 평균을 표본 수와 함께 노출만 한다 (placeholder fallback).
     """
     if not seed_metrics or not sample_rows:
         return []
@@ -289,28 +288,81 @@ def _build_subgroup_metrics(
     # HateXplain post_id 접미사가 비정상인 sample은 source 추출이 망가져서
     # 숫자 토큰("4")이 들어올 수 있다. 알려진 집합 외는 "other"로 묶는다.
     KNOWN_SOURCES = {"gab", "twitter"}
-    # source 분포.
+
+    # sample_id → (source, target_list) 매핑.
+    sample_attrs: dict[str, tuple[str, list[str]]] = {}
     source_counts: dict[str, int] = {}
-    # target 분포 (multi-label, comma-separated).
     target_counts: dict[str, int] = {}
     for sample_row in sample_rows:
+        sid = sample_row.get("sample_id", "")
         raw_source = sample_row.get("source", "").strip().lower()
         source = raw_source if raw_source in KNOWN_SOURCES else "other"
         source_counts[source] = source_counts.get(source, 0) + 1
+
+        target_list: list[str] = []
         target_field = sample_row.get("target", "")
         if target_field:
             for target in target_field.split(","):
                 target = target.strip()
                 if target and target.lower() not in ("none", "other"):
+                    target_list.append(target)
                     target_counts[target] = target_counts.get(target, 0) + 1
+        if sid:
+            sample_attrs[sid] = (source, target_list)
 
     rows: list[dict[str, Any]] = []
-    metric_names = ("rationale_f1_at_5", "comprehensiveness", "sufficiency")
+    metric_names = ("rationale_precision_at_5", "rationale_recall_at_5", "rationale_f1_at_5")
 
-    # source-별 분해.
+    # sample_level_rows가 있으면 진짜 subgroup 평균. 없으면 condition 평균 fallback.
+    have_sample_level = bool(sample_level_rows)
+
+    if have_sample_level:
+        # (subgroup, condition, seed, metric) → 누적값.
+        accumulator: dict[tuple[str, str, str, str], list[float]] = {}
+        for row in sample_level_rows or []:
+            sid = row.get("sample_id", "")
+            if sid not in sample_attrs:
+                continue
+            source, targets = sample_attrs[sid]
+            condition = row.get("condition", "")
+            seed = row.get("seed", "")
+            # subgroup 집합 = source 1개 + target 0~N개.
+            subgroup_keys = [f"source={source}(n={source_counts.get(source, 0)})"]
+            for target in targets:
+                subgroup_keys.append(f"target={target}(n={target_counts.get(target, 0)})")
+            for metric_name in metric_names:
+                value_str = row.get(metric_name, "")
+                if value_str in ("", None):
+                    continue
+                try:
+                    value = float(value_str)
+                except (TypeError, ValueError):
+                    continue
+                for subgroup_key in subgroup_keys:
+                    accumulator.setdefault(
+                        (subgroup_key, condition, str(seed), metric_name), []
+                    ).append(value)
+
+        for (subgroup, condition, seed, metric_name), values in sorted(accumulator.items()):
+            if not values:
+                continue
+            mean_value = round(sum(values) / len(values), 4)
+            rows.append(
+                {
+                    "subgroup": subgroup,
+                    "condition": condition,
+                    "seed": seed,
+                    "metric": metric_name,
+                    "value": mean_value,
+                }
+            )
+        return rows
+
+    # Fallback: sample_level 없을 때 — condition 평균을 그대로 표시 (n 헤더 + value 동일).
+    fallback_metric_names = ("rationale_f1_at_5", "comprehensiveness", "sufficiency")
     for source, count in sorted(source_counts.items()):
         for metric_row in seed_metrics:
-            for metric_name in metric_names:
+            for metric_name in fallback_metric_names:
                 value = metric_row.get(metric_name, "")
                 rows.append(
                     {
@@ -321,12 +373,10 @@ def _build_subgroup_metrics(
                         "value": value,
                     }
                 )
-
-    # target-별 분해 (상위 10개만; 너무 많으면 dashboard noisy).
     top_targets = sorted(target_counts.items(), key=lambda item: -item[1])[:10]
     for target, count in top_targets:
         for metric_row in seed_metrics:
-            for metric_name in metric_names:
+            for metric_name in fallback_metric_names:
                 value = metric_row.get(metric_name, "")
                 rows.append(
                     {
@@ -581,6 +631,7 @@ def build_xai_evidence_bundle(manifest: dict[str, Any], dry_run: bool = False) -
         "deep_samples": "xai/samples/deep_samples.csv",
         "ablation_samples": "xai/samples/ablation_samples.csv",
         "primary_seed_metrics": "xai/primary/seed_level_metrics.csv",
+        "primary_sample_level_metrics": "xai/primary/sample_level_metrics.csv",
         "primary_paired_tests": "xai/primary/paired_xai_tests.csv",
         "primary_seed_stability": "xai/primary/seed_stability.csv",
         "deep_case_summary": "xai/deep/case_summary.csv",
@@ -596,6 +647,7 @@ def build_xai_evidence_bundle(manifest: dict[str, Any], dry_run: bool = False) -
     deep_samples = _read_csv_rows(root / source_artifacts["deep_samples"])
     ablation_samples = _read_csv_rows(root / source_artifacts["ablation_samples"])
     seed_metrics = _read_csv_rows(root / source_artifacts["primary_seed_metrics"])
+    sample_level_rows = _read_csv_rows(root / source_artifacts["primary_sample_level_metrics"])
     primary_paired = _read_csv_rows(root / source_artifacts["primary_paired_tests"])
     seed_stability = _read_csv_rows(root / source_artifacts["primary_seed_stability"])
     deep_cases = _read_csv_rows(root / source_artifacts["deep_case_summary"])
@@ -690,7 +742,7 @@ def build_xai_evidence_bundle(manifest: dict[str, Any], dry_run: bool = False) -
         ["sample_id", "condition", "target", "source", "context_window", "context_sensitivity"],
     )
 
-    subgroup_rows = _build_subgroup_metrics(seed_metrics, primary_samples)
+    subgroup_rows = _build_subgroup_metrics(seed_metrics, primary_samples, sample_level_rows)
     subgroup_path = write_csv(
         bundle_dir / "subgroup_xai_metrics.csv",
         subgroup_rows,

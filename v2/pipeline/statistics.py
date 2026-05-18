@@ -52,8 +52,16 @@ except ImportError:  # pragma: no cover - exercised on minimal installs.
 # 'F', 'PR(>F)' 컬럼을 갖는 DataFrame을 돌려준다. 우리 CSV로 흘려보낼 때는
 # 'df' 컬럼명이 pandas DataFrame 변수명과 헷갈리지 않도록 그대로 두되,
 # 'PR(>F)'는 'p_value'로 rename 한다.
-ANOVA_2WAY_COLUMNS = ["family", "metric", "factor", "sum_sq", "df", "F", "p_value"]
-ANOVA_3WAY_COLUMNS = ["metric", "factor", "sum_sq", "df", "F", "p_value"]
+# eta_squared / partial_eta_squared 는 효과 크기 — F/p만으로는 "얼마나 큰 효과인가"를
+# 판단할 수 없으므로 ANOVA 보고에 함께 박는다 (Cohen 1988).
+ANOVA_2WAY_COLUMNS = [
+    "family", "metric", "factor", "sum_sq", "df", "F", "p_value",
+    "eta_squared", "partial_eta_squared",
+]
+ANOVA_3WAY_COLUMNS = [
+    "metric", "factor", "sum_sq", "df", "F", "p_value",
+    "eta_squared", "partial_eta_squared",
+]
 
 
 def _read_metrics(path: Path) -> dict[str, Any]:
@@ -345,18 +353,41 @@ def _filter_anova_rows(rows: list[dict[str, Any]], metric: str) -> list[dict[str
 
 
 def _anova_table_to_rows(table: Any, base_row: dict[str, Any]) -> list[dict[str, Any]]:
-    """Convert a statsmodels ANOVA DataFrame into our flat row list."""
+    """Convert a statsmodels ANOVA DataFrame into our flat row list.
+
+    eta_squared = SS_factor / SS_total. partial_eta_squared = SS_factor / (SS_factor + SS_residual).
+    두 효과 크기는 Cohen(1988) 기준으로 small=0.01, medium=0.06, large=0.14.
+    Residual 행은 SS만 있고 효과 크기 X.
+    """
+    # SS_total = sum of all sum_sq (Residual 포함).
+    try:
+        all_ss = [float(record.get("sum_sq", 0.0)) for _, record in table.iterrows()]
+        total_ss = sum(all_ss)
+    except Exception:
+        total_ss = 0.0
+    # SS_residual은 보통 마지막 row.
+    residual_ss = 0.0
+    try:
+        for factor_name, record in table.iterrows():
+            if "Residual" in str(factor_name):
+                residual_ss = float(record.get("sum_sq", 0.0))
+                break
+    except Exception:
+        residual_ss = 0.0
+
     out_rows: list[dict[str, Any]] = []
-    # statsmodels는 index에 factor 이름을 둔다. 'C(attention_loss)' 같은 형태.
     for factor_name, record in table.iterrows():
         row = dict(base_row)
         row["factor"] = str(factor_name)
-        row["sum_sq"] = float(record.get("sum_sq", 0.0)) if record.get("sum_sq", None) is not None else ""
+        sum_sq_raw = record.get("sum_sq", None)
+        sum_sq_value = float(sum_sq_raw) if sum_sq_raw is not None else 0.0
+        row["sum_sq"] = sum_sq_value
         # 'df'는 degrees of freedom — 컬럼명을 그대로 유지한다.
         df_value = record.get("df", "")
         row["df"] = float(df_value) if df_value not in ("", None) else ""
         f_value = record.get("F", "")
         # Residual row는 F/p가 NaN으로 들어온다. 빈 문자열로 떨어뜨려 CSV가 깔끔하게.
+        is_residual = "Residual" in str(factor_name)
         try:
             row["F"] = float(f_value) if f_value not in ("", None) and not (isinstance(f_value, float) and math.isnan(f_value)) else ""
         except (TypeError, ValueError):
@@ -366,6 +397,17 @@ def _anova_table_to_rows(table: Any, base_row: dict[str, Any]) -> list[dict[str,
             row["p_value"] = float(p_value) if p_value not in ("", None) and not (isinstance(p_value, float) and math.isnan(p_value)) else ""
         except (TypeError, ValueError):
             row["p_value"] = ""
+
+        # Effect size. Residual 행은 두 값 모두 빈 값.
+        if is_residual or total_ss <= 0:
+            row["eta_squared"] = ""
+            row["partial_eta_squared"] = ""
+        else:
+            row["eta_squared"] = round(sum_sq_value / total_ss, 4)
+            denominator = sum_sq_value + residual_ss
+            row["partial_eta_squared"] = (
+                round(sum_sq_value / denominator, 4) if denominator > 0 else ""
+            )
         out_rows.append(row)
     return out_rows
 

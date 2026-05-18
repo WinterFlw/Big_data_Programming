@@ -52,4 +52,14 @@ else
 fi
 
 echo ""
-echo "[daily preflight ok]"
+echo "=== Full Run Gate 자동 점검 ==="
+# sample 결정성 검사는 xai-primary 재실행을 동반하므로 daily.sh 안에서는 skip.
+# Pilot이 별도로 `python3 scripts/gate_check.py` 단독 실행 시 검사.
+if python3 scripts/gate_check.py --run-id v2_15seed --skip-sample-check; then
+    gate_status="GO"
+else
+    gate_status="STOP"
+fi
+
+echo ""
+echo "[daily preflight ok — Gate: $gate_status]"

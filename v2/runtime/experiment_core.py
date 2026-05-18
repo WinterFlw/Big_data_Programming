@@ -1216,6 +1216,13 @@ def train_neural_model(
     best_epoch = 0            # 최고 성능을 기록한 에포크 번호
     start_time = time.time()  # 학습 시간 측정 시작!
 
+    # AMP (Automatic Mixed Precision) — NVIDIA CUDA 환경에서만 활성. MPS/CPU는 fp32 그대로.
+    # GradScaler가 fp16 backward 안정성을 보장하며 한 epoch당 학습 시간을 30~50% 단축한다.
+    # cudnn.deterministic=True(set_seed)와 함께 써도 시드 재현성은 유지됨.
+    amp_enabled = device.type == "cuda"
+    # torch 2.x 신 API. enabled=False면 어떤 device에서도 no-op이라 안전.
+    scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
+
     # ╔══════════════════════════════════════════════════════╗
     # ║  에포크 루프 — 여기서 실제로 모델이 배워요!           ║
     # ╚══════════════════════════════════════════════════════╝
@@ -1227,33 +1234,37 @@ def train_neural_model(
         train_target_losses = []
         for batch in loaders["train"]:
             batch_labels = batch["labels"].to(device)
-            # 순전파: 모델에 데이터를 넣어 예측값을 얻어요
-            needs_aux_outputs = run_config.attention_loss_alpha > 0 or run_config.target_loss_beta > 0
-            outputs = _forward_batch(
-                model,
-                batch,
-                device,
-                return_outputs=needs_aux_outputs,
-                output_attentions=run_config.attention_loss_alpha > 0,
-            )
-            logits = _extract_logits(outputs)
-            # 손실 계산: 예측과 정답의 차이를 수치화해요
-            loss = criterion(logits, batch_labels)
-            if isinstance(outputs, dict) and run_config.attention_loss_alpha > 0:
-                attn_loss = _compute_attention_supervision_loss(outputs, batch, device)
-                loss = loss + run_config.attention_loss_alpha * attn_loss
-                train_attention_losses.append(float(attn_loss.detach().cpu()))
-            if isinstance(outputs, dict) and run_config.target_loss_beta > 0:
-                target_loss = _compute_target_aux_loss(outputs, batch, device)
-                loss = loss + run_config.target_loss_beta * target_loss
-                train_target_losses.append(float(target_loss.detach().cpu()))
+            optimizer.zero_grad()  # 이전 gradient 초기화 — autocast 진입 전이 안전
 
-            # 역전파: gradient를 계산하고 가중치를 업데이트해요
-            optimizer.zero_grad()       # 이전 gradient 초기화
-            loss.backward()             # 역전파로 gradient 계산
-            # gradient clipping: gradient가 너무 커지는 걸 방지해요 (안정성!)
+            # autocast 컨텍스트 안에서 forward + loss 합산. CUDA에선 fp16,
+            # 그 외 device(MPS/CPU)에선 autocast가 비활성이므로 fp32 그대로.
+            needs_aux_outputs = run_config.attention_loss_alpha > 0 or run_config.target_loss_beta > 0
+            with torch.amp.autocast("cuda", enabled=amp_enabled, dtype=torch.float16):
+                outputs = _forward_batch(
+                    model,
+                    batch,
+                    device,
+                    return_outputs=needs_aux_outputs,
+                    output_attentions=run_config.attention_loss_alpha > 0,
+                )
+                logits = _extract_logits(outputs)
+                # 손실 계산: 예측과 정답의 차이를 수치화해요
+                loss = criterion(logits, batch_labels)
+                if isinstance(outputs, dict) and run_config.attention_loss_alpha > 0:
+                    attn_loss = _compute_attention_supervision_loss(outputs, batch, device)
+                    loss = loss + run_config.attention_loss_alpha * attn_loss
+                    train_attention_losses.append(float(attn_loss.detach().cpu()))
+                if isinstance(outputs, dict) and run_config.target_loss_beta > 0:
+                    target_loss = _compute_target_aux_loss(outputs, batch, device)
+                    loss = loss + run_config.target_loss_beta * target_loss
+                    train_target_losses.append(float(target_loss.detach().cpu()))
+
+            # 역전파: GradScaler가 fp16 underflow를 막아주고, clip 전에 unscale 필수.
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()            # 가중치 업데이트
+            scaler.step(optimizer)
+            scaler.update()
             scheduler.step()            # learning rate 스케줄 한 칸 진행
             train_losses.append(loss.item())
 

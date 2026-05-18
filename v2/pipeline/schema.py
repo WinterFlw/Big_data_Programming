@@ -100,6 +100,8 @@ PAIRED_TEST_COLUMNS = [
 
 # One row per condition x seed for Primary XAI. These columns intentionally
 # mirror the XAI protocol document so the report layer can stay mechanical.
+# v2.1 자동 XAI 4축 — Context Learning 축의 CI / MSS / IS / Attention Rollout Entropy
+# 도 같이 둔다 (ablation 카드와 동일 메트릭이지만 primary는 sample 200 기준).
 XAI_SEED_METRIC_COLUMNS = [
     "run_id",
     "condition",
@@ -115,6 +117,10 @@ XAI_SEED_METRIC_COLUMNS = [
     "loo_drop",
     "topk_jaccard_mean",
     "rank_corr_mean",
+    "ci",
+    "mss",
+    "interaction_strength",
+    "attention_entropy",
 ]
 
 
