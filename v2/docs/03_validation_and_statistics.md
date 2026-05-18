@@ -130,20 +130,37 @@ D_B - D_R
 
 ---
 
-## 5. Holm 보정의 위치
+## 5. Holm 보정과 ANOVA의 위치 — 발표 부록 첨부
 
-Holm-Bonferroni 보정은 메인 분석이 아니라 보조 안전장치다.
+Holm-Bonferroni 보정과 ANOVA(2-way / 3-way + eta²)는 메인 분석이 아니라 **발표 부록 슬라이드에 표 그대로 첨부**한다.
 
-여러 pairwise test를 동시에 많이 수행하면 우연히 p-value가 작게 나오는 비교가 생길 수 있다. Holm 보정은 이런 과대해석을 줄이기 위한 다중비교 보정이다.
+이유:
+- 본문에서 길게 설명하면 학부 프로젝트 치고 통계 수업처럼 보임.
+- 하지만 코드가 이미 자동 계산하니까 표만 부록에 박는 비용은 0. 첨부 안 하면 평가위원이 "왜 ANOVA 안 봤어요?" 물어볼 때 답 못함.
 
 우리 보고서에서의 위치:
 
 ```text
-본문:
-핵심 비교 A_B vs D_B의 paired t-test, 평균 차이, CI, effect size를 중심으로 설명한다.
+본문 (메인 슬라이드):
+- 핵심 비교 A_B vs D_B의 paired t-test, 평균 차이, 95% CI, effect size (Cohen dz)
+- 15 seed Macro F1 mean ± std
 
-부록/보조:
-여러 비교를 함께 보여줄 때 paired_tests_holm.csv의 adjusted p-value를 같이 제시한다.
+부록 슬라이드 (백업):
+- 부록 A: paired_tests_holm.csv 7쌍 비교 표 — adjusted p-value 포함
+- 부록 B: anova_2way_bert.csv / anova_2way_roberta.csv / anova_3way.csv 표
+         attention_loss · vader · interaction 행에 F · p · eta² · partial η²
+- 부록 C: Cohen(1988) 효과 크기 해석 기준
+         (η² < 0.01 negligible / 0.01~0.06 small / 0.06~0.14 medium / ≥ 0.14 large)
+```
+
+CSV는 작업 #2 + #14에서 자동 생성됨. Author(5번)가 `xai-bundle && report` 돌리면 표 데이터가 자동 채움됨. 발표 부록 슬라이드에는 표 그대로 박거나, `column -t -s,` 로 본 결과를 캡처해 박는다.
+
+Q&A 대비 한 줄 답변:
+
+```text
+Q: ANOVA 안 보셨나요?
+A: 부록 B에 BERT/RoBERTa 2-way + 3-way ANOVA를 효과 크기와 함께 첨부했습니다.
+   본문은 핵심 비교 paired t-test 중심으로 두었습니다.
 ```
 
 발표에서 권장하는 표현:
