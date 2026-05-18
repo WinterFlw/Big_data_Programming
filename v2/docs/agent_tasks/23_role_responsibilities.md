@@ -9,6 +9,7 @@
 > - **서버 실행은 2번 단독 책임**. `./run.sh e2e benchmark/aggregate/xai-*/bundle/report/dashboard` 모든 명령을 2번이 서버에서 차례로 돌린다.
 > - **1번/3번/4번/5번은 서버 안 들어감** — git pull로 산출물 받아 본인 영역 검수·해석·글쓰기만.
 > - **발표는 2단계**: 중간발표 PPT(현재 26p 와꾸) + 기말발표 PPT(6/10, 다듬어서). 5번이 둘 다 책임.
+> - **CI 자동화**: push마다 `.github/workflows/preflight.yml`이 daily.sh + gate_check를 자동 실행. 1번은 매일 손으로 안 돌려도 됨 — D0/D2/D3/D5/D7/D10 마일스톤 6회만 수동 또는 GitHub Actions UI 확인.
 >
 > 단일 진실 출처:
 > - 카탈로그 (1045줄 깊이): [`19_team_role_tracks.md`](../19_team_role_tracks.md)
