@@ -84,6 +84,56 @@ data_split_hash
 
 ---
 
+## 3.1 `benchmark/runs/<cond>/seed_<n>/history.csv` — 에폭별 타이트 로깅 ★
+
+학습 디버깅·시각화·발표 자료를 위해 에폭마다 다음 28개 컬럼 저장 (2026-05-17 갱신).
+
+```text
+[기본]
+epoch                              # 에폭 번호 (1부터)
+epoch_seconds                      # 에폭 소요 시간 (초)
+
+[학습 train 메트릭]
+train_loss                         # 평균 학습 loss (cls + α·attn + β·target)
+train_loss_std                     # 학습 loss 표준편차 (배치 내 분포)
+train_cls_loss                     # 평균 분류 cross-entropy
+train_attention_loss               # 평균 attention supervision loss (B/D 조건)
+train_target_loss                  # 평균 target multi-label loss (D_B 부가 실험)
+train_accuracy                     # 학습셋 정확도
+train_grad_norm_mean               # gradient norm 평균 (clip 전)
+train_grad_norm_max                # gradient norm 최대값
+
+[검증 val 메트릭]
+val_loss                           # 검증 cross-entropy
+val_macro_f1                       # 메인 모니터 메트릭
+val_macro_precision
+val_macro_recall
+val_accuracy
+val_f1_hatespeech                  # per-class F1 — hatespeech 클래스
+val_f1_offensive                   # per-class F1 — offensive 클래스
+val_f1_normal                      # per-class F1 — normal 클래스
+val_precision_hatespeech / _offensive / _normal
+val_recall_hatespeech / _offensive / _normal
+
+[운영]
+learning_rate                      # 현재 학습률 (스케줄러 변화 추적)
+amp_scale                          # AMP GradScaler 현재 스케일 (CUDA에서만)
+early_stop_counter                 # 연속 비개선 epoch 수
+
+[Confusion Matrix flatten — 3x3 = 9개]
+val_cm_0_0 / val_cm_0_1 / val_cm_0_2     # row 0 (true=hatespeech)
+val_cm_1_0 / val_cm_1_1 / val_cm_1_2     # row 1 (true=offensive)
+val_cm_2_0 / val_cm_2_1 / val_cm_2_2     # row 2 (true=normal)
+```
+
+활용:
+- 학습 곡선 시각화 (matplotlib): train_loss vs val_loss per epoch
+- per-class F1 추이: hate F1이 offensive보다 일관되게 나은지
+- gradient norm으로 학습 안정성 진단 (clip 자주 걸리면 lr 조정 신호)
+- AMP scale 변동으로 fp16 underflow 발생 시점 식별
+
+---
+
 ## 4. `benchmark_summary.csv`
 
 목적: condition별 15 seed 요약.

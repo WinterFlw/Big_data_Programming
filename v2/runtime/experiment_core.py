@@ -1228,10 +1228,19 @@ def train_neural_model(
     # ╚══════════════════════════════════════════════════════╝
     for epoch in range(1, run_config.epochs + 1):
         # ── 학습 단계 (Training) ────────────────
+        # history.csv를 타이트하게 — 에폭마다 다음을 모두 박는다:
+        #   train: loss 평균/표준편차, cls/attn/target loss 분해, accuracy, grad_norm 평균/최대
+        #   val:   loss, macro F1/P/R, accuracy, per-class F1/P/R, confusion matrix flatten
+        #   운영: learning_rate, AMP scaler scale, epoch_seconds, early_stop_counter
+        epoch_start_time = time.time()
         model.train()  # 학습 모드 (Dropout 활성화)
-        train_losses = []
-        train_attention_losses = []
-        train_target_losses = []
+        train_losses: list[float] = []
+        train_cls_losses: list[float] = []
+        train_attention_losses: list[float] = []
+        train_target_losses: list[float] = []
+        train_grad_norms: list[float] = []
+        train_correct = 0
+        train_total = 0
         for batch in loaders["train"]:
             batch_labels = batch["labels"].to(device)
             optimizer.zero_grad()  # 이전 gradient 초기화 — autocast 진입 전이 안전
@@ -1248,8 +1257,10 @@ def train_neural_model(
                     output_attentions=run_config.attention_loss_alpha > 0,
                 )
                 logits = _extract_logits(outputs)
-                # 손실 계산: 예측과 정답의 차이를 수치화해요
-                loss = criterion(logits, batch_labels)
+                # cls_loss는 attn/target loss와 분해해서 저장 — 디버깅·시각화·발표 자료에 활용.
+                cls_loss = criterion(logits, batch_labels)
+                loss = cls_loss
+                train_cls_losses.append(float(cls_loss.detach().cpu()))
                 if isinstance(outputs, dict) and run_config.attention_loss_alpha > 0:
                     attn_loss = _compute_attention_supervision_loss(outputs, batch, device)
                     loss = loss + run_config.attention_loss_alpha * attn_loss
@@ -1259,10 +1270,18 @@ def train_neural_model(
                     loss = loss + run_config.target_loss_beta * target_loss
                     train_target_losses.append(float(target_loss.detach().cpu()))
 
+            # train accuracy 누적 — gradient 추적 없이 argmax만.
+            with torch.no_grad():
+                preds = logits.argmax(dim=-1)
+                train_correct += int((preds == batch_labels).sum().item())
+                train_total += int(batch_labels.size(0))
+
             # 역전파: GradScaler가 fp16 underflow를 막아주고, clip 전에 unscale 필수.
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            # clip_grad_norm_의 반환값은 클립 전 gradient norm — 학습 안정성 추적용으로 보관.
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            train_grad_norms.append(float(grad_norm.detach().cpu()) if torch.is_tensor(grad_norm) else float(grad_norm))
             scaler.step(optimizer)
             scaler.update()
             scheduler.step()            # learning rate 스케줄 한 칸 진행
@@ -1272,23 +1291,77 @@ def train_neural_model(
         # 한 에포크가 끝나면 검증 데이터로 성능을 체크해요
         val_metrics = evaluate_neural_model(model, loaders["val"], criterion, device)
         train_loss = float(np.mean(train_losses)) if train_losses else 0.0
-        # 학습 곡선을 그리기 위해 매 에포크 기록을 남겨요
-        history_rows.append(
-            {
-                "epoch": epoch,
-                "train_loss": train_loss,
-                "val_loss": val_metrics["loss"],
-                "val_macro_f1": val_metrics["macro_f1"],
-                "val_macro_precision": val_metrics["macro_precision"],
-                "val_macro_recall": val_metrics["macro_recall"],
-                "train_attention_loss": float(np.mean(train_attention_losses)) if train_attention_losses else 0.0,
-                "train_target_loss": float(np.mean(train_target_losses)) if train_target_losses else 0.0,
-            }
-        )
+        train_loss_std = float(np.std(train_losses)) if len(train_losses) > 1 else 0.0
+        train_accuracy = (train_correct / train_total) if train_total > 0 else 0.0
+
+        # 에폭별 운영 메트릭. scheduler.get_last_lr()는 list[float] 반환 → 첫 값.
+        try:
+            current_lr = float(scheduler.get_last_lr()[0])
+        except (AttributeError, IndexError):
+            current_lr = float(optimizer.param_groups[0].get("lr", 0.0))
+        try:
+            amp_scale = float(scaler.get_scale()) if amp_enabled else 0.0
+        except Exception:
+            amp_scale = 0.0
+        epoch_seconds = time.time() - epoch_start_time
+
+        # val per-class metrics 평탄화. compute_metrics가 dict로 돌려주는 걸 컬럼으로 풀어 박는다.
+        val_per_class_f1 = val_metrics.get("per_class_f1") or {}
+        val_per_class_precision = val_metrics.get("per_class_precision") or {}
+        val_per_class_recall = val_metrics.get("per_class_recall") or {}
+        confusion = val_metrics.get("confusion_matrix")
+        # confusion matrix는 3x3 → 9개 값으로 평탄화 (CSV 한 행에 박기).
+        if confusion is not None:
+            try:
+                confusion_array = np.asarray(confusion).flatten().tolist()
+                confusion_flat = {f"val_cm_{i}_{j}": int(confusion_array[i * 3 + j]) for i in range(3) for j in range(3)}
+            except Exception:
+                confusion_flat = {f"val_cm_{i}_{j}": "" for i in range(3) for j in range(3)}
+        else:
+            confusion_flat = {f"val_cm_{i}_{j}": "" for i in range(3) for j in range(3)}
+
+        # 학습 곡선을 그리기 위해 매 에포크 기록을 남겨요 — 타이트 버전 (~28 컬럼).
+        history_row: dict[str, Any] = {
+            "epoch": epoch,
+            "epoch_seconds": round(epoch_seconds, 3),
+            # train side
+            "train_loss": train_loss,
+            "train_loss_std": train_loss_std,
+            "train_cls_loss": float(np.mean(train_cls_losses)) if train_cls_losses else 0.0,
+            "train_attention_loss": float(np.mean(train_attention_losses)) if train_attention_losses else 0.0,
+            "train_target_loss": float(np.mean(train_target_losses)) if train_target_losses else 0.0,
+            "train_accuracy": train_accuracy,
+            "train_grad_norm_mean": float(np.mean(train_grad_norms)) if train_grad_norms else 0.0,
+            "train_grad_norm_max": float(np.max(train_grad_norms)) if train_grad_norms else 0.0,
+            # val side
+            "val_loss": val_metrics["loss"],
+            "val_macro_f1": val_metrics["macro_f1"],
+            "val_macro_precision": val_metrics["macro_precision"],
+            "val_macro_recall": val_metrics["macro_recall"],
+            "val_accuracy": val_metrics.get("accuracy", 0.0),
+            "val_f1_hatespeech": val_per_class_f1.get("hatespeech", 0.0),
+            "val_f1_offensive": val_per_class_f1.get("offensive", 0.0),
+            "val_f1_normal": val_per_class_f1.get("normal", 0.0),
+            "val_precision_hatespeech": val_per_class_precision.get("hatespeech", 0.0),
+            "val_precision_offensive": val_per_class_precision.get("offensive", 0.0),
+            "val_precision_normal": val_per_class_precision.get("normal", 0.0),
+            "val_recall_hatespeech": val_per_class_recall.get("hatespeech", 0.0),
+            "val_recall_offensive": val_per_class_recall.get("offensive", 0.0),
+            "val_recall_normal": val_per_class_recall.get("normal", 0.0),
+            # 운영 메트릭
+            "learning_rate": current_lr,
+            "amp_scale": amp_scale,
+            "early_stop_counter": getattr(early_stopping, "counter", 0),
+        }
+        history_row.update(confusion_flat)
+        history_rows.append(history_row)
         print(
             f"[epoch] {display_name} | seed={seed} | epoch={epoch}/{run_config.epochs} | "
             f"train_loss={train_loss:.4f} | val_loss={val_metrics['loss']:.4f} | "
-            f"val_macro_f1={val_metrics['macro_f1']:.4f}",
+            f"val_macro_f1={val_metrics['macro_f1']:.4f} | "
+            f"train_acc={train_accuracy:.4f} | val_acc={val_metrics.get('accuracy', 0.0):.4f} | "
+            f"lr={current_lr:.2e} | grad_norm={history_row['train_grad_norm_mean']:.3f} | "
+            f"epoch_t={epoch_seconds:.1f}s",
             flush=True,
         )
 
