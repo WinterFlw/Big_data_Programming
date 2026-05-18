@@ -1,26 +1,96 @@
-# 21. 5명 분배 — 실명·페이지·명령·마감 매핑
+# 21. 5명 분배 — 실명·페이지·명령·마감 매핑 (확정안)
 
 > 마지막 업데이트: 2026-05-17
-> 본 문서는 작업 #1~#5 완료(2026-05-17) 직후, 브리프 부록 C "작업 종료 후 5명 분배 시점"을 **실명 / 발표 페이지 / 첫 명령 / D0~D10 마감** 단위로 풀어놓은 분배 가이드다.
+> 본 문서는 작업 #1~#14 완료(2026-05-17) 직후 5인 전 분담을 한 곳에 모은 **확정안**이다.
+> 5가지 차원(Stage / 발표 페이지 / 작업 #N 인계 / XAI 12지표 / Gate 6조건 / D0~D10 마일스톤)을 모두 실명에 매핑.
 >
 > 단일 진실 출처:
-> - 카탈로그 (인원 미배정): [`19_team_role_tracks.md`](../19_team_role_tracks.md)
-> - 브리프 (작업 #1~#5): [`20_claude_code_completion_brief.md`](20_claude_code_completion_brief.md)
+> - 카탈로그 (인원 미배정 깊이 버전): [`19_team_role_tracks.md`](../19_team_role_tracks.md)
+> - 브리프 (작업 #1~#14): [`20_claude_code_completion_brief.md`](20_claude_code_completion_brief.md)
+> - 회의용 카드 (인원 미배정 압축): [`22_stage_briefs.md`](22_stage_briefs.md)
 > - 발표 페이지 분담: [`발표_와꾸_v2.md`](../../../docs/발표_와꾸_v2.md) (학교 산학협력 26p)
 >
-> 이 문서는 권장안이다. 첫 회의(5분)에서 본인이 다른 카드 가져가고 싶으면 자유롭게 스왑.
+> 스왑이 필요하면 §0 표만 바꾸고 나머지는 자동으로 따라감.
 
 ---
 
 ## 0. 한 눈에 보기 (확정안)
 
-| # | Stage / 역할 | 담당 | 발표 페이지 | 작업 #N 결과 인계 | 첫 마감 | 핵심 명령 |
-|---|---|---|---|---|---|---|
-| 1 | **Pilot** (Benchmark 실행) | **정수현** (팀장) | p2, p3, p12~p16, p20, p21 (9p) | 작업 #1 (cudnn) | **D3** | `./run.sh e2e benchmark --execute` |
-| 2 | **Stat Auditor** (집계·검정) | **박종화** | p9, p10, p11, p17, p18 (5p) | 작업 #2 (ANOVA) | **D5** | `./run.sh e2e aggregate` |
-| 3 | **XAI Curator** (SHAP/LIME) | **차종민** | p1, p4, p5, p6 (4p) | 작업 #4 (XAI adapter) | **D7** | `./run.sh e2e xai-primary --resume` |
-| 4 | **Author** (Bundle + Report) | **조은** | p19, p22~p26 (6p) | 작업 #5 (Bundle/Report) | **D9** | `./run.sh e2e xai-bundle && report && dashboard` |
-| 5 | **QA Conductor** (preflight + Gate) | **김정훈** | p7, p8 (2p) | 작업 #3 (failed/completed + daily.sh) | **D0 매일** | `./v2/scripts/daily.sh` |
+### 0.1 Stage × 발표 페이지 × 첫 마감
+
+| # | Stage / 역할 | 담당 | 발표 페이지 | 첫 마감 | 핵심 명령 |
+|---|---|---|---|---|---|
+| 1 | **Pilot** (Benchmark 실행) | **정수현** (팀장) | p2, p3, p12~p16, p20, p21 (9p) | **D3** | `./run.sh e2e benchmark --execute` |
+| 2 | **Stat Auditor** (집계·검정) | **박종화** | p9, p10, p11, p17, p18 (5p) | **D5** | `./run.sh e2e aggregate` |
+| 3 | **XAI Curator** (SHAP/LIME) | **차종민** | p1, p4, p5, p6 (4p) | **D7** | `./run.sh e2e xai-primary --resume` |
+| 4 | **Author** (Bundle + Report) | **조은** | p19, p22~p26 (6p) | **D9** | `./run.sh e2e xai-bundle && report && dashboard` |
+| 5 | **QA Conductor** (preflight + Gate) | **김정훈** | p7, p8 (2p) | **D0 매일** | `./v2/scripts/daily.sh` |
+
+### 0.2 작업 #1~#14 결과 인계 (5인 1:n 매핑)
+
+§2에 상세. 한 줄 요약:
+
+```
+정수현 (Pilot)        ← 작업 #1 (cudnn)   + #6 (statsmodels)  + #12 (AMP)
+박종화 (Stat Auditor) ← 작업 #2 (ANOVA)   + #7 (bootstrap)    + #14 effect size
+차종민 (XAI Curator)  ← 작업 #4 (adapter) + #8 ablation 4축   + #9 jsonl + #11 primary 4축
+조은   (Author)       ← 작업 #5 (bundle)  + #10 subgroup×context + #14 subgroup
+김정훈 (QA Conductor) ← 작업 #3 (failed/completed + daily.sh) + #13 (gate_check.py)
+```
+
+### 0.3 XAI 12지표 학습 책임자 (확정)
+
+각자 본인 지표만 5분 발표 가능 수준까지 마스터. 발표 Q&A 대비.
+
+| 축 | # | 지표 | 담당 | 본업 매칭 |
+|---|---|---|---|---|
+| 1 Attribution | 1 | SHAP | **박종화** | p18 평가지표 본문 |
+| 1 Attribution | 2 | LIME | **김정훈** | 페이지 가벼우니 1축 보조 흡수 |
+| 1 Attribution | 3 | LOO | **김정훈** | 단순한 sanity check |
+| 2 Faithfulness | 4 | Comprehensiveness | **박종화** | p18 본문 |
+| 2 Faithfulness | 5 | Sufficiency | **박종화** | p18 본문 |
+| 2 Faithfulness | 6 | MSS | **박종화** | p18 본문 |
+| **3 Context Learning ⭐** | 7 | CI (Concentration) | **차종민** | p4 학술 인용 (Gini 1912) |
+| **3 Context Learning ⭐** | 8 | IS (Interaction Strength) | **차종민** | p5 Lundberg 2020 Nature MI |
+| **3 Context Learning ⭐** | 9 | Attention Rollout | **차종민** | p5 Abnar 2020 ACL |
+| 4 Plausibility | 10 | Token F1 | **조은** | p19 메인 결과 표 |
+| 4 Plausibility | 11 | IOU | **조은** | p19 메인 결과 표 |
+| 보조 | 12 | Overlap@5 | **김정훈** | 1축 안정성 보조 |
+
+3축(차종민 3개)은 본 연구 결정 카드, 가장 깊이 마스터해야. p4·p5 학술 인용과 직결.
+
+### 0.4 Full Run Gate 6조건 점검 책임자
+
+QA Conductor가 매일 자동 점검(`gate_check.py`)하지만, FAIL 시 fix 책임자는 분리.
+
+| # | 조건 | 자동 점검 | FAIL 시 fix 책임자 |
+|---|---|---|---|
+| 1 | cudnn 결정성 | gate_check 자동 | **정수현 (Pilot)** — A_B seed 42 두 번 재학습 |
+| 2 | 8조건 metadata 정합성 | gate_check 자동 | **정수현 (Pilot)** — schema vs runtime spec 정렬 |
+| 3 | aggregate CSV 7개 존재 | gate_check 자동 | **박종화 (Stat Auditor)** |
+| 4 | XAI sample 결정성 (md5 일치) | gate_check 자동 (--skip-sample-check 옵션) | **차종민 (XAI Curator)** |
+| 5 | failed_runs.csv 0건 | gate_check 자동 | **정수현 (Pilot)** — stderr.log 진단 + 재실행 |
+| 6 | 산출물 contract 8개 존재 | gate_check 자동 | **조은 (Author)** — bundle/report 재실행 |
+
+GO/STOP **최종 결정**은 **김정훈 (QA)**. STOP이면 위 fix 책임자에게 단톡 멘션.
+
+### 0.5 D0~D10 마일스톤 책임자
+
+| Day | 마일스톤 | 주 책임자 | 보조 |
+|---|---|---|---|
+| **D0** (5/17) | 본 문서 정독 + 단톡 카드 확정 + 환경 준비 | 전원 | 김정훈 단톡 사회 |
+| D1 | A_B seed 42 smoke 1차 | 정수현 | 김정훈 daily.sh |
+| D2 | A_B + D_B 2조건 smoke | 정수현 | 박종화 aggregate 점검 |
+| **D3** | **Full Run Gate 6/6 통과 → GO 결정** | 김정훈 | 정수현 fix 대응 |
+| D4 | full 120 unit 학습 시작 | 정수현 | 김정훈 매시간 status 모니터 |
+| **D5** | 8조건 × 3시드 partial → ANOVA + p18 본문 박기 | 박종화 | 차종민 |
+| D6 | full 120 진행 + p22~p26 골격 작성 | 정수현 + 조은 | — |
+| **D7** | A_B + D_B × 15시드 XAI 완료 → 토큰 sanity + p4/p5 인용 매핑 | 차종민 | 박종화 |
+| D8 | xai-bundle + report 자동 채움 검수 + p19 메인 결과 표 | 조은 | 차종민 |
+| **D9** | 발표 자료 26p 1차 완성 | 조은 | 김정훈 페어 |
+| D10 | 발표 리허설 + 척추 메시지·금지 표현 검수 + 최종 GO | 정수현 (팀장) | 전원 |
+
+**굵게**: stage gate 마일스톤. 늦으면 critical path 영향.
 
 ---
 

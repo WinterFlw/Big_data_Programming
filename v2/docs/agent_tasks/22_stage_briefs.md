@@ -1,13 +1,28 @@
-# 22. Stage 선택 카드 — 회의용 (인원 미배정)
+# 22. Stage 선택 카드 — 회의용
 
 > 마지막 업데이트: 2026-05-17
 > 5개 stage의 직무 · 비유 · 난이도★ · 하루 모양 · "내가 잘할 수 있겠다" 신호를 한 페이지에.
-> 인원 매핑은 본 문서를 같이 보고 회의 5분 안에 정하고, 결정 사항은 [21_team_role_dispatch.md](21_team_role_dispatch.md) §0 표에 박는다.
+>
+> **인원 매핑은 [`21_team_role_dispatch.md`](21_team_role_dispatch.md) §0에서 확정됨.**
 >
 > 단일 진실 출처:
 > - 카탈로그 (깊이 있는 카드): [`19_team_role_tracks.md`](../19_team_role_tracks.md)
 > - 본 문서 (회의용 압축 카드): 22번
-> - 실명 매핑 (확정 후): [`21_team_role_dispatch.md`](21_team_role_dispatch.md)
+> - **실명 매핑 (확정안)**: [`21_team_role_dispatch.md`](21_team_role_dispatch.md)
+
+---
+
+## 확정 매핑 한 줄 (21 문서 §0.1 발췌)
+
+```
+Stage 1  Pilot           — 정수현 (팀장)         p2, p3, p12~p16, p20, p21 (9p)
+Stage 2  Stat Auditor    — 박종화                p9~p11, p17, p18 (5p)
+Stage 3  XAI Curator     — 차종민                p1, p4, p5, p6 (4p)
+Stage 4  Author          — 조은                  p19, p22~p26 (6p)
+Stage 5  QA Conductor    — 김정훈                p7, p8 (2p)
+```
+
+XAI 12지표·Gate 6조건 fix 책임자·D0~D10 마일스톤 책임자는 21 §0.3~§0.5 참조.
 
 ---
 
@@ -208,9 +223,12 @@
 
 ---
 
-## 회의 진행 순서 (5분)
+## 회의 진행 순서 (확정됨 — 본 섹션은 향후 스왑 회의용 보존)
 
 ```
+[확정 상태] 21 문서 §0 표 그대로 시작. 스왑 의견 없으면 D0 첫 명령 인증으로 직행.
+
+스왑이 필요한 경우 (5분):
 [0~1분]   본 문서 §사용법 + 치트시트 같이 화면에 띄우기.
 [1~2분]   각자 1순위·2순위 카드 메모 (말 안 하고).
 [2~3분]   Author 정함 (글쓰기 부담 큼 → 누가 26p 통합 가능?)
