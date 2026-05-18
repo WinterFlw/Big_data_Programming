@@ -1,0 +1,9 @@
+{
+  "status": "in_progress",
+  "sample_size": 500,
+  "median_seed": 112,
+  "models": [
+    "A_B",
+    "D_B"
+  ]
+}

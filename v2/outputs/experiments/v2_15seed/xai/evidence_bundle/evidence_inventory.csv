@@ -1,0 +1,14 @@
+artifact,path,exists
+primary_samples,xai/samples/primary_samples.csv,true
+deep_samples,xai/samples/deep_samples.csv,true
+ablation_samples,xai/samples/ablation_samples.csv,true
+primary_seed_metrics,xai/primary/seed_level_metrics.csv,true
+primary_sample_level_metrics,xai/primary/sample_level_metrics.csv,true
+primary_paired_tests,xai/primary/paired_xai_tests.csv,true
+primary_seed_stability,xai/primary/seed_stability.csv,true
+deep_case_summary,xai/deep/case_summary.csv,false
+deep_details,xai/deep/xai_details.json,true
+ablation_metrics,xai/ablation/xai_ablation_metrics.csv,true
+xai_summary,xai/xai_summary.json,true
+benchmark_summary,benchmark/benchmark_summary.csv,true
+benchmark_paired_holm,benchmark/paired_tests_holm.csv,true

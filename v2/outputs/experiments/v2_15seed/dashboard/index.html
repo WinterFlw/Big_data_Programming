@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>v2_15seed dashboard</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 40px; line-height: 1.5; }
+    table { border-collapse: collapse; min-width: 360px; }
+    th, td { border: 1px solid #d0d7de; padding: 8px 10px; text-align: left; }
+    th { background: #f6f8fa; }
+    code { background: #f6f8fa; padding: 2px 4px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>v2_15seed dashboard</h1>
+  <p>Output root: <code>outputs/experiments/v2_15seed</code></p>
+  <table>
+    <tbody>
+      <tr><th>planned</th><td>120</td></tr>
+<tr><th>completed</th><td>0</td></tr>
+<tr><th>failed</th><td>0</td></tr>
+<tr><th>total</th><td>120</td></tr>
+    </tbody>
+  </table>
+  
+  <h2>XAI Summary Cards</h2><table><thead><tr><th>Title</th><th>Value</th><th>Source</th></tr></thead><tbody><tr><td>No XAI evidence yet</td><td>Run xai-primary / xai-deep / xai-ablation, then re-run xai-bundle.</td><td><code>&lt;bundle placeholder&gt;</code></td></tr></tbody></table>
+  <h2>XAI Evidence Bundle</h2>
+  <p>Report/dashboard stages should prefer these bundle artifacts before raw XAI case files.</p>
+  <table>
+    <tbody>
+      <tr><th>xai/evidence_bundle/xai_claims.json</th><td>present</td></tr>
+<tr><th>xai/evidence_bundle/xai_dashboard_bundle.json</th><td>present</td></tr>
+<tr><th>xai/evidence_bundle/xai_interpretation_cards.json</th><td>present</td></tr>
+<tr><th>xai/evidence_bundle/xai_run_metadata.json</th><td>present</td></tr>
+<tr><th>xai/evidence_bundle/token_attributions.jsonl</th><td>present</td></tr>
+    </tbody>
+  </table>
+</body>
+</html>

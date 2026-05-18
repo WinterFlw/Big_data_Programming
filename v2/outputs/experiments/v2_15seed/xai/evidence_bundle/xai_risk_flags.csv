@@ -1,0 +1,2 @@
+sample_id,condition,seed,flag_type,severity,evidence,recommended_report_note
+<run-level>,all,,no_seed_metrics,info,xai/primary/seed_level_metrics.csv has no rows.,Mark XAI section as not yet executed.

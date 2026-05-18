@@ -1,0 +1,37 @@
+{
+  "status": "planned",
+  "run_id": "v2_15seed",
+  "summary_cards": [
+    {
+      "title": "No XAI evidence yet",
+      "value": "Run xai-primary / xai-deep / xai-ablation, then re-run xai-bundle.",
+      "source": "<bundle placeholder>"
+    }
+  ],
+  "primary": {
+    "seed_metric_count": 0,
+    "paired_test_count": 0
+  },
+  "seed_stability": {
+    "rows": 0
+  },
+  "deep_cases": [],
+  "ablation": {
+    "row_count": 0
+  },
+  "artifact_links": {
+    "primary_samples": "xai/samples/primary_samples.csv",
+    "deep_samples": "xai/samples/deep_samples.csv",
+    "ablation_samples": "xai/samples/ablation_samples.csv",
+    "primary_seed_metrics": "xai/primary/seed_level_metrics.csv",
+    "primary_sample_level_metrics": "xai/primary/sample_level_metrics.csv",
+    "primary_paired_tests": "xai/primary/paired_xai_tests.csv",
+    "primary_seed_stability": "xai/primary/seed_stability.csv",
+    "deep_case_summary": "xai/deep/case_summary.csv",
+    "deep_details": "xai/deep/xai_details.json",
+    "ablation_metrics": "xai/ablation/xai_ablation_metrics.csv",
+    "xai_summary": "xai/xai_summary.json",
+    "benchmark_summary": "benchmark/benchmark_summary.csv",
+    "benchmark_paired_holm": "benchmark/paired_tests_holm.csv"
+  }
+}

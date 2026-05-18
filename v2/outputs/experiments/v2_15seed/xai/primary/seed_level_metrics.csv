@@ -1,0 +1,1 @@
+run_id,condition,seed,sample_count,shap_lime_overlap_at_5,shap_lime_overlap_at_10,rationale_precision_at_5,rationale_recall_at_5,rationale_f1_at_5,comprehensiveness,sufficiency,loo_drop,topk_jaccard_mean,rank_corr_mean,ci,mss,interaction_strength,attention_entropy

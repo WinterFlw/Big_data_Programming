@@ -1,0 +1,51 @@
+{
+  "status": "planned",
+  "run_id": "v2_15seed",
+  "created_at": "2026-05-18T14:48:00.319305+00:00",
+  "commit_hash": "pending",
+  "config_path": "configs/v2_15seed.json",
+  "manifest_path": "outputs/experiments/v2_15seed/manifest.json",
+  "data_split_hash": "pending",
+  "conditions": [
+    "A_B",
+    "B_B",
+    "C_B",
+    "D_B",
+    "A_R",
+    "B_R",
+    "C_R",
+    "D_R"
+  ],
+  "seeds": [
+    42,
+    52,
+    62,
+    72,
+    82,
+    92,
+    102,
+    112,
+    122,
+    132,
+    142,
+    152,
+    162,
+    172,
+    182
+  ],
+  "source_artifacts": {
+    "primary_samples": "xai/samples/primary_samples.csv",
+    "deep_samples": "xai/samples/deep_samples.csv",
+    "ablation_samples": "xai/samples/ablation_samples.csv",
+    "primary_seed_metrics": "xai/primary/seed_level_metrics.csv",
+    "primary_sample_level_metrics": "xai/primary/sample_level_metrics.csv",
+    "primary_paired_tests": "xai/primary/paired_xai_tests.csv",
+    "primary_seed_stability": "xai/primary/seed_stability.csv",
+    "deep_case_summary": "xai/deep/case_summary.csv",
+    "deep_details": "xai/deep/xai_details.json",
+    "ablation_metrics": "xai/ablation/xai_ablation_metrics.csv",
+    "xai_summary": "xai/xai_summary.json",
+    "benchmark_summary": "benchmark/benchmark_summary.csv",
+    "benchmark_paired_holm": "benchmark/paired_tests_holm.csv"
+  }
+}

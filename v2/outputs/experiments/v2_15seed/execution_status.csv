@@ -1,0 +1,3 @@
+run_id,condition,seed,backbone,model_name,use_attention_loss,use_sentiment,status,run_dir
+v2_15seed,A_B,42,BERT,bert-base-uncased,False,False,planned,outputs/experiments/v2_15seed/benchmark/runs/a_b/seed_42
+v2_15seed,D_B,42,BERT,bert-base-uncased,True,True,planned,outputs/experiments/v2_15seed/benchmark/runs/d_b/seed_42

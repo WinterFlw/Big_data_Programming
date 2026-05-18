@@ -1,0 +1,9 @@
+condition,backbone,n_seeds,macro_f1_mean,macro_f1_std,macro_f1_ci_low,macro_f1_ci_high,weighted_f1_mean,accuracy_mean,best_seed,median_seed,failed_seed_count
+A_B,BERT,0,,,,,,,,,0
+B_B,BERT,0,,,,,,,,,0
+C_B,BERT,0,,,,,,,,,0
+D_B,BERT,0,,,,,,,,,0
+A_R,RoBERTa,0,,,,,,,,,0
+B_R,RoBERTa,0,,,,,,,,,0
+C_R,RoBERTa,0,,,,,,,,,0
+D_R,RoBERTa,0,,,,,,,,,0

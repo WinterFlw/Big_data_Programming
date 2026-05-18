@@ -1,0 +1,143 @@
+{
+  "run_id": "v2_15seed",
+  "description": "15-seed controlled ablation and XAI stability run for HateSpeachStudy v2 model",
+  "created_at": "2026-05-13",
+  "output_root": "outputs/experiments/v2_15seed",
+  "data": {
+    "split_source": "outputs/data_splits.pkl",
+    "split_policy": "label-stratified 70/10/20",
+    "split_seed": 42,
+    "input_principle": "text-only model input; metadata is supervision or analysis only"
+  },
+  "benchmark": {
+    "primary_metric": "macro_f1",
+    "seeds": [
+      42,
+      52,
+      62,
+      72,
+      82,
+      92,
+      102,
+      112,
+      122,
+      132,
+      142,
+      152,
+      162,
+      172,
+      182
+    ],
+    "conditions": [
+      "A_B",
+      "B_B",
+      "C_B",
+      "D_B",
+      "A_R",
+      "B_R",
+      "C_R",
+      "D_R"
+    ],
+    "bert_common_hyperparams": {
+      "learning_rate": 2e-05,
+      "dropout": 0.3,
+      "batch_size": 64,
+      "epochs": 5,
+      "mlp_hidden": 256
+    },
+    "roberta_common_hyperparams": {
+      "learning_rate": 2e-05,
+      "dropout": 0.3,
+      "batch_size": 64,
+      "epochs": 5,
+      "mlp_hidden": 256
+    },
+    "attention_loss_alpha": 1.0,
+    "target_loss_beta": 0.0,
+    "resume": true
+  },
+  "statistics": {
+    "paired_tests": [
+      "A_B:D_B",
+      "A_B:B_B",
+      "A_B:C_B",
+      "B_B:D_B",
+      "C_B:D_B",
+      "A_R:D_R",
+      "D_B:D_R"
+    ],
+    "multiple_comparison": "Holm-Bonferroni",
+    "effect_size": "Cohen dz",
+    "confidence_interval": 0.95,
+    "bootstrap_iterations": 1000
+  },
+  "xai": {
+    "primary": {
+      "models": [
+        "A_B",
+        "D_B"
+      ],
+      "seeds": "all benchmark seeds",
+      "sample_size": 200,
+      "sample_policy": "label-stratified representative sample",
+      "methods": [
+        "SHAP",
+        "LIME",
+        "rationale_alignment",
+        "masking",
+        "seed_stability"
+      ]
+    },
+    "deep": {
+      "models": [
+        "A_B",
+        "D_B"
+      ],
+      "seed_policy": "median-performing seed by paired D_B-A_B difference",
+      "sample_size": 500,
+      "methods": [
+        "SHAP",
+        "LIME",
+        "case_visualization"
+      ]
+    },
+    "ablation": {
+      "models": [
+        "A_B",
+        "B_B",
+        "C_B",
+        "D_B",
+        "A_R",
+        "B_R",
+        "C_R",
+        "D_R"
+      ],
+      "seed_policy": "median-performing seed per condition",
+      "sample_size": 50,
+      "methods": [
+        "CI",
+        "MSS",
+        "LOO",
+        "attention_rollout_entropy"
+      ]
+    },
+    "improvement_cases": {
+      "case_type": "A_B wrong and D_B correct",
+      "sample_size": 50,
+      "use": "qualitative report only"
+    }
+  },
+  "outputs": {
+    "reports": [
+      "final_report.md",
+      "final_report.docx"
+    ],
+    "dashboard": "dashboard/index.html",
+    "machine_readable": [
+      "benchmark_runs.csv",
+      "benchmark_summary.csv",
+      "paired_tests_holm.csv",
+      "xai_summary.json"
+    ]
+  }
+}
