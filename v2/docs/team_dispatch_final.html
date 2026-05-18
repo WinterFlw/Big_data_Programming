@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>HateSpeachStudy v2 — 5인 임무분담 최종안</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+                 "Noto Sans CJK KR", "Malgun Gothic", "Pretendard", sans-serif;
+    color: #1a1a1a;
+    line-height: 1.55;
+    font-size: 11pt;
+    max-width: 178mm;
+    margin: 0 auto;
+    padding: 8mm 4mm;
+  }
+  h1 {
+    font-size: 22pt;
+    margin: 0 0 4pt 0;
+    color: #0d2748;
+    border-bottom: 3px solid #0d2748;
+    padding-bottom: 6pt;
+  }
+  h1 .subtitle {
+    display: block;
+    font-size: 11pt;
+    color: #6b7280;
+    font-weight: normal;
+    margin-top: 4pt;
+  }
+  h2 {
+    font-size: 15pt;
+    color: #0d2748;
+    margin: 24pt 0 8pt 0;
+    padding-left: 8pt;
+    border-left: 5px solid #0d2748;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 12pt;
+    color: #0d2748;
+    margin: 14pt 0 6pt 0;
+    page-break-after: avoid;
+  }
+  p { margin: 4pt 0; }
+  ul, ol { padding-left: 22pt; margin: 6pt 0; }
+  li { margin: 2pt 0; }
+
+  .summary {
+    background: #fef3c7;
+    border-left: 5px solid #d97706;
+    padding: 10pt 14pt;
+    margin: 12pt 0 18pt 0;
+    font-size: 11.5pt;
+  }
+  .summary strong { color: #92400e; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8pt 0 12pt 0;
+    font-size: 10pt;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 5pt 8pt;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #1e3a8a;
+    color: white;
+    font-weight: 600;
+  }
+  tr:nth-child(even) td { background: #f8fafc; }
+  td.center { text-align: center; }
+
+  .role-card {
+    border: 1.5px solid #cbd5e1;
+    border-radius: 6pt;
+    padding: 12pt 16pt;
+    margin: 12pt 0;
+    background: #ffffff;
+    page-break-inside: avoid;
+  }
+  .role-card.role-1 { border-left: 6px solid #0ea5e9; }
+  .role-card.role-2 { border-left: 6px solid #10b981; }
+  .role-card.role-3 { border-left: 6px solid #8b5cf6; }
+  .role-card.role-4 { border-left: 6px solid #f59e0b; }
+  .role-card.role-5 { border-left: 6px solid #ef4444; }
+
+  .role-card h3 {
+    margin-top: 0;
+    font-size: 13pt;
+  }
+  .role-card .meta {
+    font-size: 9.5pt;
+    color: #6b7280;
+    margin-top: 8pt;
+    padding-top: 6pt;
+    border-top: 1px dashed #cbd5e1;
+  }
+  .role-card .meta strong { color: #1a1a1a; }
+
+  .todo {
+    background: #f1f5f9;
+    border-radius: 4pt;
+    padding: 8pt 12pt;
+    margin: 8pt 0;
+    font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+    font-size: 9.5pt;
+    white-space: pre-wrap;
+  }
+  .todo .star { color: #ef4444; font-weight: bold; }
+
+  code {
+    background: #f1f5f9;
+    padding: 1pt 5pt;
+    border-radius: 3pt;
+    font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+    font-size: 9.5pt;
+    color: #0d2748;
+  }
+  pre {
+    background: #0d2748;
+    color: #e2e8f0;
+    padding: 10pt 14pt;
+    border-radius: 5pt;
+    font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+    font-size: 9pt;
+    line-height: 1.5;
+    overflow-x: auto;
+    page-break-inside: avoid;
+  }
+  pre .comment { color: #94a3b8; }
+
+  .stars { letter-spacing: 0.5pt; }
+  .stars.s1 { color: #cbd5e1; }
+  .stars.s2 { color: #94a3b8; }
+  .stars.s3 { color: #f59e0b; }
+  .stars.s4 { color: #f97316; }
+  .stars.s5 { color: #ef4444; }
+
+  .kakao-box {
+    background: #fef9c3;
+    border: 2px dashed #ca8a04;
+    padding: 14pt 18pt;
+    border-radius: 6pt;
+    margin: 16pt 0;
+    font-size: 10.5pt;
+    line-height: 1.65;
+  }
+  .kakao-box .label {
+    display: inline-block;
+    background: #ca8a04;
+    color: white;
+    padding: 2pt 8pt;
+    border-radius: 4pt;
+    font-size: 9.5pt;
+    margin-bottom: 6pt;
+  }
+
+  .footer {
+    margin-top: 28pt;
+    padding-top: 10pt;
+    border-top: 2px solid #0d2748;
+    font-size: 9.5pt;
+    color: #6b7280;
+    text-align: center;
+  }
+  .footer a { color: #1e3a8a; text-decoration: none; }
+
+  @media print {
+    body { padding: 0; }
+    .no-print { display: none; }
+    h2 { page-break-before: auto; }
+    .role-card { page-break-inside: avoid; }
+    pre, table { page-break-inside: avoid; }
+  }
+
+  .print-hint {
+    background: #dbeafe;
+    border-left: 4px solid #1d4ed8;
+    padding: 8pt 12pt;
+    margin: 8pt 0 16pt 0;
+    font-size: 10pt;
+    color: #1e3a8a;
+  }
+</style>
+</head>
+<body>
+
+<div class="print-hint no-print">
+  <strong>PDF로 저장:</strong>
+  <kbd>Cmd+P</kbd> (Mac) 또는 <kbd>Ctrl+P</kbd> (Windows) → 대상을 "PDF로 저장" 선택. A4 권장.
+</div>
+
+<h1>
+  HateSpeachStudy v2 — 5인 임무분담 최종안
+  <span class="subtitle">2026-05-17 갱신 · 코드 100% + CI 자동화 + 발표 2단계 (중간 + 기말 6/10)</span>
+</h1>
+
+<div class="summary">
+  <strong>한 줄 요약 —</strong> 코드 100% + CI 자동 점검 완료.
+  서버 실행은 <strong>2번 단독</strong>, 나머지는 <code>git pull</code>로 결과 받음.
+  1번은 매일 부담 없어지고 5번 페어 글쓰기에 시간 투자. <strong>발표 2단계</strong>(중간 + 기말), 5번이 둘 다 책임.
+</div>
+
+<!-- ─────────── 5인 역할 카드 ─────────── -->
+<h2>1. 5명 직관 To-Do</h2>
+
+<div class="role-card role-1">
+  <h3>1번 — E2E Gate 총괄</h3>
+  <div class="todo">1. 본인 노트북에서 GitHub Actions 알림 확인 (<span class="star">✓/✗</span>만)
+2. 마일스톤 6회만 수동: D0/D2/D3/D5/D7/D10
+3. <span class="star">D3 ★</span> gate_check.py 직접 1회 + GO/STOP 결정
+4. CI 빨간 ✗ 발견 시 책임자 멘션
+5. D7~D10 5번과 글쓰기 페어 (척추 메시지·금지 표현 검수)
+6. 서버 SSH 안 들어감 — 노트북 + GitHub UI</div>
+  <div class="meta">
+    <strong>코드</strong>: <code>pipeline/{runner,cli,manifest,paths,artifacts}.py</code>,
+    <code>scripts/{daily.sh, gate_check.py}</code>, <code>.github/workflows/preflight.yml</code><br>
+    <strong>Word</strong>: <code>role_guides/01_*.docx</code> &nbsp;|&nbsp;
+    <strong>시간</strong>: 3~5h/주
+  </div>
+</div>
+
+<div class="role-card role-2">
+  <h3>2번 — 학습 실행 (서버 단독)</h3>
+  <div class="todo">1. NVIDIA 서버 SSH + pip install -r runtime/requirements.txt
+2. A_B seed 42 smoke → A_B+D_B paired → Gate 후 full 120
+3. 서버에서 모든 ./run.sh e2e 명령 단독 책임
+4. 매 epoch stdout 진단 (train_acc / grad_norm / epoch_t)
+5. 매 stage 완료 후 git push 의무 (CI 자동 검증)
+6. failed unit 발생 시 stderr.log 단톡 + resume
+7. 발표 9p (p2, p3, p12~p16, p20, p21) D4~D6 골격</div>
+  <div class="meta">
+    <strong>코드</strong>: <code>pipeline/training_adapter.py</code>,
+    <code>runtime/{experiment_core, utils, run_experiments}.py</code><br>
+    <strong>Word</strong>: <code>role_guides/02_*.docx</code> &nbsp;|&nbsp;
+    <strong>시간</strong>: 4~6h/주
+  </div>
+</div>
+
+<div class="role-card role-3">
+  <h3>3번 — 결과 분석 / 통계 (서버 안 들어감)</h3>
+  <div class="todo">1. git pull → benchmark/*.csv + runs/*/history.csv 받기
+2. A_B vs D_B paired t-test: 평균 차이 + 95% CI + Cohen dz
+3. history.csv 28컬럼 — per-class F1 추이로 "offensive 가장 어려움" 정량 근거
+4. ANOVA/Holm은 발표 부록 슬라이드만 (본문에 길게 X)
+5. p17·p18 본문 (5p) + 5번에게 통계 문장 1페이지 넘기기</div>
+  <div class="meta">
+    <strong>코드</strong>: <code>pipeline/statistics.py</code>, <code>pipeline/schema.py</code> (stat columns)<br>
+    <strong>Word</strong>: <code>role_guides/03_*.docx</code> &nbsp;|&nbsp;
+    <strong>시간</strong>: 3~5h/주
+  </div>
+</div>
+
+<div class="role-card role-4">
+  <h3>4번 — XAI 설명 / Evidence Bundle (서버 안 들어감)</h3>
+  <div class="todo">1. git pull → xai/.cache + xai/primary 받기
+2. SHAP top-5 토큰 1~2 sample 직접 눈으로 sanity check
+3. 서브워드 집계 (## / Ġ) 정상 확인
+4. 본인 책임 3축 (CI / IS / Attention Rollout) 학술 인용 매핑
+5. p1·p4·p5·p6 본문 (4p) — Mathew/Cheng/Lundberg/Ribeiro 인용 표
+6. seed_stability.csv top-k Jaccard 평균 발표 본문에 박기</div>
+  <div class="meta">
+    <strong>코드</strong>: <code>pipeline/{xai, xai_sampling, xai_bundle}.py</code>,
+    <code>runtime/experiment_xai.py</code> (참조만, 수정 X)<br>
+    <strong>Word</strong>: <code>role_guides/04_*.docx</code> &nbsp;|&nbsp;
+    <strong>시간</strong>: 4~6h/주
+  </div>
+</div>
+
+<div class="role-card role-5">
+  <h3>5번 — 발표 통합 + 추가 업무 A+B+C (★ 가장 무거움)</h3>
+  <div class="todo"><strong>[메인 — 발표 2단계]</strong>
+1. 중간발표 PPT 26p (현재 와꾸 그대로)
+2. 기말발표 PPT (<span class="star">6/10</span>, 결과 다듬어서 별도)
+3. final_report.md 검수 + p19/p22~p26 (6p) 본문
+
+<strong>[추가 A] 오분류 분석</strong>
+4. D_B predictions.csv → hate↔offensive 혼동·implicit hate 미탐
+5. 발표 부록 슬라이드 1장 + final_report.md "Error Analysis" 섹션
+
+<strong>[추가 B] Q&A 답변 카드</strong>
+6. v2 결과 기반 질문 30~50개 + 답변 → docs/Q&A_v2_답변카드.md
+
+<strong>[추가 C] 시각화 6장</strong>
+ 7. 8조건 macro F1 boxplot           (benchmark_summary.csv)
+ 8. Target subgroup F1 heatmap        (subgroup_xai_metrics.csv)
+ 9. SHAP top-5 비교 (A_B vs D_B)      (xai/.cache/)
+10. ANOVA η² bar chart               (anova_*.csv)
+11. <span class="star">학습 곡선 (train vs val loss)</span>    (history.csv)
+12. <span class="star">Per-class F1 추이</span>               (history.csv)</div>
+  <div class="meta">
+    <strong>코드</strong>: <code>pipeline/reporting.py</code>,
+    <code>runtime/{dashboard_app, experiment_dashboard}.py</code>,
+    <code>scripts/figures.py</code> (신규 작성)<br>
+    <strong>Word</strong>: <code>role_guides/05_*.docx</code> &nbsp;|&nbsp;
+    <strong>시간</strong>: <strong>10~15h/주 ★</strong>
+  </div>
+</div>
+
+<!-- ─────────── 부담 균형 표 ─────────── -->
+<h2>2. 부담 균형 (6축 ★ + 시간 + Critical)</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>역할</th>
+      <th>명령실행</th>
+      <th>코드이해</th>
+      <th>통계</th>
+      <th>글쓰기</th>
+      <th>운영</th>
+      <th>페이지</th>
+      <th>주당</th>
+      <th>Critical</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="center"><strong>1번</strong></td>
+      <td>E2E Gate</td>
+      <td class="center stars s1">★</td>
+      <td class="center stars s3">★★★</td>
+      <td class="center stars s1">★</td>
+      <td class="center stars s3">★★★</td>
+      <td class="center stars s2">★★</td>
+      <td class="center">—</td>
+      <td class="center">3~5h</td>
+      <td class="center stars s5">★★★★★ (D3)</td>
+    </tr>
+    <tr>
+      <td class="center"><strong>2번</strong></td>
+      <td>학습</td>
+      <td class="center stars s2">★★</td>
+      <td class="center stars s3">★★★</td>
+      <td class="center stars s1">★</td>
+      <td class="center stars s2">★★</td>
+      <td class="center stars s4"><strong>★★★★</strong></td>
+      <td class="center">9p</td>
+      <td class="center">4~6h</td>
+      <td class="center stars s5">★★★★★ (smoke)</td>
+    </tr>
+    <tr>
+      <td class="center"><strong>3번</strong></td>
+      <td>통계</td>
+      <td class="center stars s2">★★</td>
+      <td class="center stars s2">★★</td>
+      <td class="center stars s3">★★★</td>
+      <td class="center stars s3">★★★</td>
+      <td class="center stars s1">★</td>
+      <td class="center">5p</td>
+      <td class="center">3~5h</td>
+      <td class="center stars s4">★★★★ (D5)</td>
+    </tr>
+    <tr>
+      <td class="center"><strong>4번</strong></td>
+      <td>XAI</td>
+      <td class="center stars s2">★★</td>
+      <td class="center stars s4"><strong>★★★★</strong></td>
+      <td class="center stars s2">★★</td>
+      <td class="center stars s3">★★★</td>
+      <td class="center stars s1">★</td>
+      <td class="center">4p</td>
+      <td class="center">4~6h</td>
+      <td class="center stars s4">★★★★ (D7)</td>
+    </tr>
+    <tr>
+      <td class="center"><strong>5번</strong></td>
+      <td>발표 + A+B+C</td>
+      <td class="center stars s2">★★</td>
+      <td class="center stars s3">★★★</td>
+      <td class="center stars s2">★★</td>
+      <td class="center stars s5"><strong>★★★★★</strong></td>
+      <td class="center stars s1">★</td>
+      <td class="center">6p+부록</td>
+      <td class="center"><strong>10~15h</strong></td>
+      <td class="center stars s5">★★★★★ (D9~D10)</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>누가 어디서 막힐 가능성</strong></p>
+<ul>
+  <li><strong>4번</strong>: 코드 이해 가장 가파름 (SHAP/LIME + 서브워드 + 4축)</li>
+  <li><strong>5번</strong>: 글쓰기·시각화 D7~D10 집중 부하 (10~15h)</li>
+  <li><strong>2번</strong>: 서버 운영 (NVIDIA 시간대 + failed 진단)</li>
+  <li><strong>3번</strong>: 통계학 한 학기 권장 (paired t / CI / effect size)</li>
+  <li><strong>1번</strong>: D3 GO/STOP 책임 — 객관적 6조건으로 판단</li>
+</ul>
+
+<!-- ─────────── D0~D10 일정 ─────────── -->
+<h2>3. D0~D10 일정</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:7%">Day</th>
+      <th>마일스톤</th>
+      <th style="width:22%">주 책임</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td class="center">D0</td><td>git pull + Word 정독 + 단톡 자기소개</td><td>전원</td></tr>
+    <tr><td class="center">D1</td><td>A_B seed 42 smoke 1차</td><td>2번</td></tr>
+    <tr><td class="center">D2</td><td>A_B + D_B 2조건 smoke + git push</td><td>2번 (3번/4번 dry-check)</td></tr>
+    <tr style="background:#fef3c7;"><td class="center"><strong>D3 ★</strong></td><td><strong>Gate 6/6 → GO 결정</strong></td><td><strong>1번</strong> (fix 대응 2번)</td></tr>
+    <tr><td class="center">D4</td><td>full 120 unit 학습 시작</td><td>2번 (1번 CI 알림만)</td></tr>
+    <tr style="background:#fef3c7;"><td class="center"><strong>D5 ★</strong></td><td><strong>ANOVA + p17/p18 본문 박기</strong></td><td><strong>3번</strong> (보조 4번)</td></tr>
+    <tr><td class="center">D6</td><td>full 진행 + p22~p26 골격</td><td>2번 + 5번</td></tr>
+    <tr style="background:#fef3c7;"><td class="center"><strong>D7 ★</strong></td><td><strong>XAI 토큰 sanity + p4/p5 인용 매핑</strong></td><td><strong>4번</strong> (보조 3번)</td></tr>
+    <tr><td class="center">D8</td><td>xai-bundle + report 검수 + p19 메인 결과</td><td>5번 (보조 4번)</td></tr>
+    <tr style="background:#fef3c7;"><td class="center"><strong>D9 ★</strong></td><td><strong>기말발표 PPT 1차 완성</strong></td><td><strong>5번</strong> (1번 페어)</td></tr>
+    <tr><td class="center">D10</td><td>리허설 + 척추 검수 + 최종 GO</td><td>2번 + 5번 + 전원</td></tr>
+    <tr style="background:#fee2e2;"><td class="center"><strong>6/10</strong></td><td><strong>★ 기말발표</strong></td><td>전원</td></tr>
+  </tbody>
+</table>
+
+<!-- ─────────── D0 첫 명령 ─────────── -->
+<h2>4. D0 첫 명령 (5인분)</h2>
+
+<pre><span class="comment"># 모두 (D0 30분 안에)</span>
+git pull origin main
+cd v2
+cat docs/role_guides/&lt;자기번호&gt;_*.docx     <span class="comment"># 본인 Word 정독</span>
+
+<span class="comment"># 1번 (로컬 노트북)</span>
+<span class="comment"># GitHub Actions 페이지 들어가서 ✓ 확인:</span>
+<span class="comment">#   https://github.com/WinterFlw/Big_data_Programming/actions</span>
+<span class="comment"># 단톡: "[D0] CI green, 6/6"</span>
+
+<span class="comment"># 2번 (NVIDIA 서버 SSH 안)</span>
+nvidia-smi &amp;&amp; python3 -c "import torch; print(torch.cuda.is_available())"
+pip install -r runtime/requirements.txt
+./run.sh e2e benchmark --run-id v2_15seed --conditions A_B --seeds 42 --execute --resume
+<span class="comment"># 단톡: "[2번 D0] A_B seed 42 smoke 6개 산출물 확인"</span>
+
+<span class="comment"># 3번 (로컬 노트북)</span>
+./run.sh e2e aggregate --run-id v2_15seed
+ls outputs/experiments/v2_15seed/benchmark/*.csv
+<span class="comment"># 단톡: "[3번 D0] aggregate 7개 CSV 헤더 점검"</span>
+
+<span class="comment"># 4번 (로컬 노트북)</span>
+./run.sh e2e xai-primary --run-id v2_15seed --dry-run
+md5sum outputs/experiments/v2_15seed/xai/samples/primary_samples.csv
+<span class="comment"># 단톡: "[4번 D0] sample md5 일치 (seed 무관 결정적)"</span>
+
+<span class="comment"># 5번 (로컬 노트북)</span>
+./run.sh e2e xai-bundle --run-id v2_15seed
+./run.sh e2e report --run-id v2_15seed
+./run.sh e2e dashboard --run-id v2_15seed
+head -80 outputs/experiments/v2_15seed/reports/final_report.md
+<span class="comment"># 단톡: "[5번 D0] placeholder 5개 + 중간 PPT 와꾸 정독"</span>
+</pre>
+
+<!-- ─────────── 누가 어디서 무엇 ─────────── -->
+<h2>5. 누가 어디서 무엇을 (한 줄 요약)</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:22%">어디</th>
+      <th style="width:12%">누가</th>
+      <th>무엇</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>NVIDIA 서버 (SSH)</strong></td><td>2번만</td><td>모든 <code>./run.sh e2e *</code> (학습 · aggregate · xai · bundle · report · dashboard)</td></tr>
+    <tr><td rowspan="4"><strong>본인 노트북 (로컬)</strong></td><td>1번</td><td>GitHub Actions 알림 확인 + 마일스톤 6회 수동 + Author 페어</td></tr>
+    <tr><td>3번</td><td><code>git pull</code> + <code>benchmark/*.csv</code> + <code>history.csv</code> 검수 + 본문 작성</td></tr>
+    <tr><td>4번</td><td><code>git pull</code> + <code>xai/.cache</code> + <code>xai/primary</code> 토큰 sanity + 학술 인용</td></tr>
+    <tr><td>5번</td><td><code>git pull</code> + <code>final_report.md</code> + <code>dashboard</code> → PPT 통합 + 추가 업무 A+B+C</td></tr>
+    <tr><td><strong>GitHub (자동)</strong></td><td>CI</td><td>push마다 preflight 자동 실행 + ✓/✗ 게시</td></tr>
+  </tbody>
+</table>
+
+<!-- ─────────── CI 확인 방법 ─────────── -->
+<h2>6. CI 확인 방법 (1번 매일 1분)</h2>
+
+<ol>
+  <li><a href="https://github.com/WinterFlw/Big_data_Programming/actions">https://github.com/WinterFlw/Big_data_Programming/actions</a> 들어가기</li>
+  <li>최신 run이 <strong style="color:#16a34a;">✓ 초록</strong>이면 OK → 단톡 "<code>CI green</code>"</li>
+  <li><strong style="color:#dc2626;">✗ 빨강</strong>이면 클릭 → 로그 확인 → 책임자 멘션</li>
+</ol>
+
+<p style="font-size:10pt; color:#6b7280;">
+  알림 설정 (선택): GitHub Settings → Notifications → Actions → "Failed workflows only" 체크하면 깨질 때만 메일 옴.
+</p>
+
+<!-- ─────────── 단톡 메시지 ─────────── -->
+<h2>7. 단톡 한 줄 메시지 (회의 후 그대로 박을 것)</h2>
+
+<div class="kakao-box">
+  <span class="label">KakaoTalk · 단톡 공유용</span>
+  <p>v2 코드 100% + CI 자동화 완료.</p>
+  <p><strong>운영</strong>: 서버 실행은 2번 단독, 나머지 4명은 git pull로 결과 받음. CI는 push마다 자동 점검 — 1번은 GitHub Actions UI ✓/✗만 확인.</p>
+  <p><strong>발표</strong>: 중간발표 PPT (현재 와꾸 26p) + 기말발표 PPT (6/10, 다듬어서). 5번이 둘 다 책임.</p>
+  <p><strong>본인 번호 Word 정독 + D0 첫 명령 인증</strong>:</p>
+  <ul style="margin:4pt 0; padding-left: 18pt;">
+    <li>1번 E2E Gate: <code>role_guides/01_*.docx</code> — CI 자동, 마일스톤 6회만 수동</li>
+    <li>2번 학습 실행: <code>02_*.docx</code> — 서버 단독, history.csv 28컬럼 진단</li>
+    <li>3번 통계: <code>03_*.docx</code> — paired t / CI / effect size 중심, ANOVA 부록</li>
+    <li>4번 XAI: <code>04_*.docx</code> — 토큰 sanity + 학술 인용</li>
+    <li>5번 발표: <code>05_*.docx</code> — PPT 2종 + 오분류 + Q&amp;A + 시각화 6장</li>
+  </ul>
+  <p><strong>CI</strong>: <a href="https://github.com/WinterFlw/Big_data_Programming/actions">github.com/WinterFlw/Big_data_Programming/actions</a></p>
+  <p>본인 Word 정독하고 D0 첫 명령 인증 부탁.</p>
+</div>
+
+<!-- ─────────── 푸터 ─────────── -->
+<div class="footer">
+  HateSpeachStudy v2_15seed · 한성대학교 빅데이터프로그래밍 산학협력 프로젝트<br>
+  Repo: <a href="https://github.com/WinterFlw/Big_data_Programming">github.com/WinterFlw/Big_data_Programming</a> ·
+  CI: <a href="https://github.com/WinterFlw/Big_data_Programming/actions">/actions</a> ·
+  본 문서: <code>v2/docs/team_dispatch_final.html</code>
+</div>
+
+</body>
+</html>
