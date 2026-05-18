@@ -87,7 +87,7 @@ Owner:
 Date:
 
 Goal:
-paired test와 Holm 보정 구현
+15 seed 요약과 핵심 A_B vs D_B paired test 구현
 
 Files changed:
 pipeline/statistics.py
@@ -100,7 +100,7 @@ Artifacts created/updated:
 benchmark_runs.csv
 benchmark_summary.csv
 paired_tests.csv
-paired_tests_holm.csv
+paired_tests_holm.csv (adjusted p-value는 보조 확인용)
 
 Validation passed:
 A_B vs D_B row generated when both conditions have same-seed metrics

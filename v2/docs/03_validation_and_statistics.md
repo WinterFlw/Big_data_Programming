@@ -9,13 +9,29 @@
 목표는 다음이다.
 
 ```text
-1. 조건 간 차이가 seed stochasticity를 넘어서는지 확인
-2. Attention Loss와 VADER의 주효과/상호작용 평가
-3. BERT와 RoBERTa family에서 효과가 유지되는지 확인
-4. XAI 지표도 seed 반복 기준으로 안정적인지 확인
+1. 15 seed 평균과 표준편차로 단일 실행 의존을 줄인다.
+2. 핵심 비교인 baseline 대비 제안 모델 차이를 같은 seed 기준 paired t-test로 확인한다.
+3. p-value 하나가 아니라 평균 차이, 95% CI, effect size를 함께 본다.
+4. XAI는 대표 사례와 rationale alignment 중심으로 성능 해석을 보조한다.
 ```
 
 이 문서의 역할은 "성능과 XAI 지표가 통계적으로 반복되는가"를 검증하는 것이다.
+
+학부 프로젝트 기준의 주 분석은 아래 수준으로 고정한다.
+
+```text
+메인 분석:
+15 seed mean ± std
+핵심 비교 A_B vs D_B paired t-test
+mean difference + 95% CI + effect size
+XAI 대표 사례와 evidence bundle 설명
+
+보조/부록 분석:
+Holm-adjusted p-value
+ANOVA
+bootstrap CI
+여러 조건 간 pairwise comparison
+```
 
 ```text
 통계 문서가 답하는 질문:
@@ -71,14 +87,39 @@ Macro F1을 primary로 두는 이유는 class imbalance와 hate/offensive 경계
 
 ---
 
-## 4. Paired tests
+## 4. 우리 수준의 핵심 분석
 
-주요 비교는 동일 seed 내 paired difference로 계산한다.
+주요 비교는 모든 조합이 아니라, 연구에서 실제로 주장하고 싶은 비교만 전면에 둔다.
 
-핵심 비교:
+발표/보고서의 핵심 비교:
 
 ```text
-D_B - A_B
+A_B: 기본 BERT baseline
+D_B: Rationale-aware Attention + VADER 적용 BERT
+
+핵심 질문:
+D_B가 A_B보다 Macro F1에서 안정적으로 나아졌는가?
+```
+
+검정 방식:
+
+```text
+같은 seed에서 나온 A_B와 D_B의 Macro F1 차이를 paired t-test로 비교한다.
+```
+
+보고할 값:
+
+```text
+condition별 Macro F1 mean ± std
+paired mean difference
+95% confidence interval
+paired t-test p-value
+paired effect size 또는 Cohen's dz
+```
+
+아래 비교는 표/부록에 둘 수 있지만 발표의 주연으로 세우지 않는다.
+
+```text
 B_B - A_B
 C_B - A_B
 D_B - B_B
@@ -87,38 +128,47 @@ D_R - A_R
 D_B - D_R
 ```
 
-각 비교에서 보고할 값:
+---
+
+## 5. Holm 보정의 위치
+
+Holm-Bonferroni 보정은 메인 분석이 아니라 보조 안전장치다.
+
+여러 pairwise test를 동시에 많이 수행하면 우연히 p-value가 작게 나오는 비교가 생길 수 있다. Holm 보정은 이런 과대해석을 줄이기 위한 다중비교 보정이다.
+
+우리 보고서에서의 위치:
 
 ```text
-mean difference
-standard deviation of paired difference
-95% confidence interval
-paired t-test p-value
-Holm-Bonferroni adjusted p-value
-Cohen's dz
+본문:
+핵심 비교 A_B vs D_B의 paired t-test, 평균 차이, CI, effect size를 중심으로 설명한다.
+
+부록/보조:
+여러 비교를 함께 보여줄 때 paired_tests_holm.csv의 adjusted p-value를 같이 제시한다.
+```
+
+발표에서 권장하는 표현:
+
+```text
+주요 비교는 동일 seed 기반 paired t-test로 검정했다.
+여러 조건을 동시에 비교하는 보조 분석에서는 과대해석을 피하기 위해 adjusted p-value도 함께 확인했다.
 ```
 
 ---
 
-## 5. Multiple comparison correction
+## 6. ANOVA의 위치
 
-여러 pairwise test를 수행하므로 p-value 보정이 필요하다.
+ANOVA는 구현되어 있지만, 학부 발표의 핵심 검정으로 세우기에는 설명 비용이 크다. 따라서 `Attention Loss 주효과`, `VADER 주효과`, `상호작용`을 정교하게 주장하기보다, 부록 또는 보조 분석으로 둔다.
 
-권장 방식:
+본문에서는 아래처럼 말한다.
 
 ```text
-Holm-Bonferroni correction
+8조건 ablation 결과는 평균 성능표와 핵심 paired comparison을 중심으로 해석했다.
+ANOVA는 보조적으로 확인했으며, 본 연구의 주요 결론은 A_B와 D_B의 같은 seed 기반 비교에 둔다.
 ```
-
-Holm 방식은 Bonferroni보다 덜 보수적이면서 family-wise error rate를 통제한다.
-
----
-
-## 6. ANOVA
 
 ### 6.1 BERT family 2-way analysis
 
-BERT family에서는 다음 구조를 검정한다.
+BERT family에서는 필요 시 다음 구조를 보조적으로 확인한다.
 
 ```text
 Macro F1 ~ Attention Loss x VADER
@@ -172,7 +222,7 @@ CI = mean_diff ± t_(0.975, n-1) * sd_diff / sqrt(n)
 
 ## 8. Bootstrap 보강 (작업 #7 — 구현 완료)
 
-Seed 반복은 학습 stochasticity를 반영하지만, 작은 표본(15 seed)에서 t-분포 CI는 정규성 가정이 약하다.
+Seed 반복은 학습 stochasticity를 반영하지만, 작은 표본(15 seed)에서 t-분포 CI는 정규성 가정이 약하다. 다만 학부 프로젝트 본문에서는 bootstrap을 길게 설명하지 않고, 95% CI를 보강하는 선택지로만 둔다.
 
 작업 #7에서 **percentile bootstrap CI**를 도입. `pipeline/statistics.py`의 `_bootstrap_ci()`가 numpy로 N회 resample → 평균 분포 → 양 끝 분위수.
 
@@ -199,9 +249,9 @@ Bootstrap CI: training + sample noise (percentile bootstrap on seed means)
 
 ---
 
-## 8.1 ANOVA Effect Size (작업 #14 — 구현 완료)
+## 8.1 ANOVA Effect Size (작업 #14 — 구현 완료, 보조)
 
-F·p 값만으로는 "얼마나 큰 효과인가"를 판단할 수 없으므로 ANOVA 출력에 효과 크기 두 개를 추가.
+F·p 값만으로는 "얼마나 큰 효과인가"를 판단할 수 없으므로 ANOVA 출력에 효과 크기 두 개를 추가했다. 이 값은 발표 본문보다는 부록/검증 문서에서 확인한다.
 
 ```text
 eta_squared          = SS_factor / SS_total
@@ -229,18 +279,19 @@ Smoke 결과 예시 (가짜 데이터, BERT 2-way): attention_loss η² = 0.6263
 
 ```text
 D_B - A_B mean difference > 0
-Holm-adjusted p < 0.05
+paired t-test p < 0.05
 95% CI lower bound > 0
-Cohen's dz medium or larger
+effect size가 작지 않음
+XAI 대표 사례가 연구 가설과 크게 충돌하지 않음
 ```
 
 중간 성공:
 
 ```text
 D_B - A_B mean difference > 0
-uncorrected p < 0.05
-effect size meaningful
-CI mostly positive
+paired t-test p < 0.05 또는 CI가 대부분 positive
+effect size가 해석 가능한 수준
+XAI에서 일부 설명 근거 확인
 ```
 
 보수적 해석:
@@ -250,6 +301,8 @@ mean difference > 0 but p >= 0.05
 ```
 
 이 경우 “개선 경향”으로만 표현한다.
+
+Holm-adjusted p-value가 같이 유의하면 더 보수적으로도 방어 가능하다고 덧붙일 수 있다. 그러나 Holm을 통과하지 못했다고 해서 핵심 분석 전체가 무의미해지는 것은 아니며, 평균 차이와 effect size, CI를 함께 보고 신중하게 해석한다.
 
 ---
 

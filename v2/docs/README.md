@@ -55,7 +55,7 @@ v2 모델은 HateXplain 텍스트만 입력으로 사용하고, `Rationale-aware
 | `00_reading_order.md` | 읽는 순서, 독자별 경로, 핵심 질문, 용어 정리 |
 | `01_model_definition.md` | v2 모델 정의, 8조건 ablation, 입력/손실/하이퍼파라미터 통제 |
 | `02_e2e_pipeline.md` | 새 run_id 기반 end-to-end 파이프라인, batch 실행 구조, 산출물 트리 |
-| `03_validation_and_statistics.md` | 15 seed 통계 설계, paired test, ANOVA, CI, bootstrap, 성공 기준 |
+| `03_validation_and_statistics.md` | 15 seed 평균/표준편차, 핵심 paired t-test, CI/effect size, Holm/ANOVA 보조 분석 기준 |
 | `04_xai_protocol.md` | XAI 정의, Primary/Deep/Ablation/Case XAI, seed stability, 샘플링 원칙 |
 | `05_improvements_and_open_checks.md` | 개선사항, 바꿀 것, 검증할 것, 리스크와 완료 기준 |
 | `06_execution_runbook.md` | 실제 실행 순서, preflight, resume, 실패 복구, 완료 판정 |
@@ -72,6 +72,7 @@ v2 모델은 HateXplain 텍스트만 입력으로 사용하고, `Rationale-aware
 | `17_korean_reading_file_index.md` | 팀원이 먼저 읽을 한글 MD/DOCX 파일 목록과 역할별 추천 코스 |
 | `18_team_role_cards.md` | 5명 역할 카드 (요약본) |
 | `19_team_role_tracks.md` | 5명 역할 카탈로그 (1045줄 깊이 본) |
+| `role_guides/` | 코드 리뷰, 학습 실행, 통계 해석, XAI 설명, 발표자료 담당자별 Word 업무지시서 |
 | `agent_tasks/20_claude_code_completion_brief.md` | 작업 #1~#14 명세 + 완료 상태 |
 | `agent_tasks/21_team_role_dispatch.md` | 5인 실명 매핑 + 작업 #1~#14 인계 + D0~D10 일정 |
 | `agent_tasks/22_stage_briefs.md` | 회의용 stage 선택 카드 (5분 결정 흐름, 인원 미배정) |

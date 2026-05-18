@@ -117,7 +117,7 @@ median_seed는 XAI deep analysis checkpoint 선택에 사용한다.
 
 ## 5. `paired_tests.csv`와 `paired_tests_holm.csv`
 
-목적: 같은 seed 안에서 조건 차이를 검정한다.
+목적: 같은 seed 안에서 조건 차이를 검정한다. 본문 해석은 핵심 비교 `A_B vs D_B`의 paired test, 평균 차이, CI, effect size를 중심으로 하고, `p_value_holm`은 여러 비교를 함께 보여줄 때의 보조 adjusted p-value로 사용한다.
 
 필수 컬럼:
 
@@ -151,7 +151,7 @@ B_B vs D_B
 C_B vs D_B
 ```
 
-보고서에서는 p-value만 단독으로 쓰지 않고 `mean_diff`, `CI`, `effect_size`를 같이 쓴다.
+보고서에서는 p-value만 단독으로 쓰지 않고 `mean_diff`, `CI`, `effect_size`를 같이 쓴다. Holm-adjusted p-value는 최종 결론의 주연이 아니라 다중 비교 과대해석을 줄이는 보조 확인값으로 둔다.
 
 ---
 

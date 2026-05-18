@@ -454,10 +454,14 @@ def _build_claims(
     xai_paired: list[dict[str, str]],
     source_artifacts: dict[str, str],
 ) -> list[dict[str, Any]]:
-    """통계적으로 확증된 주장만 모아 claim list 생성.
+    """근거가 있는 report/dashboard용 claim list 생성.
 
     * benchmark/paired_tests_holm.csv의 p_value_holm < 0.05 인 macro_f1 비교
     * xai/primary/paired_xai_tests.csv의 p_value < 0.05 인 metric 비교
+
+    Holm-adjusted p-value는 여러 비교를 보여줄 때의 보조 안전장치다. Claim
+    문구도 이를 메인 통계 방법처럼 과장하지 않고 supplementary adjusted p로
+    표기한다.
     """
     claims: list[dict[str, Any]] = []
     claim_index = 1
@@ -478,7 +482,7 @@ def _build_claims(
                 "category": "benchmark",
                 "text": (
                     f"{comparison} shows {direction} macro F1 (mean diff "
-                    f"{mean_diff:+.4f}, Holm-adjusted p={p_value_holm:.4f})."
+                    f"{mean_diff:+.4f}, supplementary adjusted p={p_value_holm:.4f})."
                 ),
                 "strength": _strength_from_p(p_value_holm),
                 "source_artifacts": [source_artifacts["benchmark_paired_holm"]],

@@ -1,11 +1,13 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 
 set -e
 
 # Always run from the v2 workspace root, even if the user calls
 # ./v2/run.sh from the repository root. This keeps relative config/output paths
 # stable and prevents accidental writes to the old top-level outputs/.
-cd "${0:a:h}"
+# (bash-compatible — the previous "${0:a:h}" was a zsh-only idiom.)
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd -P)"
+cd "$script_dir"
 
 # PYTHON_BIN lets the server operator pin a virtualenv interpreter:
 #

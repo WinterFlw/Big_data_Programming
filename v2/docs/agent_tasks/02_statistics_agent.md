@@ -1,6 +1,6 @@
 # 02. Statistics Agent Brief
 
-> 역할: 15 seed benchmark 결과를 통계적으로 집계하고, paired test와 Holm 보정을 구현한다.
+> 역할: 15 seed benchmark 결과를 통계적으로 집계하고, 학부 수준에 맞게 핵심 paired test와 효과크기 중심으로 정리한다.
 
 ---
 
@@ -9,7 +9,8 @@
 ```text
 당신은 HateSpeachStudy v2_15seed 파이프라인의 Statistics 담당 에이전트입니다.
 목표는 outputs/experiments/v2_15seed/benchmark/runs/ 아래의 condition x seed 결과를 읽어 benchmark_summary.csv, paired_tests.csv, paired_tests_holm.csv를 생성하는 것입니다.
-같은 seed를 기준으로 조건 간 paired comparison을 수행해야 하며, p-value만이 아니라 mean difference, 95% CI, effect size를 함께 출력해야 합니다.
+같은 seed를 기준으로 핵심 A_B vs D_B paired comparison을 수행해야 하며, p-value만이 아니라 mean difference, 95% CI, effect size를 함께 출력해야 합니다.
+Holm-adjusted p-value와 ANOVA는 여러 조건을 함께 볼 때의 보조/부록 분석으로만 다룹니다.
 ```
 
 ---
@@ -61,16 +62,19 @@ condition별 mean/std/CI 집계
 same-seed paired differences 계산
 paired t-test 또는 Wilcoxon fallback
 Cohen's dz 또는 paired effect size 계산
-Holm-Bonferroni 보정
+Holm-Bonferroni 보정 산출값 생성 (해석은 보조)
 missing/failed run 처리
 ```
 
 ---
 
-## 5. 필수 비교
+## 5. 비교 우선순위
 
 ```text
+본문 핵심:
 A_B vs D_B
+
+보조/부록:
 A_B vs B_B
 A_B vs C_B
 B_B vs D_B

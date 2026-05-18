@@ -68,7 +68,8 @@ checkpoint는 반드시 v2/outputs/experiments/v2_15seed/ 아래에도 남아야
 당신은 v2 Statistics 담당입니다.
 
 목표:
-120개 benchmark run 결과를 읽어서 condition별 summary, same-seed paired test, Holm 보정, 95% CI, effect size를 생성해주세요.
+120개 benchmark run 결과를 읽어서 condition별 summary와 핵심 A_B vs D_B same-seed paired test, 95% CI, effect size를 생성해주세요.
+Holm 보정과 ANOVA는 여러 조건을 동시에 보여줄 때의 보조/부록 분석으로만 다룹니다.
 
 기간:
 D1-D3 구현 및 smoke aggregate, D6 full 결과 통계 확정.

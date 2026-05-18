@@ -88,14 +88,19 @@ def _render_benchmark_summary_table(root: Path) -> str:
 
 
 def _render_paired_tests_table(root: Path, metric: str = "macro_f1") -> str:
-    """paired_tests_holm.csv에서 metric에 해당하는 행만 추출해 표로."""
+    """Render same-seed paired tests for the selected metric.
+
+    The adjusted p-value is still shown for transparency, but the report frames
+    it as a supplementary multiple-comparison check rather than the headline
+    undergraduate-level analysis.
+    """
     paired_rows = _read_csv_rows(root / "benchmark" / "paired_tests_holm.csv")
     filtered = [row for row in paired_rows if row.get("metric") == metric and row.get("n_pairs") not in ("", "0")]
     if not filtered:
         return f"_no paired tests yet for metric `{metric}` — populate by running ./run.sh e2e aggregate_"
 
     lines = [
-        "| Comparison | n pairs | Mean diff | p (raw) | p (Holm) | Cohen dz | sig@0.05 |",
+        "| Comparison | n pairs | Mean diff | paired p | adjusted p | effect size | sig@0.05 |",
         "|---|---|---|---|---|---|---|",
     ]
     for row in filtered:
@@ -222,23 +227,23 @@ The v2 model family evaluates rationale-aware attention loss and VADER sentiment
 
 {_render_benchmark_summary_table(root)}
 
-## Paired Tests (Holm-corrected, macro_f1)
+## Primary Paired Tests (macro_f1)
 
-The primary comparison uses same-seed paired tests across all seeds. Holm correction is applied for multiple comparisons.
+The headline analysis uses same-seed paired tests, mean difference, confidence intervals, and effect size. Adjusted p-values are shown as a supplementary guardrail when multiple comparisons are displayed.
 
 {_render_paired_tests_table(root, metric="macro_f1")}
 
-## ANOVA — BERT family (2-way)
+## Supplementary ANOVA — BERT family (2-way)
 
 Factors: attention loss × VADER.
 
 {_render_anova_table(root, "anova_2way_bert")}
 
-## ANOVA — RoBERTa family (2-way)
+## Supplementary ANOVA — RoBERTa family (2-way)
 
 {_render_anova_table(root, "anova_2way_roberta")}
 
-## ANOVA — Cross-family (3-way)
+## Supplementary ANOVA — Cross-family (3-way)
 
 Factors: backbone × attention loss × VADER.
 

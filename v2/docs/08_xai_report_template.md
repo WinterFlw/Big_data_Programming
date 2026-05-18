@@ -100,7 +100,8 @@ A_B 95% CI
 D_B mean
 D_B 95% CI
 Mean difference
-Holm-adjusted p-value
+paired p-value
+adjusted p-value (supplementary, if multiple XAI metrics are compared)
 Effect size
 Interpretation
 ```

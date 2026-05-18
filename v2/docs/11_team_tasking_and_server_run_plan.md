@@ -187,8 +187,9 @@ outputs/experiments/v2_15seed/benchmark/checkpoints/a_b_seed_42.pt
 ### 5.1 업무 지시
 
 ```text
-120개 benchmark run 결과를 읽어서 condition별 요약, same-seed paired test, Holm 보정 결과를 생성해주세요.
+120개 benchmark run 결과를 읽어서 condition별 요약과 핵심 A_B vs D_B same-seed paired test를 확인해주세요.
 p-value만 보고하지 말고 mean difference, 95% CI, effect size를 같이 출력해야 합니다.
+Holm 보정과 ANOVA는 여러 조건을 동시에 보여줄 때의 보조/부록 분석으로만 다룹니다.
 ```
 
 ### 5.2 담당 파일
@@ -397,7 +398,7 @@ outputs/experiments/v2_15seed/dashboard/index.html
 8조건 ablation matrix
 15 seed 반복 이유
 성능 요약
-paired test와 Holm 보정
+핵심 paired test와 보조 adjusted p-value
 XAI primary 결과
 XAI seed stability
 정성 사례

@@ -72,7 +72,7 @@ XAI 12지표·Gate 6조건 fix 책임자·D0~D10 마일스톤 책임자는 21 §
 ## Stage 2 — Stat Auditor (수치 검수자)
 
 **한 줄**
-> 학습이 끝나면 paired t-test / Holm / Cohen dz / ANOVA가 **자동 계산된 표를 받아**, 그 수치를 발표 본문(p17 · p18)에 **어떻게 박을지 정하는** 사람.
+> 학습이 끝나면 15 seed mean/std, 핵심 paired t-test, Cohen dz/effect size가 **자동 계산된 표를 받아**, 그 수치를 발표 본문(p17 · p18)에 **어떻게 박을지 정하는** 사람. Holm/ANOVA는 보조·부록 분석으로만 다룬다.
 
 **비유**
 > 신문 기자. 통계청이 자동으로 보내준 보도자료(CSV)를 읽고 핵심 한두 문장을 뽑아내서 기사 본문에 박는다. 컴퓨터가 한 계산을 손으로 다시 하지는 않는다. *읽고 해석하고 본문에 꽂는 게 본업.*
@@ -88,10 +88,10 @@ XAI 12지표·Gate 6조건 fix 책임자·D0~D10 마일스톤 책임자는 21 §
 | 서버 운영 | ★☆☆☆☆ | 거의 없음. |
 
 **하루가 어떤 모양**
-> *D5 오후*: `./run.sh e2e aggregate` → `benchmark_summary.csv` + `paired_tests_holm.csv` + `anova_2way_bert.csv` 열어보기 → **수치 자체는 그대로 신뢰** (코드 검증은 이미 작업 #2에서 끝남) → spot check 한 번: "n_pairs 컬럼이 시드 수랑 일치하나? 통계적으로 유의한 비교가 몇 개나 나왔나?" → 결과를 p18 한 문장으로 풀어쓰기.
+> *D5 오후*: `./run.sh e2e aggregate` → `benchmark_summary.csv` + `paired_tests_holm.csv` + `anova_2way_bert.csv` 열어보기 → **수치 자체는 그대로 신뢰** (코드 검증은 이미 작업 #2에서 끝남) → spot check 한 번: "A_B vs D_B n_pairs가 시드 수랑 일치하나? 평균 차이와 effect size가 어느 정도인가?" → 결과를 p18 한 문장으로 풀어쓰기.
 >
 > *예시 본문*:
-> > *"D_B vs A_B Macro F1 차이는 +0.0XX이며 Holm 보정 후 p=0.0XX로 유의했다. BERT 패밀리 2-way ANOVA에서 attention loss 주효과(p=0.0XX), VADER 주효과(p=0.0XX), 교호작용(p=0.0XX)으로 분해된다."*
+> > *"D_B vs A_B Macro F1 차이는 +0.0XX였고, 같은 seed 기반 paired t-test와 effect size를 함께 볼 때 개선 경향을 확인했다. 여러 조건 비교와 ANOVA는 보조 분석으로 확인했다."*
 
 **"내가 잘할 수 있겠다" 신호**
 - 통계학을 한 번이라도 들어봐서 t-test·ANOVA가 무엇을 측정하는지 그림이 잡힘

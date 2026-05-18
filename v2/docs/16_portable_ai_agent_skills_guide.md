@@ -140,7 +140,7 @@ Focus on xai-bundle contract and report/dashboard evidence inputs.
 |---|---|
 | 전체 구조를 이해시키고 stage 순서를 관리해야 함 | `hatespeech-v2-e2e` |
 | 학습이 실제로 돌아가는지, checkpoint/metrics/predictions가 남는지 봐야 함 | `hatespeech-v2-benchmark` |
-| p-value, CI, effect size, Holm 보정을 검토해야 함 | `hatespeech-v2-statistics` |
+| 15 seed mean/std, 핵심 paired t-test, CI, effect size를 검토해야 함 | `hatespeech-v2-statistics` |
 | SHAP/LIME, seed stability, evidence bundle을 다뤄야 함 | `hatespeech-v2-xai` |
 | 최종 보고서와 dashboard를 생성해야 함 | `hatespeech-v2-report-dashboard` |
 | 서버 올리기 전 전체 리스크를 검토해야 함 | `hatespeech-v2-review` |

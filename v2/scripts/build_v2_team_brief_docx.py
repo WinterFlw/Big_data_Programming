@@ -233,7 +233,7 @@ def build() -> Path:
         document,
         [
             "benchmark: 8조건 x 15 seed 학습 실행과 metrics/history/predictions/checkpoint 저장",
-            "aggregate: 완료 run의 metrics를 모아 summary, paired tests, Holm 보정 결과 생성",
+            "aggregate: 완료 run의 metrics를 모아 15 seed 평균/표준편차, 핵심 paired test, CI/effect size 생성",
             "xai-primary: A_B와 D_B를 모든 seed에서 비교해 explanation stability 확인",
             "xai-deep: median-performing checkpoint로 상세 case 분석",
             "xai-ablation: 8조건 전체의 경량 XAI 비교",
@@ -250,7 +250,7 @@ def build() -> Path:
         [
             ["v2 runtime", "v2/runtime에 학습/XAI/대시보드 코드 배치", "A_B seed 42 실제 학습 smoke"],
             ["benchmark adapter", "training_adapter.py가 v2/runtime 학습 호출", "metrics, predictions, checkpoint 생성 확인"],
-            ["statistics", "paired test, Holm, CI, Cohen dz 계산 가능", "smoke 결과로 paired row 생성 확인"],
+            ["statistics", "mean/std, paired test, CI, effect size 계산 가능", "A_B vs D_B 핵심 비교 row 생성 확인"],
             ["XAI bundle", "evidence bundle 파일 계약 생성 가능", "실제 XAI artifact를 읽어 claim 채우기"],
             ["report/dashboard", "Markdown, Word, HTML scaffold 생성", "실제 결과 기반 표/문장 렌더링"],
         ],
@@ -262,11 +262,11 @@ def build() -> Path:
         document,
         ["사람", "역할", "기간", "책임 코드"],
         [
-            ["1번", "Runtime Training 검증", "D0-D2", "v2/runtime/experiment_core.py, utils.py"],
-            ["2번", "Adapter/CLI 검증", "D0-D3", "v2/pipeline/training_adapter.py, runner.py, artifacts.py"],
-            ["3번", "Statistics / Inference Output", "D1-D6", "v2/pipeline/statistics.py, schema.py"],
-            ["4번", "XAI Runtime / Evidence Bundle", "D2-D8", "v2/runtime/experiment_xai.py, xai.py, xai_bundle.py"],
-            ["5번", "Integration / Report / Server", "D0-D10", "v2/run.sh, cli.py, reporting.py, dashboard code"],
+            ["1번", "코드 리뷰 / 파이프라인 검증", "D0-D2", "v2/run.sh, pipeline/cli.py, schema.py, output contract"],
+            ["2번", "학습 실행 / 실험 관리", "D0-D5", "training_adapter.py, run_registry.py, runtime/train_neural_model.py"],
+            ["3번", "결과 분석 / 통계 해석", "D2-D7", "aggregate_results.py, statistics.py, benchmark CSV"],
+            ["4번", "XAI 설명 / Evidence Bundle", "D4-D8", "xai.py, xai_sampling.py, xai_bundle.py"],
+            ["5번", "발표자료 / 최종 보고서 제작", "D6-D10", "reporting.py, dashboard, final report/PPT"],
         ],
         [900, 2100, 1100, 5260],
     )
@@ -312,9 +312,9 @@ def build() -> Path:
         document,
         [
             "15 seed는 학습 stochasticity를 추정하기 위한 반복 단위다.",
-            "조건 비교는 같은 seed끼리 묶는 paired design으로 계산한다.",
+            "본문의 핵심 비교는 A_B vs D_B same-seed paired t-test로 둔다.",
             "p-value만 보고하지 않고 mean difference, 95% CI, effect size를 함께 보고한다.",
-            "여러 비교는 Holm-Bonferroni로 보정한다.",
+            "Holm 보정과 ANOVA는 여러 조건을 함께 보여줄 때의 보조/부록 분석으로 둔다.",
             "XAI는 모델 설계의 인과 증명이 아니라 사후 검증 근거다.",
             "report/dashboard는 raw XAI case보다 xai_claims.json과 xai_dashboard_bundle.json을 우선 소비한다.",
         ],

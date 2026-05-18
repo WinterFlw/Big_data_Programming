@@ -27,10 +27,11 @@
 15. 14_team_assignment_matrix.md
 16. 15_runtime_code_validation_matrix.md
 17. 16_portable_ai_agent_skills_guide.md
-18. ../ai_skills/README.md
-19. ../ai_skills/common_project_rules.md
-20. agent_tasks/README.md
-21. agent_tasks/09_e2e_xai_evidence_bundle_agent.md
+18. 17_korean_reading_file_index.md
+19. ../ai_skills/README.md
+20. ../ai_skills/common_project_rules.md
+21. agent_tasks/README.md
+22. agent_tasks/09_e2e_xai_evidence_bundle_agent.md
 ```
 
 이 순서의 의도:
@@ -47,6 +48,7 @@
 
 ```text
 README.md
+17_korean_reading_file_index.md
 01_model_definition.md
 02_e2e_pipeline.md
 04_xai_protocol.md
@@ -104,8 +106,8 @@ XAI sample set이 seed마다 동일하게 고정되는가?
 ```text
 같은 seed 안에서 A_B와 D_B를 비교한다.
 조건 차이는 paired difference로 본다.
-여러 비교는 Holm 보정으로 통제한다.
 평균 차이만 보지 않고 CI와 effect size를 같이 본다.
+Holm 보정과 ANOVA는 여러 조건을 볼 때의 보조/부록 분석으로 둔다.
 ```
 
 최소 보고 단위:
@@ -115,8 +117,8 @@ mean
 std
 95% CI
 paired p-value
-Holm-adjusted p-value
 Cohen's dz or paired effect size
+supplementary adjusted p-value when many comparisons are shown
 ```
 
 ---
@@ -196,7 +198,7 @@ resume 시 완료된 run을 건너뛰는가?
 실험 조건표
 15 seed 반복 이유
 성능 요약표
-paired test와 Holm 보정 결과
+핵심 paired test 결과와 보조 adjusted p-value
 XAI primary 결과
 XAI seed stability 결과
 한계와 threat to validity
@@ -216,17 +218,18 @@ XAI seed stability 결과
 11_team_tasking_and_server_run_plan.md
 14_team_assignment_matrix.md
 15_runtime_code_validation_matrix.md
+role_guides/README.md
 07_output_and_report_contract.md
 ```
 
 읽고 바로 결정해야 하는 것:
 
 ```text
-누가 benchmark execute adapter를 맡는가?
-누가 통계 집계를 맡는가?
-누가 XAI sample과 seed stability를 맡는가?
-누가 xai-bundle stage와 evidence contract를 맡는가?
-누가 report/dashboard에서 evidence bundle을 우선 소비하도록 연결하는가?
+누가 코드 리뷰/파이프라인 검증을 맡는가?
+누가 학습 실행/실험 관리를 맡는가?
+누가 결과 분석/통계 해석을 맡는가?
+누가 XAI 설명/evidence bundle을 맡는가?
+누가 발표자료/최종 보고서 제작을 맡는가?
 서버에 올리기 전 smoke test 통과 기준은 무엇인가?
 서버에서 전체 실행을 시작해도 되는 중단/진행 기준은 무엇인가?
 실패 run을 누가 확인하고 재실행하는가?
@@ -240,6 +243,7 @@ XAI seed stability 결과
 
 ```text
 ../CLAUDE.md 또는 ../GEMINI.md
+17_korean_reading_file_index.md
 16_portable_ai_agent_skills_guide.md
 ../ai_skills/README.md
 ../ai_skills/common_project_rules.md

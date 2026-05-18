@@ -734,12 +734,12 @@ column -t -s, outputs/experiments/v2_15seed/xai/primary/seed_level_metrics.csv |
 - 컬럼: `sample_id, condition, seed, flag_type, severity, evidence, recommended_report_note`.
 
 #### `xai_claims.json`
-- 통계적으로 확증된 주장만 포함.
+- 근거가 있는 주장만 포함하되, adjusted p-value는 보조 확인값으로만 해석.
 - 각 claim:
 ```json
 {
   \"id\": \"claim_001\",
-  \"text\": \"D_B is more aligned with human rationale than A_B (Token F1 +XX%, Holm-adjusted p < 0.05).\",
+  \"text\": \"D_B is more aligned with human rationale than A_B (Token F1 +XX%, adjusted p used as supplementary check).\",
   \"strength\": \"strong\",
   \"source_artifacts\": [\"xai/primary/seed_level_metrics.csv\", \"benchmark/paired_tests_holm.csv\"]
 }
@@ -816,7 +816,7 @@ def _report_markdown_text(manifest, root, counts):
 
 {_render_benchmark_summary_table(root)}
 
-## Paired Tests (Holm-corrected)
+## Primary Paired Tests (adjusted p-value supplementary)
 
 {_render_paired_tests_table(root, metric='macro_f1')}
 

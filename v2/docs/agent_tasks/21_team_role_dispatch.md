@@ -106,7 +106,7 @@ GO/STOP **최종 결정**은 **김정훈 (QA)**. STOP이면 위 fix 책임자에
 
 ### 박종화 → Stat Auditor
 
-- 평가지표 페이지(p18)와 EDA·라벨 신뢰성 페이지(p9~p11)를 담당하는 사람. ANOVA·paired test·Holm 보정의 수치 해석이 페이지 본문과 직접 연결.
+- 평가지표 페이지(p18)와 EDA·라벨 신뢰성 페이지(p9~p11)를 담당하는 사람. 15 seed 평균/표준편차, 핵심 A_B vs D_B paired test, effect size 해석이 페이지 본문과 직접 연결된다. ANOVA·Holm은 보조/부록 분석으로만 다룬다.
 - benchmark_summary.csv / paired_tests_holm.csv / anova_*.csv를 본인이 검수해야 p17(베이스라인 정의)·p18(평가지표) 본문이 수치로 들어찬다.
 - 작업 #2(ANOVA 2-way/3-way)가 Stat Auditor의 첫 의존성.
 
@@ -289,7 +289,7 @@ print(f'macro_f1 = {m1[\"macro_f1\"]}')"
 
 ### 4.2 박종화 — Stat Auditor (Statistics Stage Owner)
 
-**한 문장 요약**: "학습이 끝난 metrics.json 120개를 받아서 paired test + Holm + ANOVA 결과를 손계산으로 한 번 더 검증하는 사람."
+**한 문장 요약**: "학습이 끝난 metrics.json 120개를 받아서 15 seed summary와 핵심 A_B vs D_B paired test, effect size를 손계산으로 한 번 더 검증하는 사람."
 
 **발표 페이지 (5p)**:
 - p9 EDA ① — 라벨·소스 분포
@@ -305,9 +305,9 @@ print(f'macro_f1 = {m1[\"macro_f1\"]}')"
 - [ ] `outputs/experiments/v2_15seed/benchmark/` 의 4개 CSV 헤더 점검
   - benchmark_runs.csv / benchmark_summary.csv / paired_tests_holm.csv / anova_3way.csv
 - [ ] 정수현이 첫 smoke seed 1개 완료시키면 aggregate 돌려 row 1줄 채워지는지 확인
-- [ ] Holm 보정 손계산: paired_tests_holm.csv의 p_value_holm 값을 직접 (total - rank + 1) × p_raw 공식으로 한두 행 검증
+- [ ] paired test 손계산: A_B vs D_B macro_f1 시드별 차이의 mean/std/effect size가 CSV와 일치하는지 1행 검증
 - [ ] Cohen dz 손계산: mean_diff / std_diff가 effect_size 컬럼과 일치하는지 1행 검증
-- [ ] D5 시점: 8조건 × 3 seed 들어오면 ANOVA 2-way의 attention_loss / VADER / 교호작용 p-value 본문에 박기 (p18)
+- [ ] D5 시점: 8조건 × 3 seed가 들어오더라도 본문은 A_B vs D_B 핵심 비교 중심으로 쓰고, ANOVA는 부록/보조 분석으로만 짧게 확인
 
 **핵심 명령**:
 ```bash
@@ -327,7 +327,7 @@ column -t -s, outputs/experiments/v2_15seed/benchmark/anova_2way_bert.csv
 - BERT 2-way ANOVA: SS_attention, SS_vader, SS_interaction, SS_residual 분해를 손으로 한 번 따라가기
 
 **"내가 한 일" 1문장**:
-> "15시드 paired t-test / Holm 보정 / Cohen's dz / 2-way·3-way ANOVA 결과를 CSV로 정리하고 손계산으로 교차 검증했습니다."
+> "15시드 평균/표준편차와 핵심 paired t-test, Cohen's dz/effect size 결과를 CSV로 정리하고 손계산으로 교차 검증했습니다."
 
 ---
 

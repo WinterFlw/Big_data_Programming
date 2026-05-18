@@ -77,7 +77,7 @@ PYTHON_BIN=/path/to/venv/bin/python ./run.sh e2e status --run-id v2_15seed
 | Stage | 완성도 | 핵심 |
 |---|:---:|---|
 | 1. Benchmark | 100% | training adapter + cudnn 결정성 + AMP autocast |
-| 2. Statistics | 100% | paired t + Holm + Cohen dz + bootstrap CI + ANOVA 2/3-way + eta²/partial η² |
+| 2. Statistics | 100% | 15 seed mean/std + 핵심 paired t-test + CI/effect size, Holm/ANOVA는 보조 분석 |
 | 3. XAI Core | 100% | sample 결정성 + 4축 메트릭 (CI/MSS/IS/AttnEntropy) + attribution 캐싱 + sample-level metric |
 | 4. XAI Bundle + Report | 100% | 15파일 자동 채움 + 통계 확증 claim + token jsonl + 진짜 subgroup 분해 |
 | 5. QA + Server | 100% | failed/completed 분리 + daily.sh + gate_check.py (Full Run Gate 6조건 자동) |
@@ -92,7 +92,7 @@ execution_status.csv + failed_runs.csv + completed_runs.csv 자동 갱신
 120개 condition × seed planned unit 생성
 benchmark --execute adapter (AMP fp16 자동 활성, CUDA에서만)
 metrics/history/config/predictions/checkpoint v2 output 정규화 경로
-aggregate/statistics CSV 7개 (anova_*.csv는 eta²/partial η² 포함, summary는 bootstrap CI)
+aggregate/statistics CSV 7개 (핵심 paired t-test와 CI/effect size 중심, anova_*.csv와 adjusted p-value는 보조 검증용)
 XAI 4축 (Attribution / Faithfulness / Context Learning / Plausibility) 모두 자동 계산
 xai-bundle 14파일 자동 채움 + token_attributions.jsonl + source × target 진짜 subgroup 분해
 final_report.md/docx + dashboard/index.html 자동 표 채움
@@ -176,6 +176,7 @@ docs/15_runtime_code_validation_matrix.md
 docs/agent_tasks/10_team_dispatch_prompts.md
 docs/16_portable_ai_agent_skills_guide.md
 docs/v2_end_to_end_team_brief.docx
+docs/role_guides/
 ```
 
 AI 에이전트를 쓸 사람:
@@ -198,13 +199,13 @@ docs/agent_tasks/08_handoff_template.md
 
 | 사람 | 역할 | 기준 문서 |
 |---|---|---|
-| 1번 | Runtime Training 검증 | `docs/15_runtime_code_validation_matrix.md` |
-| 2번 | Adapter/CLI 검증 | `docs/15_runtime_code_validation_matrix.md` |
-| 3번 | Statistics/Inference Output 검증 | `docs/15_runtime_code_validation_matrix.md` |
-| 4번 | XAI Runtime 검증 | `docs/15_runtime_code_validation_matrix.md` |
-| 5번 | Integration/Report/Server gate | `docs/15_runtime_code_validation_matrix.md` |
+| 1번 | 코드 리뷰 / 파이프라인 검증 | `docs/role_guides/01_code_review_pipeline_validation.docx` |
+| 2번 | 학습 실행 / 실험 관리 | `docs/role_guides/02_training_execution_experiment_management.docx` |
+| 3번 | 결과 분석 / 통계 해석 | `docs/role_guides/03_result_analysis_statistics.docx` |
+| 4번 | XAI 설명 / evidence bundle | `docs/role_guides/04_xai_explanation_evidence_bundle.docx` |
+| 5번 | 발표자료 / 최종 보고서 제작 | `docs/role_guides/05_presentation_report_final_integration.docx` |
 
-작업 하달과 일정은 `docs/14_team_assignment_matrix.md`를 따르고, 실제 코드 검증 범위는 `docs/15_runtime_code_validation_matrix.md`를 따른다.
+작업 하달의 큰 틀은 연구 산출물 기준으로 나누고, 각 담당자가 실제로 볼 코드와 검증 명령은 역할별 Word 업무지시서와 `docs/15_runtime_code_validation_matrix.md`를 함께 따른다.
 
 ---
 

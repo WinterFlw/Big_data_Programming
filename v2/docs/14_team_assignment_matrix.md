@@ -197,7 +197,7 @@ v2/docs/07_output_and_report_contract.md
 benchmark_runs.csv가 metrics.json을 읽는가?
 predictions_path가 유지되는가?
 same-seed paired comparison인가?
-Holm correction이 적용되는가?
+Holm correction은 보조 adjusted p-value로만 해석되는가?
 CI와 effect_size가 p-value와 함께 저장되는가?
 빈 결과/부분 결과에서도 aggregate가 실패하지 않는가?
 ```

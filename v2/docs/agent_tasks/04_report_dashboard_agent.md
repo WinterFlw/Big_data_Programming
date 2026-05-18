@@ -62,7 +62,7 @@ run metadata
 model definition
 8-condition matrix
 benchmark summary
-paired tests with Holm correction
+primary paired tests with supplementary adjusted p-value
 XAI primary summary
 seed stability summary
 case analysis
@@ -113,7 +113,8 @@ outputs/experiments/v2_15seed/dashboard/index.html
 결과가 있는 상태:
 
 ```text
-D_B 조건은 A_B 대비 macro-F1에서 [mean_diff] 차이를 보였고, paired test의 Holm-adjusted p-value는 [p]였다.
+D_B 조건은 A_B 대비 macro-F1에서 [mean_diff] 차이를 보였다. 같은 seed 기반 paired test와 effect size, 95% CI를 함께 고려해 해석했다.
+여러 조건 비교표에서는 adjusted p-value를 보조적으로 확인했다.
 ```
 
 XAI:
