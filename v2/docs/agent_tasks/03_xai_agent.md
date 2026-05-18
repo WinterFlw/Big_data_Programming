@@ -1,6 +1,10 @@
 # 03. XAI Agent Brief
 
 > 역할: XAI primary/deep/ablation 실행과 seed stability 분석을 구현한다.
+>
+> **현재 상태 (2026-05-17)**: 작업 #4 (adapter + xai_sampling.py) + #8 (ablation 4축) + #9 (token jsonl) + #11 (primary 4축) + #14 (sample-level) 적용 완료. XAI 코드 100%. agent는 토큰 sanity check + 학술 인용 매핑 + p4/p5 본문 작성 위주.
+>
+> **4번은 서버 안 들어감** — 2번이 push한 outputs/.../xai/.cache/*.json + xai/primary/*.csv를 git pull로 받아서 로컬에서 토큰 sanity check. SHAP/LIME 본 실행은 2번이 서버에서.
 
 ---
 

@@ -4,20 +4,38 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Generated v2 run artifacts
+# v2 outputs 정책 (2026-05-17 갱신, 런팟 보존 대응)
+# ─────────────────────────────────────────────────────────────
+# 메인 원칙: 작고 사람이 읽는 산출물(JSON/CSV/MD/PNG/HTML)은 git push로 보존.
+# 무거운 바이너리(체크포인트 .pt, predictions.pkl)는 제외 — 학기 후 폐기.
+# 재현성은 metrics.json + run_config.json + predictions.csv + .cache로 충분.
+
+# 1. 우선 outputs 전체를 잠그고
 outputs/*
 !outputs/.gitkeep
+!outputs/experiments/
+
+# 2. experiments 안은 디렉토리는 트래킹하되 무거운 바이너리만 제외
+outputs/experiments/*/benchmark/checkpoints/*.pt
+outputs/experiments/*/benchmark/checkpoints/*.pkl
+outputs/experiments/*/benchmark/runs/**/predictions.pkl
+outputs/experiments/*/benchmark/runs/**/model_*.pt
+outputs/experiments/*/benchmark/runs/**/*.pt
+outputs/experiments/*/benchmark/runs/**/*.pkl
+
+# 3. 학교 PC 캐시·임시 (런팟에선 의미 없지만 안전장치)
 data/
 checkpoints/
 models/
 models.zip
 
-# Heavy model artifacts, kept here as a second guard if outputs/ is ever
-# partially unignored for report samples.
-outputs/**/checkpoints/*.pt
-outputs/**/runs/**/*.pt
-outputs/**/runs/**/*.pkl
+# 4. .cache 안의 무거운 numpy/pickle은 제외, JSON만 트래킹
+outputs/experiments/*/xai/.cache/*.npy
+outputs/experiments/*/xai/.cache/*.pkl
 
 # Temporary files
 *.tmp
 .DS_Store
+
+# .mplconfig (matplotlib 폰트 캐시)
+.mplconfig/

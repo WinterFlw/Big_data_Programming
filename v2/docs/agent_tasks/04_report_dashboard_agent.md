@@ -1,6 +1,12 @@
 # 04. Report and Dashboard Agent Brief
 
 > 역할: benchmark/statistics/XAI 산출물을 읽어 최종 보고서와 dashboard를 생성한다.
+>
+> **현재 상태 (2026-05-17)**: 작업 #5 (bundle 15파일 + report 자동 표 채움) + #10 (subgroup × context) + #14 (sample-level subgroup) 적용 완료. report 코드 100%. agent는 placeholder 검수 + 발표 26p (중간 + 기말 2단계) 통합 + 추가 업무 A+B+C(오분류·Q&A·시각화) 위주.
+>
+> **5번은 서버 안 들어감** — 2번이 push한 outputs/.../reports/final_report.md + xai/evidence_bundle/*을 git pull로 받아서 로컬에서 PPT 통합. 5번이 신규 작성할 것: scripts/figures.py + docs/Q&A_v2_답변카드.md.
+>
+> **발표 2단계**: 중간발표(현재 와꾸 26p) + 기말발표(6/10, 다듬어서). 5번이 둘 다 책임.
 
 ---
 

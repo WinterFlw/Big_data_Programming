@@ -1,6 +1,8 @@
 # 00. Common Agent Rules
 
 > 모든 팀원이 에이전트를 사용할 때 공통으로 적용하는 규칙이다.
+>
+> **현재 상태 (2026-05-17 갱신)**: 코드 작업 #1~#14 모두 완료, 5 Stage 100%. 5명 분배·실행 모델·런팟 보존 정책 확정. 에이전트는 새 코드 작성보다 산출물 검수·문서 갱신·본문 작성·시각화 위주.
 
 ---
 
@@ -10,7 +12,7 @@
 
 ```text
 Project: HateSpeachStudy
-Goal: v2_15seed end-to-end pipeline
+Goal: v2_15seed end-to-end pipeline (코드 100% 완성, NVIDIA smoke 단계)
 Run ID: v2_15seed
 Canonical output root: outputs/experiments/v2_15seed/
 Main CLI: ./run.sh e2e ...
@@ -18,6 +20,8 @@ Config: configs/v2_15seed.json
 Pipeline package: pipeline/
 Runtime code: runtime/
 Design docs: docs/
+Execution model: 2번 단독 서버 실행, 나머지 4명 git pull로 산출물 받음
+Output preservation: 매 stage 완료 후 git push 의무 (런팟 휘발성 디스크 대응)
 ```
 
 ---
@@ -30,12 +34,16 @@ Design docs: docs/
 docs/README.md
 docs/00_reading_order.md
 docs/02_e2e_pipeline.md
+docs/06_execution_runbook.md          # ★ §11 런팟 보존 정책 포함
 docs/07_output_and_report_contract.md
 docs/10_code_implementation_notes.md
 docs/11_team_tasking_and_server_run_plan.md
 docs/15_runtime_code_validation_matrix.md
+docs/20_role_file_review_matrix.md    # ★ 5명 파일 경계
 docs/12_code_commenting_guide.md
 docs/13_commit_message_policy.md
+agent_tasks/20_claude_code_completion_brief.md  # ★ 작업 #1~#14 완료 이력
+agent_tasks/21_team_role_dispatch.md            # ★ 실명 매핑
 ```
 
 역할별 문서는 그 다음에 읽는다.

@@ -327,3 +327,113 @@ metrics schema가 condition마다 다름
 ```
 
 top-level `outputs/dashboard`나 `outputs/reports`로 복사하는 것은 마지막 단계에서만 한다. canonical output은 항상 `outputs/experiments/v2_15seed/`다.
+
+---
+
+## 11. 런팟 (또는 휘발성 GPU 인스턴스) 보존 정책 ★
+
+NVIDIA 서버가 학교 PC가 아니라 런팟 같은 클라우드 GPU 인스턴스면 **인스턴스 종료 시 디스크가 휘발**한다. 산출물 손실을 막기 위한 정책.
+
+### 무엇이 git으로 보존되나 (작아서 push OK)
+
+`.gitignore` 정책 (2026-05-17 갱신)에 따라 다음 산출물은 매 stage 완료 후 git push로 보존 가능:
+
+```text
+outputs/experiments/v2_15seed/
+├── execution_status.csv / failed_runs.csv / completed_runs.csv
+├── manifest.json / plan_status.json
+├── benchmark/
+│   ├── benchmark_runs.csv / benchmark_summary.csv
+│   ├── paired_tests.csv / paired_tests_holm.csv
+│   ├── anova_2way_bert.csv / anova_2way_roberta.csv / anova_3way.csv
+│   └── runs/<cond>/seed_<n>/
+│       ├── metrics.json          ★ 평가 지표 핵심
+│       ├── history.csv           ★ 에포크별 학습 곡선
+│       ├── run_config.json       ★ 재학습 가능한 하이퍼파라미터
+│       ├── predictions.csv       ★ 오분류 분석 입력
+│       ├── stdout.log / stderr.log
+├── xai/
+│   ├── samples/{primary,deep,ablation}_samples.csv
+│   ├── primary/{seed_level_metrics,sample_level_metrics,paired_xai_tests,seed_stability}.csv
+│   ├── deep/case_summary.csv + xai_details.json
+│   ├── ablation/xai_ablation_metrics.csv
+│   ├── evidence_bundle/* (15 파일)
+│   ├── xai_summary.json
+│   └── .cache/<cond>_seed_<seed>.json  ★ SHAP/LIME 결과, 재계산 비용 큰 영역
+├── reports/final_report.md/docx
+└── dashboard/index.html
+```
+
+대략 50~200MB 정도. git push로 충분.
+
+### 무엇이 git에 안 올라가나 (무거워서 별도 관리)
+
+```text
+outputs/experiments/v2_15seed/benchmark/checkpoints/*.pt    # 120개 × 400MB = 48GB
+outputs/experiments/v2_15seed/benchmark/runs/**/*.pt        # epoch별 checkpoint
+outputs/experiments/v2_15seed/benchmark/runs/**/predictions.pkl  # CSV로 대체됨
+outputs/experiments/v2_15seed/xai/.cache/*.npy / *.pkl     # 재계산 가능
+```
+
+### 런팟에서 산출물 빼내는 흐름 (2번 학습 실행자 책임)
+
+```bash
+# 1. 학습 stage 완료 후 즉시 git push (작은 산출물 보존)
+cd v2
+git add outputs/experiments/v2_15seed/
+git commit -m "chore(outputs): A_B seed 42 metrics + history + predictions push"
+git push origin main
+
+# 2. 다음 stage 진행 — aggregate / xai-primary / xai-bundle / report / dashboard
+./run.sh e2e aggregate --run-id v2_15seed
+git add outputs/experiments/v2_15seed/benchmark/*.csv
+git commit -m "chore(outputs): aggregate CSVs"
+git push
+
+# 3. (선택) 체크포인트가 발표 후에도 필요하면 외부 스토리지로
+#    a) 학교 NAS / Google Drive: rclone
+#    b) S3: aws s3 sync
+#    c) 단순 다운로드: scp / runpodctl
+rclone copy outputs/experiments/v2_15seed/benchmark/checkpoints/ gdrive:hate_v2/
+
+# 4. 인스턴스 종료 전 체크리스트
+echo "=== 런팟 종료 전 점검 ==="
+echo "1. git status — 모든 outputs CSV/JSON push 완료?"
+echo "2. 체크포인트 외부 스토리지 동기화 완료?"
+echo "3. final_report.md + dashboard/index.html git 반영 완료?"
+```
+
+### 매 stage 완료 후 git push 의무화 (2번)
+
+```bash
+# 권장 alias
+alias push_outputs='git add outputs/experiments/v2_15seed/ && git commit -m "chore(outputs): stage progress" && git push origin main'
+
+# 흐름
+./run.sh e2e benchmark --execute --resume
+push_outputs   # 학습 결과 즉시 보존
+
+./run.sh e2e aggregate
+push_outputs
+
+./run.sh e2e xai-primary --resume
+push_outputs   # .cache/까지 보존됨
+
+./run.sh e2e xai-bundle && report && dashboard
+push_outputs   # 최종 보고서·대시보드
+```
+
+### 발표 후 체크포인트 폐기 가능 여부
+
+| 산출물 | 발표 후 필요? | 폐기 가능? |
+|---|---|---|
+| metrics.json / history.csv / run_config.json | ✓ 평가용 보관 | ✗ (작아서 git에 영구 보존) |
+| predictions.csv | ✓ 오분류 분석용 | ✗ (작아서 git 보존) |
+| `.cache/` SHAP/LIME JSON | ✓ XAI 재현용 | ✗ (git 보존) |
+| **`.pt` checkpoint** | ✗ 재학습으로 복구 가능 | ✓ **학기 종료 후 폐기 OK** |
+
+체크포인트 폐기해도 metrics + run_config + predictions로 재현 가능. 평가위원이 "다시 돌려봐" 하면 `./run.sh e2e benchmark --execute --resume`으로 재학습 (약 4~8시간 / seed × condition).
+
+### 런팟 사용 안 할 때 (학교 PC GPU)
+
+학교 PC GPU라면 인스턴스 종료 개념 없으므로 위 정책이 덜 critical. 다만 매 stage 후 git push는 그대로 유지 (1번/3번/4번/5번이 산출물 받는 통로).
