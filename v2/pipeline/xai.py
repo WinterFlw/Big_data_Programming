@@ -210,11 +210,28 @@ def _load_bundle(
 
 
 def _cache_path(run_root: Path, condition: str, seed: int) -> Path:
-    """(condition, seed) 단위 attribution 캐시 파일."""
+    """(condition, seed) 단위 attribution 캐시 파일.
+
+    Cache JSON schema (작업 라운드별 발전):
+      작업 #4 (1차):  {condition, seed, shap, lime, metrics}
+      작업 #14 (3차): + sample_metrics (sample × rationale P/R/F1)
+      작업 #11 (3차): metrics에 _extras{ci, mss, interaction_strength, attention_entropy} 포함
+
+    Forward compatibility:
+      구버전 cache에 새 키가 없어도 cache hit 경로의 `cache.get(...) or []` /
+      `or {}` fallback이 graceful skip. 따라서 schema가 늘어나도 cache 재계산 X.
+
+    Backward incompatibility:
+      sample_size 변경 시 cache의 len(shap) ≠ 새 sample 수 → plan_primary_xai의
+      `len(cached_shap) == len(samples)` 가드가 자동 miss 처리. cache 정리는 필요 X.
+      다만 sample 선택 로직(xai_sampling.py) 자체가 바뀌면 stale cache를 직접 비워야 함:
+        rm -rf v2/outputs/experiments/<run_id>/xai/.cache/
+    """
     return run_root / "xai" / ".cache" / f"{condition.lower()}_seed_{seed}.json"
 
 
 def _load_attribution_cache(path: Path) -> dict[str, Any]:
+    """Cache JSON 로드. 파일 손상/없음 모두 빈 dict로 graceful fallback."""
     if not path.exists():
         return {}
     try:
@@ -225,6 +242,7 @@ def _load_attribution_cache(path: Path) -> dict[str, Any]:
 
 
 def _save_attribution_cache(path: Path, payload: dict[str, Any]) -> None:
+    """Cache JSON 저장. schema 확장 시 새 키만 추가하면 forward-compatible."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2, default=str)
@@ -390,6 +408,18 @@ def _compute_unit_metrics(
     except Exception:
         entropy_scores = []
 
+    # `_extras` 키 경계 (작업 #8/#11/#14에서 추가된 부분)
+    # ────────────────────────────────────────────────────────────
+    # 자동 XAI 4축 — Context Learning(CI/MSS/IS/AttnEntropy) 값은 두 통로로 흐른다.
+    #   1) primary (`plan_primary_xai`):
+    #        XAI_SEED_METRIC_COLUMNS(작업 #11)에 ci/mss/interaction_strength/attention_entropy
+    #        가 정식 컬럼으로 추가됐으므로, plan_primary_xai에서 `_extras`를 풀어 row에 박는다.
+    #   2) ablation (`plan_ablation_xai`):
+    #        ABLATION_METRIC_COLUMNS(작업 #8)도 같은 4컬럼을 갖는다. 마찬가지로 `_extras` 활용.
+    #
+    # 즉 `_extras`는 schema 컬럼명이 아닌 별도 키로 두되, 두 stage 모두 같은 방식으로
+    # 풀어 쓰면 된다. cache JSON에 저장돼도 영향 없음 — schema 외 키는 row.update에서
+    # 자동 무시되므로 forward compatible.
     metrics: dict[str, Any] = {
         "shap_lime_overlap_at_5": _safe_mean(overlaps_5),
         "shap_lime_overlap_at_10": _safe_mean(overlaps_10),
@@ -400,11 +430,10 @@ def _compute_unit_metrics(
         "sufficiency": masking.get("sufficiency_mean") if masking.get("sufficiency_mean") is not None else "",
         "loo_drop": _safe_mean(loo_scores),
         # topk_jaccard / rank_corr는 seed 간 비교에서 채워진다. 단일 (condition, seed)
-        # 시점에는 빈 값.
+        # 시점에는 빈 값. plan_primary_xai의 _seed_stability_rows()가 후속에 채움.
         "topk_jaccard_mean": "",
         "rank_corr_mean": "",
-        # 자동 XAI 4축 — Context Learning. seed_level_metrics 스키마엔 없어서
-        # extras 키로 따로 둔다. ablation/Bundle 단계에서 활용.
+        # 자동 XAI 4축 — primary/ablation 두 stage가 같은 형태로 읽는다 (위 boundary 노트).
         "_extras": {
             "ci": _safe_mean(ci_scores),
             "mss": _safe_mean([float(x) for x in mss_scores]),
