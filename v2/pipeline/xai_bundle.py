@@ -72,6 +72,51 @@ def _sample_map(sample_rows: list[dict[str, str]]) -> dict[str, dict[str, str]]:
     return {row["sample_id"]: row for row in sample_rows if row.get("sample_id")}
 
 
+def _flatten_attributions_to_jsonl(
+    root: Path, primary_samples: list[dict[str, str]]
+) -> list[str]:
+    """outputs/.../xai/.cache/ 의 SHAP/LIME 결과를 jsonl 한 줄씩 평탄화.
+
+    cache는 작업 #4에서 (condition, seed)당 하나의 JSON으로 저장됨. 각 JSON은
+    {"shap": [{text, top_tokens, top_scores, ...}, ...], "lime": [...], ...}
+    구조. primary_samples 순서가 cache의 sample 순서와 동일하므로 zip으로
+    sample_id를 매핑한다.
+
+    sample 수가 cache 길이와 다르면(예: sample_size 변경 후 stale cache) 그 unit은 skip.
+    """
+    cache_dir = root / "xai" / ".cache"
+    if not cache_dir.exists():
+        return []
+    lines: list[str] = []
+    sample_ids = [str(row.get("sample_id", "")) for row in primary_samples]
+    for cache_file in sorted(cache_dir.glob("*_seed_*.json")):
+        try:
+            with open(cache_file, "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        condition = payload.get("condition", "")
+        seed = payload.get("seed", "")
+        shap_results = payload.get("shap") or []
+        lime_results = payload.get("lime") or []
+        # 길이 일치 검사 — sample_size 변경 시 stale cache 방어.
+        if not shap_results or len(shap_results) != len(sample_ids):
+            continue
+        for index, shap_record in enumerate(shap_results):
+            lime_record = lime_results[index] if index < len(lime_results) else {}
+            record = {
+                "sample_id": sample_ids[index] if index < len(sample_ids) else "",
+                "condition": condition,
+                "seed": seed,
+                "tokens": shap_record.get("top_tokens", []),
+                "shap_scores": shap_record.get("top_scores", []),
+                "lime_tokens": lime_record.get("top_tokens", []),
+                "lime_scores": lime_record.get("top_scores", []),
+            }
+            lines.append(json.dumps(record, ensure_ascii=False))
+    return lines
+
+
 # ───────────────────────────────────────────────────────────
 # bundle 각 CSV를 채우는 함수들
 # ───────────────────────────────────────────────────────────
@@ -191,23 +236,37 @@ def _build_context_metrics(
     deep_cases: list[dict[str, str]],
     sample_lookup: dict[str, dict[str, str]],
 ) -> list[dict[str, Any]]:
-    """context_metrics.csv. subgroup별 메트릭이 채워질 자리.
+    """context_metrics.csv. baseline vs v2 prediction 차이를 context sensitivity 근사로 사용.
 
-    여기서는 sample 메타(source/target)만 평탄화한다. 실제 context window /
-    sensitivity 메트릭은 후속 RoBERTa 분석에서 채워질 자리이므로 빈 값.
+    context_window: deep case의 텍스트 토큰 수 (BERT max_len 128 기준 상대 비율).
+    context_sensitivity: |baseline_confidence - v2_confidence|. 두 모델의 예측 확률 차이가
+    클수록 v2가 추가 맥락 단서를 활용했다는 신호(절대값이라 방향 부호는 별도 분석).
+
+    실제 sample-level attribution 기반 context window 측정은 token_attributions.jsonl
+    경유 후속 단계에서 정확히 들어간다. 본 라운드에서는 readily-available한 근사치로 채움.
     """
     rows: list[dict[str, Any]] = []
     for case in deep_cases:
         sid = case.get("sample_id", "")
         sample_row = sample_lookup.get(sid, {})
+        text = sample_row.get("text", "")
+        token_count = len(text.split()) if text else 0
+        # 정규화: 128 토큰 기준 상대 비율 (0~1+ 범위, 1 초과 가능).
+        context_window = round(token_count / 128.0, 4) if token_count else ""
+        baseline_conf = _coerce_float(case.get("baseline_confidence"))
+        v2_conf = _coerce_float(case.get("v2_confidence"))
+        if baseline_conf is not None and v2_conf is not None:
+            context_sensitivity = round(abs(baseline_conf - v2_conf), 4)
+        else:
+            context_sensitivity = ""
         rows.append(
             {
                 "sample_id": sid,
                 "condition": "deep_primary_pair",
                 "target": sample_row.get("target", ""),
                 "source": sample_row.get("source", ""),
-                "context_window": "",
-                "context_sensitivity": "",
+                "context_window": context_window,
+                "context_sensitivity": context_sensitivity,
             }
         )
     return rows
@@ -217,20 +276,41 @@ def _build_subgroup_metrics(
     seed_metrics: list[dict[str, str]],
     sample_rows: list[dict[str, str]],
 ) -> list[dict[str, Any]]:
-    """subgroup_xai_metrics.csv. source(gab/twitter)별 condition 평균 메트릭."""
+    """subgroup_xai_metrics.csv. source(gab/twitter)와 target(인종/종교/...) 두 차원 분해.
+
+    primary sample의 source/target 분포를 보고 각 subgroup의 표본 수를 헤더에 박는다.
+    seed_metrics는 sample-level이 아닌 (condition, seed) 평균이라, 실제 subgroup 평균은
+    후속 sample-level 메트릭이 들어와야 정확하다. 본 라운드에서는 표본 수 + condition 평균을
+    표 형태로 노출만 한다 (subgroup-aware 분해는 token_attributions.jsonl 기반 후속 단계).
+    """
     if not seed_metrics or not sample_rows:
         return []
-    # source 분포는 primary sample 기준으로 가져온다.
+
+    # HateXplain post_id 접미사가 비정상인 sample은 source 추출이 망가져서
+    # 숫자 토큰("4")이 들어올 수 있다. 알려진 집합 외는 "other"로 묶는다.
+    KNOWN_SOURCES = {"gab", "twitter"}
+    # source 분포.
     source_counts: dict[str, int] = {}
+    # target 분포 (multi-label, comma-separated).
+    target_counts: dict[str, int] = {}
     for sample_row in sample_rows:
-        source = sample_row.get("source", "")
-        if source:
-            source_counts[source] = source_counts.get(source, 0) + 1
+        raw_source = sample_row.get("source", "").strip().lower()
+        source = raw_source if raw_source in KNOWN_SOURCES else "other"
+        source_counts[source] = source_counts.get(source, 0) + 1
+        target_field = sample_row.get("target", "")
+        if target_field:
+            for target in target_field.split(","):
+                target = target.strip()
+                if target and target.lower() not in ("none", "other"):
+                    target_counts[target] = target_counts.get(target, 0) + 1
 
     rows: list[dict[str, Any]] = []
+    metric_names = ("rationale_f1_at_5", "comprehensiveness", "sufficiency")
+
+    # source-별 분해.
     for source, count in sorted(source_counts.items()):
         for metric_row in seed_metrics:
-            for metric_name in ("rationale_f1_at_5", "comprehensiveness", "sufficiency"):
+            for metric_name in metric_names:
                 value = metric_row.get(metric_name, "")
                 rows.append(
                     {
@@ -238,7 +318,22 @@ def _build_subgroup_metrics(
                         "condition": metric_row.get("condition", ""),
                         "seed": metric_row.get("seed", ""),
                         "metric": metric_name,
-                        # subgroup-aware 분해는 후속 작업. 지금은 전체 평균을 그대로 반복.
+                        "value": value,
+                    }
+                )
+
+    # target-별 분해 (상위 10개만; 너무 많으면 dashboard noisy).
+    top_targets = sorted(target_counts.items(), key=lambda item: -item[1])[:10]
+    for target, count in top_targets:
+        for metric_row in seed_metrics:
+            for metric_name in metric_names:
+                value = metric_row.get(metric_name, "")
+                rows.append(
+                    {
+                        "subgroup": f"target={target}(n={count})",
+                        "condition": metric_row.get("condition", ""),
+                        "seed": metric_row.get("seed", ""),
+                        "metric": metric_name,
                         "value": value,
                     }
                 )
@@ -662,12 +757,16 @@ def build_xai_evidence_bundle(manifest: dict[str, Any], dry_run: bool = False) -
         },
     )
 
-    # token_attributions.jsonl: seed_level_metrics가 비어 있으면 빈 파일 유지.
-    # (실제 token 단위 attribution은 작업 #4의 .cache/ 에 들어 있으므로 후속에서 이걸
-    #  읽어 jsonl로 풀어쓰는 단계가 들어갈 수 있다.)
+    # token_attributions.jsonl: 작업 #4가 outputs/.../xai/.cache/<cond>_seed_<seed>.json
+    # 에 저장한 SHAP/LIME 결과를 한 줄당 (sample_id, condition, seed, tokens, shap_scores,
+    # lime_scores) 형태로 평탄화한다. cache가 비어 있으면 빈 파일 유지.
     token_attributions_path = bundle_dir / "token_attributions.jsonl"
-    if not token_attributions_path.exists():
-        token_attributions_path.write_text("", encoding="utf-8")
+    token_lines = _flatten_attributions_to_jsonl(root, primary_samples)
+    # cache가 비면 jsonl도 비운다 — stale row 방지.
+    token_attributions_path.write_text(
+        ("\n".join(token_lines) + "\n") if token_lines else "",
+        encoding="utf-8",
+    )
 
     readme_path = bundle_dir / "README.md"
     readme_path.write_text(

@@ -26,6 +26,17 @@ except ImportError:  # pragma: no cover - exercised only on minimal installs.
     scipy_stats = None
 
 try:
+    import numpy as _np
+    _NP_AVAILABLE = True
+except ImportError:  # pragma: no cover.
+    _np = None  # type: ignore[assignment]
+    _NP_AVAILABLE = False
+
+# Bootstrap CI 기본값. manifest.statistics.bootstrap_iterations 가 있으면 override.
+DEFAULT_BOOTSTRAP_ITERATIONS = 1000
+DEFAULT_BOOTSTRAP_SEED = 0
+
+try:
     import pandas as _pd
     from statsmodels.formula.api import ols as _ols
     from statsmodels.stats.anova import anova_lm as _anova_lm
@@ -90,12 +101,18 @@ def collect_benchmark_runs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
-def summarize_benchmark(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def summarize_benchmark(
+    rows: list[dict[str, Any]],
+    bootstrap_iterations: int | None = None,
+) -> list[dict[str, Any]]:
     """Summarize completed runs by condition.
 
     Planned and failed rows are preserved in benchmark_runs.csv but excluded
     from metric means. failed_seed_count is kept so the report can distinguish
     "no result yet" from "some seeds crashed".
+
+    bootstrap_iterations: manifest.statistics.bootstrap_iterations. 양수이면
+    percentile bootstrap CI, 0/None이면 t-분포 CI.
     """
     grouped: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
@@ -117,6 +134,7 @@ def summarize_benchmark(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             sorted_completed = sorted(completed, key=lambda row: float(row["macro_f1"]))
             best_seed = sorted_completed[-1]["seed"]
             median_seed = sorted_completed[len(sorted_completed) // 2]["seed"]
+        ci = _mean_ci(values, bootstrap_iterations=bootstrap_iterations) if values else ("", "")
         summaries.append(
             {
                 "condition": condition,
@@ -124,8 +142,8 @@ def summarize_benchmark(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "n_seeds": len(completed),
                 "macro_f1_mean": mean(values) if values else "",
                 "macro_f1_std": stdev(values) if len(values) > 1 else "",
-                "macro_f1_ci_low": _mean_ci(values)[0] if values else "",
-                "macro_f1_ci_high": _mean_ci(values)[1] if values else "",
+                "macro_f1_ci_low": ci[0],
+                "macro_f1_ci_high": ci[1],
                 "weighted_f1_mean": mean(weighted_values) if weighted_values else "",
                 "accuracy_mean": mean(accuracy_values) if accuracy_values else "",
                 "best_seed": best_seed,
@@ -136,8 +154,36 @@ def summarize_benchmark(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return summaries
 
 
-def _mean_ci(values: list[float], confidence: float = 0.95) -> tuple[float, float]:
-    """Return a two-sided confidence interval for a mean."""
+def _bootstrap_ci(
+    values: list[float],
+    iterations: int = DEFAULT_BOOTSTRAP_ITERATIONS,
+    confidence: float = 0.95,
+    seed: int = DEFAULT_BOOTSTRAP_SEED,
+) -> tuple[float, float] | tuple[str, str]:
+    """Percentile bootstrap CI for the mean.
+
+    15 seed처럼 작은 표본에서 t-분포 CI는 정규성 가정이 약하므로 percentile
+    bootstrap이 더 robust. numpy 미설치 환경에서는 _mean_ci_t로 fallback.
+    """
+    if not values:
+        return ("", "")
+    if len(values) == 1:
+        return (values[0], values[0])
+    if not _NP_AVAILABLE or _np is None:
+        return _mean_ci_t(values, confidence=confidence)
+    rng = _np.random.default_rng(seed)
+    array = _np.asarray(values, dtype=float)
+    n = array.size
+    resamples = rng.choice(array, size=(iterations, n), replace=True)
+    means = resamples.mean(axis=1)
+    alpha = (1.0 - confidence) / 2.0
+    low = float(_np.quantile(means, alpha))
+    high = float(_np.quantile(means, 1.0 - alpha))
+    return (low, high)
+
+
+def _mean_ci_t(values: list[float], confidence: float = 0.95) -> tuple[float, float]:
+    """t-distribution CI fallback (numpy 미설치 환경용)."""
     if not values:
         return ("", "")  # type: ignore[return-value]
     if len(values) == 1:
@@ -150,6 +196,20 @@ def _mean_ci(values: list[float], confidence: float = 0.95) -> tuple[float, floa
     center = mean(values)
     margin = critical_value * standard_error
     return (center - margin, center + margin)
+
+
+def _mean_ci(
+    values: list[float],
+    confidence: float = 0.95,
+    bootstrap_iterations: int | None = None,
+) -> tuple[float, float] | tuple[str, str]:
+    """기본 CI: bootstrap_iterations가 0보다 크면 bootstrap, 아니면 t-분포.
+
+    manifest.statistics.bootstrap_iterations가 양수일 때 bootstrap CI 사용.
+    """
+    if bootstrap_iterations is None or bootstrap_iterations <= 0:
+        return _mean_ci_t(values, confidence=confidence)
+    return _bootstrap_ci(values, iterations=int(bootstrap_iterations), confidence=confidence)
 
 
 def _paired_p_value(differences: list[float]) -> tuple[str, str]:
@@ -192,8 +252,14 @@ def _build_metric_lookup(rows: list[dict[str, Any]], metric: str) -> dict[tuple[
 
 
 def compute_paired_tests(manifest: dict[str, Any], rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Compute same-seed paired comparisons requested by the manifest."""
+    """Compute same-seed paired comparisons requested by the manifest.
+
+    bootstrap_iterations 는 manifest.statistics.bootstrap_iterations 에서 읽음.
+    """
     comparisons = manifest.get("statistics", {}).get("paired_tests", [])
+    bootstrap_iterations = int(
+        manifest.get("statistics", {}).get("bootstrap_iterations", 0) or 0
+    )
     metrics = ["macro_f1", "accuracy", "weighted_f1"]
     test_rows: list[dict[str, Any]] = []
     for metric in metrics:
@@ -208,7 +274,11 @@ def compute_paired_tests(manifest: dict[str, Any], rows: list[dict[str, Any]]) -
                 }
             )
             differences = [lookup[(condition_b, seed)] - lookup[(condition_a, seed)] for seed in seeds]
-            ci_low, ci_high = _mean_ci(differences) if differences else ("", "")
+            ci_low, ci_high = (
+                _mean_ci(differences, bootstrap_iterations=bootstrap_iterations)
+                if differences
+                else ("", "")
+            )
             test_name, p_value = _paired_p_value(differences)
             test_rows.append(
                 {
@@ -392,7 +462,10 @@ def aggregate(manifest: dict[str, Any]) -> dict[str, Path]:
     root = experiment_root(manifest["run_id"])
     benchmark_dir = root / "benchmark"
     rows = collect_benchmark_runs(manifest)
-    summary = summarize_benchmark(rows)
+    bootstrap_iterations = int(
+        manifest.get("statistics", {}).get("bootstrap_iterations", 0) or 0
+    )
+    summary = summarize_benchmark(rows, bootstrap_iterations=bootstrap_iterations)
     paired_tests = compute_paired_tests(manifest, rows)
     holm_tests = apply_holm_correction(paired_tests)
 

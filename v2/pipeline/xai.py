@@ -92,6 +92,8 @@ ABLATION_METRIC_COLUMNS = [
     "sufficiency",
     "attention_entropy",
     "mss",
+    "interaction_strength",
+    "ci",
 ]
 
 
@@ -347,6 +349,37 @@ def _compute_unit_metrics(
     # LOO drop. runtime은 candidate top-k 별 평균 drop을 sample마다 돌려준다.
     loo_scores = runtime_xai._compute_loo_scores(bundle, shap_results, texts, predicted_labels)
 
+    # 자동 XAI 4축 — Context Learning (CI / MSS / IS / Attention Rollout Entropy).
+    # runtime/experiment_xai 의 헬퍼를 그대로 호출한다.
+    ci_scores: list[float] = []
+    mss_scores: list[float] = []
+    is_scores: list[float] = []
+    entropy_scores: list[float] = []
+    try:
+        ci_scores = runtime_xai._compute_ci_scores(shap_results)
+    except Exception:
+        ci_scores = []
+    try:
+        mss_threshold = float(getattr(config, "xai_mss_threshold", 0.8))
+        mss_scores = runtime_xai._compute_mss_scores(
+            bundle, shap_results, texts, predicted_labels, mss_threshold
+        )
+    except Exception:
+        mss_scores = []
+    try:
+        interaction_pairs = int(getattr(config, "xai_interaction_pairs", 50))
+        is_scores = runtime_xai._compute_interaction_strength(
+            bundle, shap_results, texts, predicted_labels, interaction_pairs
+        )
+    except Exception:
+        is_scores = []
+    try:
+        entropy_scores = runtime_xai._compute_attention_rollout_entropy(
+            bundle, texts, len(texts)
+        )
+    except Exception:
+        entropy_scores = []
+
     metrics: dict[str, Any] = {
         "shap_lime_overlap_at_5": _safe_mean(overlaps_5),
         "shap_lime_overlap_at_10": _safe_mean(overlaps_10),
@@ -360,6 +393,14 @@ def _compute_unit_metrics(
         # 시점에는 빈 값.
         "topk_jaccard_mean": "",
         "rank_corr_mean": "",
+        # 자동 XAI 4축 — Context Learning. seed_level_metrics 스키마엔 없어서
+        # extras 키로 따로 둔다. ablation/Bundle 단계에서 활용.
+        "_extras": {
+            "ci": _safe_mean(ci_scores),
+            "mss": _safe_mean([float(x) for x in mss_scores]),
+            "interaction_strength": _safe_mean(is_scores),
+            "attention_entropy": _safe_mean(entropy_scores),
+        },
     }
     return {
         "shap": shap_results,
@@ -813,6 +854,7 @@ def plan_ablation_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[s
 
         computed = _compute_unit_metrics(runtime_xai, bundle, samples, config, rationale_map)
         metrics = computed["metrics"]
+        extras = metrics.get("_extras", {}) or {}
         backbone = "BERT" if condition.endswith("_B") else "RoBERTa"
         attention_flag = condition.startswith(("B_", "D_"))
         vader_flag = condition.startswith(("C_", "D_"))
@@ -825,8 +867,10 @@ def plan_ablation_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[s
                 "rationale_f1_at_5": metrics.get("rationale_f1_at_5", ""),
                 "comprehensiveness": metrics.get("comprehensiveness", ""),
                 "sufficiency": metrics.get("sufficiency", ""),
-                "attention_entropy": "",
-                "mss": "",
+                "attention_entropy": extras.get("attention_entropy", ""),
+                "mss": extras.get("mss", ""),
+                "interaction_strength": extras.get("interaction_strength", ""),
+                "ci": extras.get("ci", ""),
             }
         )
 
