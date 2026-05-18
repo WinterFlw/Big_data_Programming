@@ -5,6 +5,8 @@
 > **현재 상태 (2026-05-17)**: 작업 #2 (ANOVA 2/3-way) + #7 (bootstrap CI) + #14 (eta²/partial η²) 적용 완료. 통계 코드 100%. agent는 새 함수보다 산출 CSV 검수 + p17/p18 본문 작성 + ANOVA 부록 슬라이드 매핑 위주.
 >
 > **3번은 서버 안 들어감** — 2번이 push한 outputs/.../benchmark/*.csv를 git pull로 받아서 로컬에서 작업.
+>
+> **history.csv 28컬럼 활용 (★)**: 2번이 push한 `runs/<cond>/seed_<n>/history.csv`에 에폭별 학습 곡선·per-class F1·gradient norm·learning_rate·confusion matrix flatten 등 28컬럼이 박혀있다. 학습 안정성 진단·발표 본문에 "offensive가 가장 어려운 클래스" 같은 정량 근거 매핑. 자세한 활용: `docs/03_validation_and_statistics.md §7.1`.
 
 ---
 

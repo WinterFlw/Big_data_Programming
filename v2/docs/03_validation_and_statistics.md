@@ -237,6 +237,52 @@ CI = mean_diff ± t_(0.975, n-1) * sd_diff / sqrt(n)
 
 ---
 
+## 7.1 학습 곡선 분석 — history.csv 28컬럼 활용 ★
+
+작업 라운드 3차 갱신(2026-05-17)으로 `outputs/.../benchmark/runs/<cond>/seed_<n>/history.csv`가 **에폭마다 28개 컬럼을 박는다**. 활용 가능한 분석:
+
+### 7.1.1 학습 안정성 진단
+
+| 점검 | 컬럼 | 정상 패턴 | 경고 패턴 |
+|---|---|---|---|
+| Loss 수렴 | `train_loss`, `val_loss` | 두 곡선 모두 단조 감소 | val_loss 발산 → overfit |
+| Per-batch 분산 | `train_loss_std` | 점진 감소 | 일정 → 안정성 문제 |
+| Gradient 안정성 | `train_grad_norm_mean/max` | < 1.0 (clip 안 걸림) | > 5.0 자주 → lr 낮춰야 |
+| AMP 안정성 (CUDA) | `amp_scale` | 65536 부근 유지 | 급강하 → fp16 underflow |
+| Overfit 진단 | `train_accuracy` vs `val_accuracy` | gap < 0.05 | gap > 0.15 → 정규화 부족 |
+
+### 7.1.2 Per-class 추이 (Hate vs Offensive 경계)
+
+본 연구의 핵심 어려움이 **hate ↔ offensive 클래스 경계 모호성** (1차 파이프라인에서 offensive agreement 0.752 가장 낮음).
+
+```text
+val_f1_hatespeech       # hate 클래스 학습이 가장 빠른가?
+val_f1_offensive        # offensive 클래스가 마지막까지 낮은가?
+val_f1_normal           # normal은 가장 쉬운가?
+val_cm_0_1, val_cm_1_0  # hate↔offensive 오탐 (혼동 행렬 오프 대각)
+```
+
+이 4개 컬럼의 에폭별 추이를 발표 본문에 한 줄 그림 (line plot)으로 박으면 "offensive가 가장 어려운 클래스"를 정량 보임.
+
+### 7.1.3 학습률 / Scheduler 시각화
+
+```text
+learning_rate  # warmup(0~10%) 후 linear decay
+```
+
+`warmup_ratio = 0.1`이라 첫 10% step 동안 0 → 2e-5 (target lr) 상승 후 epoch 끝까지 선형 감소. matplotlib `plot(history['epoch'], history['learning_rate'])`로 발표 부록 슬라이드.
+
+### 7.1.4 활용 시점 — 누가 언제
+
+| Stage | 활용 |
+|---|---|
+| **2번 학습 실행** | 학습 중 콘솔 print로 즉시 진단 ("[epoch] ... grad_norm=2.3 epoch_t=287s"). 이상치면 즉시 중단. |
+| **3번 통계** | 학습 곡선 + per-class 추이 분석. 5번에게 "offensive가 가장 어려움" 정량 근거 넘기기. |
+| **5번 Author** | 추가 시각화 4장 중 (1) 8조건 boxplot + (2) per-class F1 추이 line plot에 직접 사용. |
+| **1번 QA** | `train_grad_norm_max > 5.0` 자주 발생 unit은 단톡 경고. |
+
+---
+
 ## 8. Bootstrap 보강 (작업 #7 — 구현 완료)
 
 Seed 반복은 학습 stochasticity를 반영하지만, 작은 표본(15 seed)에서 t-분포 CI는 정규성 가정이 약하다. 다만 학부 프로젝트 본문에서는 bootstrap을 길게 설명하지 않고, 95% CI를 보강하는 선택지로만 둔다.

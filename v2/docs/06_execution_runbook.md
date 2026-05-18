@@ -330,7 +330,92 @@ top-level `outputs/dashboard`나 `outputs/reports`로 복사하는 것은 마지
 
 ---
 
-## 11. 런팟 (또는 휘발성 GPU 인스턴스) 보존 정책 ★
+## 11. 학습 중 모니터링 — history.csv 28컬럼 활용 ★
+
+작업 라운드 3차 갱신(2026-05-17)으로 `outputs/.../benchmark/runs/<cond>/seed_<n>/history.csv`가 에폭마다 28개 컬럼을 박는다. 학습 중·후 모니터링 명령.
+
+### 11.1 학습 중 실시간 콘솔 출력
+
+학습 시작 후 stdout에 다음 한 줄이 매 epoch 끝에 출력된다:
+
+```text
+[epoch] D_B | seed=42 | epoch=3/5 | train_loss=0.4521 | val_loss=0.6234 | val_macro_f1=0.6892
+       | train_acc=0.7245 | val_acc=0.6960 | lr=1.20e-05 | grad_norm=2.314 | epoch_t=287.3s
+```
+
+**즉시 진단**:
+- `train_acc - val_acc > 0.15` → overfit 의심
+- `grad_norm > 5.0` 자주 → 학습률 너무 높음
+- `epoch_t > 600s` (NVIDIA 기준) → 데이터 로더 병목 의심
+
+### 11.2 학습 후 history.csv 직접 열기
+
+```bash
+# 한 condition × seed의 학습 곡선 한 눈에
+column -t -s, outputs/experiments/v2_15seed/benchmark/runs/d_b/seed_42/history.csv | less -S
+
+# Loss·F1만 빠르게
+cut -d',' -f1,3,4,11,12 outputs/experiments/v2_15seed/benchmark/runs/d_b/seed_42/history.csv | column -t -s,
+
+# Confusion matrix flatten 만
+cut -d',' -f1,20-28 outputs/experiments/v2_15seed/benchmark/runs/d_b/seed_42/history.csv | column -t -s,
+```
+
+### 11.3 학습 곡선 시각화 (5번 Author용)
+
+```python
+# scripts/figures.py 안에서
+import pandas as pd
+import matplotlib.pyplot as plt
+from pathlib import Path
+
+run_id = "v2_15seed"
+base = Path(f"outputs/experiments/{run_id}/benchmark/runs")
+
+# 1. 한 조건의 학습 곡선 (loss + macro F1)
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+for cond in ["A_B", "D_B"]:
+    df = pd.read_csv(base / cond.lower() / "seed_42" / "history.csv")
+    ax1.plot(df["epoch"], df["train_loss"], label=f"{cond} train", linestyle="--")
+    ax1.plot(df["epoch"], df["val_loss"], label=f"{cond} val")
+    ax2.plot(df["epoch"], df["val_macro_f1"], label=cond)
+ax1.set_xlabel("Epoch"); ax1.set_ylabel("Loss"); ax1.legend()
+ax2.set_xlabel("Epoch"); ax2.set_ylabel("Val Macro F1"); ax2.legend()
+
+# 2. Per-class F1 추이 (D_B 한 조건)
+df = pd.read_csv(base / "d_b" / "seed_42" / "history.csv")
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.plot(df["epoch"], df["val_f1_hatespeech"], label="hatespeech", color="C3")
+ax.plot(df["epoch"], df["val_f1_offensive"], label="offensive", color="C1")
+ax.plot(df["epoch"], df["val_f1_normal"], label="normal", color="C2")
+ax.set_xlabel("Epoch"); ax.set_ylabel("Per-class F1"); ax.legend()
+```
+
+### 11.4 이상 학습 자동 감지 (1번 QA)
+
+`daily.sh` 안에서 학습 결과 점검할 때 (선택 추가 가능):
+
+```bash
+# grad_norm_max가 너무 큰 unit 찾기
+for f in outputs/experiments/v2_15seed/benchmark/runs/*/seed_*/history.csv; do
+    max_grad=$(awk -F',' 'NR>1 {print $10}' "$f" | sort -n | tail -1)
+    if (( $(echo "$max_grad > 5.0" | bc -l) )); then
+        echo "[WARN] high grad_norm_max=$max_grad in $f"
+    fi
+done
+
+# train_acc와 val_acc 격차가 큰 unit (overfit)
+for f in outputs/experiments/v2_15seed/benchmark/runs/*/seed_*/history.csv; do
+    last_train_acc=$(awk -F',' 'END {print $9}' "$f")
+    last_val_acc=$(awk -F',' 'END {print $15}' "$f")
+    # 격차 > 0.15 경고
+    ...
+done
+```
+
+---
+
+## 12. 런팟 (또는 휘발성 GPU 인스턴스) 보존 정책 ★
 
 NVIDIA 서버가 학교 PC가 아니라 런팟 같은 클라우드 GPU 인스턴스면 **인스턴스 종료 시 디스크가 휘발**한다. 산출물 손실을 막기 위한 정책.
 

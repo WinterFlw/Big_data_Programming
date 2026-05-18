@@ -23,6 +23,11 @@
 - 체크포인트 *.pt는 .gitignore에서 제외되어 자동으로 안 올라감 (48GB).
 - metrics.json/history.csv/predictions.csv/run_config.json은 작아서 git에 보존됨.
 
+history.csv 28컬럼 자동 저장 (★ 작업 #15 갱신):
+- 매 epoch 끝에 학습 loss 분해 / per-class F1+P+R / confusion matrix flatten / learning_rate / amp_scale / grad_norm 평균+최대 / epoch_seconds / early_stop_counter 저장.
+- 학습 중 stdout [epoch] ... 라인에 핵심 8개 값 즉시 출력. 이상 패턴(grad_norm>5.0, val_acc-train_acc<-0.15) 발견 시 즉시 중단·보고.
+- 자세한 스키마: docs/07_output_and_report_contract.md §3.1.
+
 역할 밖 파일 수정은 최소화하고, 수정 이유를 명확히 기록하세요.
 ```
 
