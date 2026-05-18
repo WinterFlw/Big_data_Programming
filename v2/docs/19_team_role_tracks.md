@@ -587,6 +587,12 @@ Top-k Jaccard across seeds, Rank correlation across seeds
 
 # 카드 4 — XAI Bundle + Report Stage  (담당: **조은** — 21 문서 §0 확정)
 
+> **추가 업무 A+B+C** (자동 채움 덕에 본업 가벼움 → 부담 균형 차원, 21 §1 참조):
+> - A: 오분류 분석 (predictions.csv 정성 분류 + 발표 부록)
+> - B: Q&A 답변 카드 (예상 질문 30~50개, `docs/Q&A_v2_답변카드.md`)
+> - C: 추가 시각화 4장 (`scripts/figures.py` matplotlib)
+> 주당 7~10h → 10~15h로 재조정.
+
 ## 이 stage가 뭔지
 
 카드 2의 통계 CSV + 카드 3의 XAI CSV를 받아:

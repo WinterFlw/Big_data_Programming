@@ -23,7 +23,7 @@
 | 1 | **Pilot** (Benchmark 실행) | **정수현** (팀장) | p2, p3, p12~p16, p20, p21 (9p) | **D3** | `./run.sh e2e benchmark --execute` |
 | 2 | **Stat Auditor** (집계·검정) | **박종화** | p9, p10, p11, p17, p18 (5p) | **D5** | `./run.sh e2e aggregate` |
 | 3 | **XAI Curator** (SHAP/LIME) | **차종민** | p1, p4, p5, p6 (4p) | **D7** | `./run.sh e2e xai-primary --resume` |
-| 4 | **Author** (Bundle + Report) | **조은** | p19, p22~p26 (6p) | **D9** | `./run.sh e2e xai-bundle && report && dashboard` |
+| 4 | **Author** (Bundle + Report + 오분류 분석 + Q&A 카드 + 시각화) | **조은** | p19, p22~p26 (6p) + 부록 슬라이드 + Q&A 카드 | **D9** | `./run.sh e2e xai-bundle && report && dashboard` + `scripts/figures.py` |
 | 5 | **QA Conductor** (preflight + Gate) | **김정훈** | p7, p8 (2p) | **D0 매일** | `./v2/scripts/daily.sh` |
 
 ### 0.2 작업 #1~#14 결과 인계 (5인 1:n 매핑)
@@ -121,6 +121,11 @@ GO/STOP **최종 결정**은 **김정훈 (QA)**. STOP이면 위 fix 책임자에
 - 문서·통합팀. p19(메인 결과), p22~p26(일정·분담·문제점·향후·통합)를 책임지는 본업이 정확히 final_report.md + 발표 자료 통합.
 - 작업 #5(Bundle/Report 자동 채움)가 Author의 첫 의존성 — Stat/XAI 결과가 들어오면 markdown/dashboard가 자동으로 표·claim을 채우므로, Author는 placeholder 메시지 보고 결과 들어오기까지 골격만 다듬으면 된다.
 - 한계 서술(p25)과 향후 연구(p26)도 본인 페이지라, xai_risk_flags.csv 기반의 limitations 섹션과 직접 연결.
+- **추가 업무 A+B+C** (자동 채움 덕에 본업이 가벼우니 부담 균형 차원에서 추가):
+  - A: 오분류 분석 — D_B가 틀린 sample을 직접 열어 hate↔offensive 혼동·implicit hate 미탐·target별 오분류율 정성 분류. 발표 부록 슬라이드 1장 + `final_report.md` "Error Analysis" 섹션.
+  - B: Q&A 답변 카드 — v2 결과 기반 예상 질문 30~50개 + 답변. `docs/Q&A_v2_답변카드.md` 신규.
+  - C: 추가 시각화 — matplotlib 그림 4장 (boxplot / target heatmap / SHAP 비교 / ANOVA η²). `scripts/figures.py` 신규 작성.
+- 추가 업무로 주당 시간 7~10h → **10~15h**로 재조정. 다른 4명과 부담 균형.
 
 ### 김정훈 → QA Conductor
 
