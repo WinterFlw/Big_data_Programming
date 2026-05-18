@@ -175,6 +175,7 @@ docs/14_team_assignment_matrix.md
 docs/15_runtime_code_validation_matrix.md
 docs/agent_tasks/10_team_dispatch_prompts.md
 docs/16_portable_ai_agent_skills_guide.md
+docs/20_role_file_review_matrix.md
 docs/v2_end_to_end_team_brief.docx
 docs/role_guides/
 ```
@@ -199,13 +200,14 @@ docs/agent_tasks/08_handoff_template.md
 
 | 사람 | 역할 | 기준 문서 |
 |---|---|---|
-| 1번 | 코드 리뷰 / 파이프라인 검증 | `docs/role_guides/01_code_review_pipeline_validation.docx` |
-| 2번 | 학습 실행 / 실험 관리 | `docs/role_guides/02_training_execution_experiment_management.docx` |
-| 3번 | 결과 분석 / 통계 해석 | `docs/role_guides/03_result_analysis_statistics.docx` |
-| 4번 | XAI 설명 / evidence bundle | `docs/role_guides/04_xai_explanation_evidence_bundle.docx` |
-| 5번 | 발표자료 / 최종 보고서 제작 | `docs/role_guides/05_presentation_report_final_integration.docx` |
+| 1번 | E2E Gate 총괄 | `v2/run.sh`, `v2/pipeline/cli.py`, `v2/pipeline/runner.py`, `v2/pipeline/manifest.py`, `v2/pipeline/artifacts.py`, `v2/scripts/daily.sh`, `v2/scripts/gate_check.py` |
+| 2번 | 학습 실행 / 실험 관리 | `v2/pipeline/training_adapter.py`, `v2/runtime/experiment_core.py`, `v2/runtime/run_experiments.py`, `v2/runtime/utils.py` |
+| 3번 | 결과 분석 / 통계 해석 | `v2/pipeline/statistics.py`, `v2/pipeline/schema.py`, `v2/outputs/experiments/v2_15seed/benchmark/*.csv` |
+| 4번 | XAI 설명 / evidence bundle | `v2/pipeline/xai.py`, `v2/pipeline/xai_sampling.py`, `v2/pipeline/xai_bundle.py`, `v2/runtime/experiment_xai.py` |
+| 5번 | 발표자료 / 최종 보고서 제작 | `v2/pipeline/reporting.py`, `v2/runtime/dashboard_app.py`, `v2/runtime/experiment_dashboard.py`, `v2/outputs/experiments/v2_15seed/reports/`, `v2/outputs/experiments/v2_15seed/dashboard/` |
 
 작업 하달의 큰 틀은 연구 산출물 기준으로 나누고, 각 담당자가 실제로 볼 코드와 검증 명령은 역할별 Word 업무지시서와 `docs/15_runtime_code_validation_matrix.md`를 함께 따른다.
+1번은 전체 코드리뷰 담당이 아니라 `docs/20_role_file_review_matrix.md` 기준으로 각 담당자의 1차 리뷰 결과를 취합하고 full run gate만 판단한다.
 
 ---
 

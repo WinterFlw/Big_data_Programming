@@ -28,10 +28,11 @@
 16. 15_runtime_code_validation_matrix.md
 17. 16_portable_ai_agent_skills_guide.md
 18. 17_korean_reading_file_index.md
-19. ../ai_skills/README.md
-20. ../ai_skills/common_project_rules.md
-21. agent_tasks/README.md
-22. agent_tasks/09_e2e_xai_evidence_bundle_agent.md
+19. 20_role_file_review_matrix.md
+20. ../ai_skills/README.md
+21. ../ai_skills/common_project_rules.md
+22. agent_tasks/README.md
+23. agent_tasks/09_e2e_xai_evidence_bundle_agent.md
 ```
 
 이 순서의 의도:
@@ -218,6 +219,7 @@ XAI seed stability 결과
 11_team_tasking_and_server_run_plan.md
 14_team_assignment_matrix.md
 15_runtime_code_validation_matrix.md
+20_role_file_review_matrix.md
 role_guides/README.md
 07_output_and_report_contract.md
 ```

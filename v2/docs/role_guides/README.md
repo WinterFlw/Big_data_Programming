@@ -14,11 +14,17 @@
 
 | 파일 | 담당 역할 | 핵심 질문 |
 |---|---|---|
-| `01_code_review_pipeline_validation.docx` | 코드 리뷰 / 파이프라인 검증 | v2가 full run 전에 깨지지 않는가? |
+| `01_code_review_pipeline_validation.docx` | E2E Gate 총괄 | 각 담당자의 1차 리뷰 결과를 취합해 full run GO/STOP을 판단할 수 있는가? |
 | `02_training_execution_experiment_management.docx` | 학습 실행 / 실험 관리 | 서버에서 15 seed 실행과 실패 복구를 관리할 수 있는가? |
 | `03_result_analysis_statistics.docx` | 결과 분석 / 통계 해석 | 성능 차이가 통계적으로 의미 있는가? |
 | `04_xai_explanation_evidence_bundle.docx` | XAI 설명 / evidence bundle | 왜 그런 결과가 나왔는지 설명 근거를 남겼는가? |
 | `05_presentation_report_final_integration.docx` | 발표자료 / 최종 보고서 제작 | 결과를 제출 가능한 발표/보고서로 묶었는가? |
+
+## 코드리뷰 분산 원칙
+
+1번이 전체 코드리뷰를 독박으로 맡지 않는다. 각 담당자는 자기 파트의 폴더/파일을 1차 리뷰하고, 1번은 `v2/run.sh`, `v2/pipeline/cli.py`, `v2/pipeline/runner.py`, `v2/pipeline/manifest.py`, `v2/pipeline/artifacts.py`, `v2/scripts/daily.sh`, `v2/scripts/gate_check.py` 중심으로 E2E gate만 본다.
+
+상세 파일 경계는 `../20_role_file_review_matrix.md`를 따른다.
 
 ## 분석 수준 한 줄 기준
 

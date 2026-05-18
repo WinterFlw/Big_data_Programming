@@ -35,7 +35,8 @@ v1/ 문서 = 과거 자료, 발표/설계 참고용
 | 4 | `v2/docs/02_e2e_pipeline.md` | benchmark부터 dashboard까지 stage 흐름 이해 |
 | 5 | `v2/docs/14_team_assignment_matrix.md` | 팀원 5명 역할과 책임 범위 확인 |
 | 6 | `v2/docs/15_runtime_code_validation_matrix.md` | 전체 코드를 전수 검토하지 않고 critical path를 검증하는 법 |
-| 7 | `v2/docs/v2_end_to_end_team_brief.docx` | 팀 공유용 Word 브리프. 회의 전 빠르게 읽기 좋음 |
+| 7 | `v2/docs/20_role_file_review_matrix.md` | 역할별 1차 코드리뷰 폴더/파일 경계 확인 |
+| 8 | `v2/docs/v2_end_to_end_team_brief.docx` | 팀 공유용 Word 브리프. 회의 전 빠르게 읽기 좋음 |
 
 이 7개만 읽어도 아래 질문에 답할 수 있어야 한다.
 
@@ -58,6 +59,7 @@ full benchmark를 시작하기 전 무엇을 검증해야 하는가?
 | `v2/docs/06_execution_runbook.md` | preflight, dry-run, smoke, full run, 실패 복구 |
 | `v2/docs/11_team_tasking_and_server_run_plan.md` | 제한된 서버 기회에서 누가 무엇을 언제 돌릴지 |
 | `v2/docs/15_runtime_code_validation_matrix.md` | runtime/adapter/statistics/XAI/report 검증 분담 |
+| `v2/docs/20_role_file_review_matrix.md` | 각자 1차 리뷰할 폴더/파일과 1번 Gate 총괄 범위 |
 | `v2/docs/07_output_and_report_contract.md` | 산출물 위치와 CSV/JSON 계약 |
 | `v2/docs/agent_tasks/10_team_dispatch_prompts.md` | 팀장 업무 하달 문장 |
 
@@ -163,6 +165,7 @@ v1 문서를 볼 때 지킬 원칙:
 | `v2/docs/role_guides/03_result_analysis_statistics.docx` | 3번 결과 분석/통계 해석 담당에게 배포. paired t-test 중심, Holm은 보조 설명 |
 | `v2/docs/role_guides/04_xai_explanation_evidence_bundle.docx` | 4번 XAI 설명/evidence bundle 담당에게 배포 |
 | `v2/docs/role_guides/05_presentation_report_final_integration.docx` | 5번 발표자료/최종 보고서 담당에게 배포 |
+| `v2/docs/20_role_file_review_matrix.md` | 팀장/1번이 코드리뷰 독박을 막고 파일 책임을 나눌 때 |
 | `v2/outputs/experiments/v2_15seed/reports/final_report.docx` | report stage 결과 확인용. 아직 실제 full 결과 기반 최종본은 아님 |
 | `v1/docs/seed15_XAI_통계_실험계획.docx` | 과거 15 seed/XAI 계획 참고 |
 | `v1/docs/맥락이해_기반_혐오표현탐지_개선_제안서.docx` | 연구 제안서 문장 참고 |

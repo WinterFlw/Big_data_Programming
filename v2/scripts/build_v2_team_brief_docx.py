@@ -260,15 +260,21 @@ def build() -> Path:
     document.add_heading("4. 팀원 5명 역할 배분", level=1)
     _add_table(
         document,
-        ["사람", "역할", "기간", "책임 코드"],
+        ["사람", "역할", "기간", "1차 리뷰 폴더/파일"],
         [
-            ["1번", "코드 리뷰 / 파이프라인 검증", "D0-D2", "v2/run.sh, pipeline/cli.py, schema.py, output contract"],
-            ["2번", "학습 실행 / 실험 관리", "D0-D5", "training_adapter.py, run_registry.py, runtime/train_neural_model.py"],
-            ["3번", "결과 분석 / 통계 해석", "D2-D7", "aggregate_results.py, statistics.py, benchmark CSV"],
-            ["4번", "XAI 설명 / Evidence Bundle", "D4-D8", "xai.py, xai_sampling.py, xai_bundle.py"],
-            ["5번", "발표자료 / 최종 보고서 제작", "D6-D10", "reporting.py, dashboard, final report/PPT"],
+            ["1번", "E2E Gate 총괄", "D0-D2", "v2/run.sh, pipeline/cli.py, runner.py, manifest.py, artifacts.py, scripts/daily.sh, scripts/gate_check.py"],
+            ["2번", "학습 실행 / 실험 관리", "D0-D5", "pipeline/training_adapter.py, runtime/experiment_core.py, runtime/run_experiments.py, runtime/utils.py"],
+            ["3번", "결과 분석 / 통계 해석", "D2-D7", "pipeline/statistics.py, pipeline/schema.py, outputs/.../benchmark/*.csv"],
+            ["4번", "XAI 설명 / Evidence Bundle", "D4-D8", "pipeline/xai.py, xai_sampling.py, xai_bundle.py, runtime/experiment_xai.py"],
+            ["5번", "발표자료 / 최종 보고서 제작", "D6-D10", "pipeline/reporting.py, runtime/dashboard_app.py, runtime/experiment_dashboard.py, reports/, dashboard/"],
         ],
         [900, 2100, 1100, 5260],
+    )
+
+    _add_callout(
+        document,
+        "코드리뷰 분산 원칙",
+        "1번은 전체 코드리뷰 독박이 아니다. 2~5번이 자기 폴더/파일을 1차 리뷰하고, 1번은 v2/docs/20_role_file_review_matrix.md 기준으로 연결부와 full run gate만 취합한다.",
     )
 
     document.add_heading("5. 서버 실행 Gate", level=1)

@@ -72,6 +72,7 @@ v2 모델은 HateXplain 텍스트만 입력으로 사용하고, `Rationale-aware
 | `17_korean_reading_file_index.md` | 팀원이 먼저 읽을 한글 MD/DOCX 파일 목록과 역할별 추천 코스 |
 | `18_team_role_cards.md` | 5명 역할 카드 (요약본) |
 | `19_team_role_tracks.md` | 5명 역할 카탈로그 (1045줄 깊이 본) |
+| `20_role_file_review_matrix.md` | 5명 역할별 1차 코드리뷰 폴더/파일 책임 매트릭스 |
 | `role_guides/` | 코드 리뷰, 학습 실행, 통계 해석, XAI 설명, 발표자료 담당자별 Word 업무지시서 |
 | `agent_tasks/20_claude_code_completion_brief.md` | 작업 #1~#14 명세 + 완료 상태 |
 | `agent_tasks/21_team_role_dispatch.md` | 5인 실명 매핑 + 작업 #1~#14 인계 + D0~D10 일정 |

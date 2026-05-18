@@ -315,20 +315,20 @@ GUIDES: list[RoleGuide] = [
     RoleGuide(
         number=1,
         slug="code_review_pipeline_validation",
-        title="1번 코드 리뷰 / 파이프라인 검증 업무지시서",
-        subtitle="v2가 독립적으로 처음부터 끝까지 실행 가능한지 확인하는 역할",
+        title="1번 E2E Gate 총괄 업무지시서",
+        subtitle="전체 코드리뷰가 아니라 stage 연결부와 full run GO/STOP을 판단하는 역할",
         owner_mission=(
-            "이 역할은 전체 코드를 다 외우는 사람이 아니라, limited server run 전에 "
-            "파이프라인이 깨질 지점을 먼저 찾아내는 검증 담당자다. 학습 자체보다 "
-            "run_id, output path, stage 연결, smoke gate가 문서 계약과 맞는지 본다."
+            "이 역할은 전체 코드를 다 외우거나 모든 파트를 리뷰하는 사람이 아니다. "
+            "각 담당자가 자기 파트 코드를 1차 리뷰한 결과를 취합하고, limited server run 전에 "
+            "run_id, output path, stage 연결, smoke gate가 문서 계약과 맞는지 판단한다."
         ),
-        one_line="full benchmark 전에 v2 파이프라인의 깨지는 연결부를 찾아 막는다.",
+        one_line="각 담당자의 1차 리뷰 결과를 모아 full benchmark GO/STOP을 판단한다.",
         responsibilities=[
-            "v2만 열어도 실행 경로와 산출물 계약을 이해할 수 있는지 확인한다.",
-            "run.sh, CLI, config, output contract가 같은 run_id를 쓰는지 확인한다.",
-            "dry-run, aggregate, xai-bundle, report, dashboard가 순서대로 실패 없이 도는지 확인한다.",
-            "v1 경로를 실행 기준으로 다시 참조하는 부분이 있는지 찾는다.",
-            "팀원이 서버 시간을 쓰기 전 반드시 고쳐야 할 문제와 나중에 고쳐도 되는 문제를 구분한다.",
+            "2~5번 담당자의 1차 리뷰 보고를 취합한다.",
+            "v2/run.sh, CLI, manifest, paths, artifacts, scripts gate만 깊게 본다.",
+            "dry-run, aggregate, xai-bundle, report, dashboard가 같은 run_id/output root를 공유하는지 확인한다.",
+            "full 120 run 전에 P0/P1 문제와 나중에 고쳐도 되는 문제를 구분한다.",
+            "GO/STOP 판단을 팀장에게 보고한다.",
         ],
         read_first=[
             "v2/README.md",
@@ -336,14 +336,18 @@ GUIDES: list[RoleGuide] = [
             "v2/docs/06_execution_runbook.md",
             "v2/docs/07_output_and_report_contract.md",
             "v2/docs/15_runtime_code_validation_matrix.md",
+            "v2/docs/20_role_file_review_matrix.md",
         ],
         code_scope=[
             "v2/run.sh",
             "v2/pipeline/cli.py",
+            "v2/pipeline/runner.py",
+            "v2/pipeline/manifest.py",
+            "v2/pipeline/paths.py",
             "v2/pipeline/schema.py",
             "v2/pipeline/artifacts.py",
-            "v2/pipeline/output_contract.py",
             "v2/configs/v2_15seed.json",
+            "v2/scripts/daily.sh",
             "v2/scripts/gate_check.py",
         ],
         commands=[
@@ -371,16 +375,27 @@ GUIDES: list[RoleGuide] = [
         ],
         risks=[
             "실제 학습 성공과 dry-run 성공을 혼동하면 안 된다.",
+            "2~5번의 파트별 코드리뷰를 대신 떠안으면 병목이 된다.",
             "v1 archive 문서를 실행 기준으로 삼으면 안 된다.",
             "경로 문제는 서버에서 바로 시간 손실로 이어지므로 사소하게 보지 않는다.",
         ],
         ai_prompt=(
-            "너는 HateSpeachStudy v2의 코드 리뷰/파이프라인 검증 담당자다. "
-            "v2 폴더만 기준으로 run_id, output path, stage 연결, dry-run, aggregate, "
-            "xai-bundle, report, dashboard가 문서 계약과 맞는지 검토해라. "
-            "수정이 필요하면 파일명, 이유, 검증 명령을 함께 제시해라."
+            "너는 HateSpeachStudy v2의 E2E Gate 총괄 담당자다. "
+            "전체 코드리뷰를 떠안지 말고 v2/run.sh, v2/pipeline/cli.py, runner.py, "
+            "manifest.py, paths.py, artifacts.py, v2/scripts/daily.sh, gate_check.py를 중심으로 "
+            "run_id, output path, stage 연결, smoke/full gate가 맞는지 검토해라. "
+            "2~5번 담당자의 1차 리뷰 결과를 취합해 GO/STOP 판단표를 만들어라."
         ),
         special_sections=[
+            (
+                "1번이 직접 리뷰하지 않는 파일",
+                [
+                    "학습 세부 로직: 2번이 v2/pipeline/training_adapter.py, v2/runtime/experiment_core.py, v2/runtime/run_experiments.py, v2/runtime/utils.py를 1차 리뷰한다.",
+                    "통계 세부 로직: 3번이 v2/pipeline/statistics.py와 v2/pipeline/schema.py를 1차 리뷰한다.",
+                    "XAI 세부 로직: 4번이 v2/pipeline/xai.py, v2/pipeline/xai_sampling.py, v2/pipeline/xai_bundle.py, v2/runtime/experiment_xai.py를 1차 리뷰한다.",
+                    "보고서/대시보드: 5번이 v2/pipeline/reporting.py, v2/runtime/dashboard_app.py, v2/runtime/experiment_dashboard.py를 1차 리뷰한다.",
+                ],
+            ),
             (
                 "서버 실행 전 금지선",
                 [
@@ -413,16 +428,17 @@ GUIDES: list[RoleGuide] = [
             "v2/docs/11_team_tasking_and_server_run_plan.md",
             "v2/docs/07_output_and_report_contract.md",
             "v2/docs/15_runtime_code_validation_matrix.md",
+            "v2/docs/20_role_file_review_matrix.md",
             "v2/docs/agent_tasks/01_benchmark_agent.md",
         ],
         code_scope=[
-            "v2/scripts/run_v2_e2e.py",
             "v2/pipeline/training_adapter.py",
-            "v2/pipeline/run_registry.py",
             "v2/pipeline/artifacts.py",
-            "v2/runtime/train_neural_model.py",
-            "v2/runtime/config.py",
+            "v2/runtime/experiment_core.py",
+            "v2/runtime/run_experiments.py",
             "v2/runtime/utils.py",
+            "v2/runtime/requirements.txt",
+            "v2/configs/v2_15seed.json",
         ],
         commands=[
             ("상태 확인", "PYTHON_BIN=/path/to/venv/bin/python ./v2/run.sh e2e status --run-id v2_15seed"),
@@ -491,14 +507,15 @@ GUIDES: list[RoleGuide] = [
             "v2/docs/03_validation_and_statistics.md",
             "v2/docs/07_output_and_report_contract.md",
             "v2/docs/08_xai_report_template.md",
+            "v2/docs/20_role_file_review_matrix.md",
             "v2/docs/agent_tasks/02_statistics_agent.md",
             "v2/docs/agent_tasks/23_role_responsibilities.md",
         ],
         code_scope=[
-            "v2/pipeline/aggregate_results.py",
             "v2/pipeline/statistics.py",
             "v2/pipeline/schema.py",
-            "v2/pipeline/reporting.py",
+            "v2/docs/03_validation_and_statistics.md",
+            "v2/docs/07_output_and_report_contract.md",
             "v2/outputs/experiments/v2_15seed/benchmark/*.csv",
         ],
         commands=[
@@ -588,6 +605,7 @@ GUIDES: list[RoleGuide] = [
             "v2/docs/04_xai_protocol.md",
             "v2/docs/07_output_and_report_contract.md",
             "v2/docs/08_xai_report_template.md",
+            "v2/docs/20_role_file_review_matrix.md",
             "v2/docs/agent_tasks/03_xai_agent.md",
             "v2/docs/agent_tasks/09_e2e_xai_evidence_bundle_agent.md",
         ],
@@ -595,7 +613,7 @@ GUIDES: list[RoleGuide] = [
             "v2/pipeline/xai.py",
             "v2/pipeline/xai_sampling.py",
             "v2/pipeline/xai_bundle.py",
-            "v2/runtime/xai.py",
+            "v2/runtime/experiment_xai.py",
             "v2/outputs/experiments/v2_15seed/xai/",
         ],
         commands=[
@@ -668,13 +686,15 @@ GUIDES: list[RoleGuide] = [
             "v2/docs/02_e2e_pipeline.md",
             "v2/docs/03_validation_and_statistics.md",
             "v2/docs/04_xai_protocol.md",
+            "v2/docs/20_role_file_review_matrix.md",
             "v2/docs/07_output_and_report_contract.md",
             "v2/docs/08_xai_report_template.md",
             "v1/docs/발표_와꾸_v2.md",
         ],
         code_scope=[
             "v2/pipeline/reporting.py",
-            "v2/dashboard/",
+            "v2/runtime/dashboard_app.py",
+            "v2/runtime/experiment_dashboard.py",
             "v2/outputs/experiments/v2_15seed/reports/",
             "v2/outputs/experiments/v2_15seed/dashboard/",
             "v2/docs/",
