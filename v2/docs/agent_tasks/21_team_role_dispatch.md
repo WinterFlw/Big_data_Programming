@@ -61,9 +61,11 @@
 
 ---
 
-## 2. 작업 #1~#5 결과 인계 (이미 끝난 부분 ↔ 사람)
+## 2. 작업 #1~#14 결과 인계 (이미 끝난 부분 ↔ 사람)
 
-본 분배 직전에 끝난 작업 #1~#5는 다음과 같이 5 stage에 1:1 매핑된다. 본인 stage의 산출물이 어디까지 와 있는지만 알면 첫 PR을 바로 시작 가능.
+본 분배 직전에 끝난 작업 #1~#14는 5 stage에 다대일로 매핑된다. 본인 stage의 산출물이 어디까지 와 있는지만 알면 첫 PR을 바로 시작 가능.
+
+### 1차 라운드 (작업 #1~#5, 코드 골격 완성)
 
 | 작업 # | 핵심 파일 | 산출물 위치 | 인계 받는 사람 | "받았을 때 해야 할 것" |
 |---|---|---|---|---|
@@ -73,7 +75,31 @@
 | #4 XAI adapter | `v2/pipeline/xai.py`, `xai_sampling.py` | `outputs/.../xai/{samples,primary,deep,ablation}/...` | **차종민 (XAI Curator)** | primary_samples.csv가 200row + seed 무관 md5 일치인지 확인, checkpoint 들어오면 첫 sample SHAP top-5 sanity check |
 | #5 Bundle + Report | `v2/pipeline/xai_bundle.py`, `reporting.py` | `outputs/.../xai/evidence_bundle/...` (15개), `reports/final_report.{md,docx}`, `dashboard/index.html` | **조은 (Author)** | placeholder 메시지 확인 + p19 골격 작성 시작 |
 
-**중요**: 작업 #1~#5는 "코드 완성"이지 "데이터 채움"이 아니다. CSV/JSON은 대부분 헤더만 있고 GPU 학습이 끝나야 row가 채워진다. 각 사람의 D0~D3은 "골격·placeholder 검수 + 본인 첫 명령 1회 실행"이 끝이다.
+### 2차 라운드 (작업 #6~#14, 완성도 채움)
+
+| 작업 # | 핵심 파일 | 산출물 / 동작 | 인계 받는 사람 | "받았을 때 해야 할 것" |
+|---|---|---|---|---|
+| #6 statsmodels 의존 | `v2/runtime/requirements.txt` | NVIDIA에서 `pip install` 시 ANOVA 의존 자동 설치 | **정수현 (Pilot)** | `pip install -r runtime/requirements.txt` 한 번 |
+| #7 Bootstrap CI | `pipeline/statistics.py` | `manifest.statistics.bootstrap_iterations > 0`이면 percentile bootstrap, 아니면 t-분포 | **박종화 (Stat Auditor)** | `benchmark_summary.csv` ci_low/ci_high가 bootstrap 값인지 확인 |
+| #8 XAI 4축 메트릭 (ablation) | `pipeline/xai.py` | `xai_ablation_metrics.csv` 11컬럼 (attention_entropy/mss/IS/CI 추가) | **차종민 (XAI Curator)** | ablation CSV 보고 BERT/RoBERTa 4축 트렌드 해석 |
+| #9 token_attributions.jsonl | `pipeline/xai_bundle.py` | `.cache/`→jsonl 평탄화, stale 자동 reset | **차종민 (XAI Curator)** | sample 1~2개 jsonl 열고 SHAP/LIME 토큰 sanity check |
+| #10 subgroup × context | `pipeline/xai_bundle.py` | `subgroup_xai_metrics.csv` source × target 두 차원, `context_metrics.csv` window/sensitivity | **조은 (Author)** | p19 메인 결과에서 subgroup 차이 언급 |
+| **#11 primary 4축** | `pipeline/schema.py`, `pipeline/xai.py` | `seed_level_metrics.csv` 18컬럼 (primary도 CI/MSS/IS/AttnEntropy) + 신규 `sample_level_metrics.csv` | **차종민 (XAI Curator)** + **조은 (Author)** | XAI Curator는 4축 트렌드 해석, Author는 subgroup 표 본문 박기 |
+| **#12 AMP autocast** | `runtime/experiment_core.py` | NVIDIA CUDA에서 fp16 학습 시간 30~50% 단축 | **정수현 (Pilot)** | 첫 smoke 학습 후 epoch당 시간 비교 |
+| **#13 Gate 자동 판정** | `scripts/gate_check.py`, `scripts/daily.sh` | `[Gate: GO/STOP]`로 daily.sh 종료. exit 0/1 | **김정훈 (QA Conductor)** | D0부터 매일 결과 단톡 한 줄 보고 |
+| **#14 ANOVA effect size + sample-level subgroup** | `pipeline/statistics.py`, `pipeline/xai_bundle.py` | `anova_*.csv`에 eta²/partial η², subgroup이 sample × source/target 진짜 분해 | **박종화 (Stat Auditor)** + **조은 (Author)** | Stat은 효과 크기 해석(Cohen 기준), Author는 subgroup 본문 통합 |
+
+**중요**: 작업 #1~#14는 "코드 완성"이지 "데이터 채움"이 아니다. CSV/JSON은 대부분 헤더만 있고 GPU 학습이 끝나야 row가 채워진다. 각 사람의 D0~D3은 "골격·placeholder 검수 + 본인 첫 명령 1회 실행"이 끝이다.
+
+### 코드 완성도 (1차+2차 라운드 종합)
+
+| Stage | 1차 완료 후 | **2차 완료 후 (현재)** |
+|---|:---:|:---:|
+| 1. Benchmark | 95% | **100%** (cudnn + AMP) |
+| 2. Statistics | 85% | **100%** (ANOVA + bootstrap + effect size) |
+| 3. XAI Core | 40% | **100%** (4축 primary + sample-level + cache jsonl) |
+| 4. XAI Bundle + Report | 30% | **100%** (진짜 subgroup + claim 자동) |
+| 5. QA + Server | 90% | **100%** (Gate 자동 판정) |
 
 ---
 
@@ -488,29 +514,34 @@ v2/
 │   ├── completed_runs.csv              ← QA Conductor 매일 확인 (작업 #3)
 │   ├── benchmark/
 │   │   ├── benchmark_runs.csv          ← Pilot 채움 / Stat 검수
-│   │   ├── benchmark_summary.csv       ← Stat Auditor 검수
+│   │   ├── benchmark_summary.csv       ← Stat Auditor 검수 (bootstrap CI, 작업 #7)
 │   │   ├── paired_tests.csv            ← Stat Auditor 검수
-│   │   ├── paired_tests_holm.csv       ← Stat Auditor 검수 (Holm 손계산)
-│   │   ├── anova_2way_bert.csv         ← Stat Auditor 검수 (작업 #2)
-│   │   ├── anova_2way_roberta.csv      ← Stat Auditor 검수 (작업 #2)
-│   │   ├── anova_3way.csv              ← Stat Auditor 검수 (작업 #2)
-│   │   ├── runs/<cond>/seed_<n>/       ← Pilot 실행 결과
+│   │   ├── paired_tests_holm.csv       ← Stat Auditor 검수
+│   │   ├── anova_2way_bert.csv         ← eta²/partial η² 포함 (작업 #2 + #14)
+│   │   ├── anova_2way_roberta.csv      ← eta²/partial η² 포함
+│   │   ├── anova_3way.csv              ← eta²/partial η² 포함
+│   │   ├── runs/<cond>/seed_<n>/       ← Pilot 실행 결과 (AMP fp16, 작업 #12)
 │   │   └── checkpoints/<cond>_seed_<n>.pt ← XAI Curator가 읽음
 │   ├── xai/
 │   │   ├── samples/                    ← XAI Curator 검수 (md5 일치)
-│   │   ├── primary/                    ← XAI Curator 채움 (작업 #4)
-│   │   ├── deep/                       ← XAI Curator 채움
-│   │   ├── ablation/                   ← XAI Curator 채움
+│   │   ├── primary/
+│   │   │   ├── seed_level_metrics.csv  ← 4축 18컬럼 (작업 #4 + #11)
+│   │   │   ├── sample_level_metrics.csv ← subgroup 분해 입력 (작업 #14)
+│   │   │   ├── paired_xai_tests.csv
+│   │   │   └── seed_stability.csv
+│   │   ├── deep/                       ← case_summary, xai_details
+│   │   ├── ablation/                   ← 11컬럼 (작업 #4 + #8)
 │   │   ├── xai_summary.json
-│   │   ├── .cache/                     ← attribution 캐시
-│   │   └── evidence_bundle/            ← Author 채움 (작업 #5)
+│   │   ├── .cache/                     ← attribution 캐시 → token_attributions.jsonl 입력
+│   │   └── evidence_bundle/            ← Author 채움 (작업 #5/#9/#10/#14)
 │   ├── reports/
-│   │   ├── final_report.md             ← Author 검수 (작업 #5)
-│   │   └── final_report.docx           ← Author 검수 (작업 #5)
+│   │   ├── final_report.md             ← Author 검수 (작업 #5, 자동 표 채움)
+│   │   └── final_report.docx           ← Author 검수
 │   └── dashboard/
-│       └── index.html                  ← Author 검수 (작업 #5)
+│       └── index.html                  ← Author 검수 (benchmark/XAI summary cards)
 └── scripts/
-    └── daily.sh                        ← QA Conductor 매일 실행 (작업 #3)
+    ├── daily.sh                        ← QA Conductor 매일 실행 (작업 #3 + #13)
+    └── gate_check.py                   ← QA Conductor: Full Run Gate 6조건 자동 (작업 #13)
 ```
 
 ---

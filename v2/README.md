@@ -72,37 +72,53 @@ PYTHON_BIN=/path/to/venv/bin/python ./run.sh e2e status --run-id v2_15seed
 
 ---
 
-## 4. 현재 코드 상태
+## 4. 현재 코드 상태 (2026-05-17 기준 — 5 Stage 모두 100%)
+
+| Stage | 완성도 | 핵심 |
+|---|:---:|---|
+| 1. Benchmark | 100% | training adapter + cudnn 결정성 + AMP autocast |
+| 2. Statistics | 100% | paired t + Holm + Cohen dz + bootstrap CI + ANOVA 2/3-way + eta²/partial η² |
+| 3. XAI Core | 100% | sample 결정성 + 4축 메트릭 (CI/MSS/IS/AttnEntropy) + attribution 캐싱 + sample-level metric |
+| 4. XAI Bundle + Report | 100% | 15파일 자동 채움 + 통계 확증 claim + token jsonl + 진짜 subgroup 분해 |
+| 5. QA + Server | 100% | failed/completed 분리 + daily.sh + gate_check.py (Full Run Gate 6조건 자동) |
+
+작업 #1~#14 모두 origin/main에 push. 자세한 작업 이력은 [`docs/agent_tasks/20_claude_code_completion_brief.md`](docs/agent_tasks/20_claude_code_completion_brief.md) 참조.
 
 현재 가능한 것:
 
 ```text
 manifest 생성
-execution_status.csv 생성
-120개 condition x seed planned unit 생성
-benchmark --execute adapter 연결
-metrics/history/config/predictions/checkpoint v2 output 정규화 경로 준비
-aggregate/statistics CSV 생성
-paired test / Holm / CI / effect size 계산
-XAI stage별 산출물 골격 생성
-xai-bundle stage 생성
-report/dashboard scaffold 생성
+execution_status.csv + failed_runs.csv + completed_runs.csv 자동 갱신
+120개 condition × seed planned unit 생성
+benchmark --execute adapter (AMP fp16 자동 활성, CUDA에서만)
+metrics/history/config/predictions/checkpoint v2 output 정규화 경로
+aggregate/statistics CSV 7개 (anova_*.csv는 eta²/partial η² 포함, summary는 bootstrap CI)
+XAI 4축 (Attribution / Faithfulness / Context Learning / Plausibility) 모두 자동 계산
+xai-bundle 14파일 자동 채움 + token_attributions.jsonl + source × target 진짜 subgroup 분해
+final_report.md/docx + dashboard/index.html 자동 표 채움
+daily.sh + gate_check.py: Full Run Gate 6조건 자동 점검 → [Gate: GO/STOP]
 ```
 
-아직 실제로 수행하지 않은 것:
+아직 실제로 수행하지 않은 것 (= NVIDIA 서버에서 사람이 할 일):
 
 ```text
-A_B seed 42 실제 학습 smoke
-A_B/D_B seed 42 paired smoke
-full 8 conditions x 15 seeds benchmark
-실제 SHAP/LIME/faithfulness XAI 계산
-실제 결과 기반 final report/dashboard 작성
+A_B seed 42 실제 학습 smoke (Pilot D1~D2)
+8 conditions × 15 seeds full benchmark (D3 Gate 통과 후)
+실제 결과 기반 final report/dashboard 검수 (Author D7~D10)
+발표 자료 26p 통합 + 리허설
 ```
 
 다음 gate는 아래 명령이다.
 
 ```bash
+# 환경 설치 (statsmodels 포함)
+pip install -r runtime/requirements.txt
+
+# A_B seed 42 smoke
 PYTHON_BIN=/path/to/venv/bin/python ./run.sh e2e benchmark --run-id v2_15seed --conditions A_B --seeds 42 --execute --resume
+
+# 매일 preflight + Gate
+./scripts/daily.sh   # 마지막 줄 "[daily preflight ok — Gate: GO]"
 ```
 
 ---
@@ -148,6 +164,8 @@ docs/10_code_implementation_notes.md
 docs/11_team_tasking_and_server_run_plan.md
 docs/14_team_assignment_matrix.md
 docs/15_runtime_code_validation_matrix.md
+docs/17_korean_reading_file_index.md
+docs/한글_필독문서_업무도입_가이드.docx
 ```
 
 팀원에게 업무를 나눌 사람:

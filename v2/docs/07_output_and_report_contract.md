@@ -164,7 +164,8 @@ xai/
     deep_samples.csv
     ablation_samples.csv
   primary/
-    seed_level_metrics.csv
+    seed_level_metrics.csv      # 18컬럼 — 4축 모두 (작업 #11)
+    sample_level_metrics.csv    # subgroup 분해 입력 (작업 #14)
     paired_xai_tests.csv
     seed_stability.csv
   deep/
@@ -172,7 +173,8 @@ xai/
     case_summary.csv
     cases/
   ablation/
-    xai_ablation_metrics.csv
+    xai_ablation_metrics.csv    # 11컬럼 — 4축 모두 (작업 #8)
+  .cache/                       # (cond, seed) attribution 캐시 (작업 #4)
   evidence_bundle/
     xai_run_metadata.json
     xai_sample_manifest.csv
@@ -213,9 +215,9 @@ XAI는 성능 개선의 인과적 증명이 아니라 조건 간 판단 패턴 �
 
 ---
 
-## 8. `xai/primary/seed_level_metrics.csv`
+## 8. `xai/primary/seed_level_metrics.csv` (18컬럼, 작업 #4 + #11)
 
-목적: A_B와 D_B의 XAI 지표를 seed별로 비교한다.
+목적: A_B와 D_B의 XAI 지표를 seed별로 비교한다. 4축 모두 (Attribution / Faithfulness / Context Learning / Plausibility) 포함.
 
 필수 컬럼:
 
@@ -224,17 +226,24 @@ run_id
 condition
 seed
 sample_count
-shap_lime_overlap_at_5
+shap_lime_overlap_at_5        # 1축 — Attribution
 shap_lime_overlap_at_10
-rationale_precision_at_5
+rationale_precision_at_5      # 4축 — Plausibility
 rationale_recall_at_5
 rationale_f1_at_5
-comprehensiveness
+comprehensiveness             # 2축 — Faithfulness
 sufficiency
 loo_drop
-topk_jaccard_mean
+topk_jaccard_mean             # seed 간 stability
 rank_corr_mean
+ci                            # 3축 — Context Learning (작업 #11)
+mss
+interaction_strength
+attention_entropy
 ```
+
+추가 산출물:
+- `xai/primary/sample_level_metrics.csv` — sample × condition × seed 단위 rationale P/R/F1. xai_bundle이 source × target 진짜 subgroup 분해에 사용 (작업 #14).
 
 해석:
 

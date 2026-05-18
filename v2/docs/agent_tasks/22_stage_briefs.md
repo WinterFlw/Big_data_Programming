@@ -226,26 +226,36 @@
 확정된 5명은 각자 다음을 D0 안에 한 번 실행해서 단톡에 인증.
 
 ```bash
-# Pilot
+# Pilot — 환경 + AMP 활성 확인
 cd v2 && ./run.sh e2e status --run-id v2_15seed
+pip install -r runtime/requirements.txt   # statsmodels 포함
+python3 -c "import torch; print(f'CUDA: {torch.cuda.is_available()}')"   # AMP 활성 확인
 
-# Stat Auditor
+# Stat Auditor — ANOVA + bootstrap CI
 cd v2 && ./run.sh e2e aggregate --run-id v2_15seed
 ls outputs/experiments/v2_15seed/benchmark/*.csv
+# benchmark_summary.csv의 ci_low/ci_high는 manifest.statistics.bootstrap_iterations>0 이면 bootstrap.
+# anova_*.csv는 eta_squared / partial_eta_squared 컬럼 있어야 함.
 
-# XAI Curator
+# XAI Curator — sample 결정성 + 4축
 cd v2 && ./run.sh e2e xai-primary --run-id v2_15seed --dry-run
-wc -l outputs/experiments/v2_15seed/xai/samples/primary_samples.csv
+wc -l outputs/experiments/v2_15seed/xai/samples/primary_samples.csv   # 200
+head -1 outputs/experiments/v2_15seed/xai/primary/seed_level_metrics.csv   # 18컬럼 (CI/MSS/IS/AttnEntropy 포함)
 
-# Author
-cd v2 && ./run.sh e2e report --run-id v2_15seed
-head -60 outputs/experiments/v2_15seed/reports/final_report.md
+# Author — bundle + report 자동 채움 흐름
+cd v2 && ./run.sh e2e xai-bundle --run-id v2_15seed
+./run.sh e2e report --run-id v2_15seed
+head -60 outputs/experiments/v2_15seed/reports/final_report.md   # 5개 새 섹션 placeholder 메시지 확인
 
-# QA Conductor
-cd v2 && ./scripts/daily.sh
+# QA Conductor — Gate 자동 점검
+cd v2 && ./scripts/daily.sh   # 마지막 줄 "[daily preflight ok — Gate: GO]"
+python3 scripts/gate_check.py --run-id v2_15seed --skip-sample-check   # 6/6 PASS
 ```
 
 D0 인증이 다 들어오면 21 문서 §3 "D0~D10 일정" 그대로 진행 시작.
+
+> ⚠ Stat Auditor의 "수치 검증"은 손계산이 아니라 **자동 계산된 표를 본문에 박는** 역할로 재정의됨.
+> ANOVA 효과 크기 해석은 Cohen 기준 (η² < 0.01 negligible / 0.01~0.06 small / 0.06~0.14 medium / ≥ 0.14 large).
 
 ---
 

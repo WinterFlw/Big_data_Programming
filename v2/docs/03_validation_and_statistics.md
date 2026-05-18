@@ -170,24 +170,56 @@ CI = mean_diff ± t_(0.975, n-1) * sd_diff / sqrt(n)
 
 ---
 
-## 8. Bootstrap 보강
+## 8. Bootstrap 보강 (작업 #7 — 구현 완료)
 
-Seed 반복은 학습 stochasticity를 반영하지만, test sample 자체의 불확실성은 완전히 반영하지 못한다.
+Seed 반복은 학습 stochasticity를 반영하지만, 작은 표본(15 seed)에서 t-분포 CI는 정규성 가정이 약하다.
 
-따라서 최종 주요 비교에는 test set bootstrap CI를 추가할 수 있다.
+작업 #7에서 **percentile bootstrap CI**를 도입. `pipeline/statistics.py`의 `_bootstrap_ci()`가 numpy로 N회 resample → 평균 분포 → 양 끝 분위수.
 
-```text
-Seed CI: training stochasticity
-Bootstrap CI: test sample uncertainty
+```python
+# 구현 (pipeline/statistics.py)
+def _mean_ci(values, bootstrap_iterations=None):
+    if bootstrap_iterations and bootstrap_iterations > 0:
+        return _bootstrap_ci(values, iterations=bootstrap_iterations)
+    return _mean_ci_t(values)  # numpy 없을 때 fallback
 ```
 
-권장:
+manifest 설정:
+```json
+"statistics": { "bootstrap_iterations": 1000 }
+```
+0이거나 키가 없으면 자동으로 t-분포 fallback. `summarize_benchmark`와 `compute_paired_tests` 둘 다 적용.
 
 ```text
-bootstrap iterations = 1000
-metric = Macro F1 difference
-paired at sample level
+Seed CI: training stochasticity (15 seed mean ± std)
+Bootstrap CI: training + sample noise (percentile bootstrap on seed means)
 ```
+
+향후 보강 가능 (현재 미구현): sample-level paired bootstrap (test sample 단위 resample).
+
+---
+
+## 8.1 ANOVA Effect Size (작업 #14 — 구현 완료)
+
+F·p 값만으로는 "얼마나 큰 효과인가"를 판단할 수 없으므로 ANOVA 출력에 효과 크기 두 개를 추가.
+
+```text
+eta_squared          = SS_factor / SS_total
+partial_eta_squared  = SS_factor / (SS_factor + SS_residual)
+```
+
+`pipeline/statistics.py`의 `_anova_table_to_rows()`가 자동 계산. `anova_2way_bert.csv` / `anova_2way_roberta.csv` / `anova_3way.csv` 모두 컬럼 9개로 확장 (sum_sq, df, F, p_value, eta_squared, partial_eta_squared).
+
+Cohen(1988) 해석 기준:
+
+| η² 범위 | 효과 크기 |
+|---|---|
+| < 0.01 | negligible |
+| 0.01 ~ 0.06 | small |
+| 0.06 ~ 0.14 | medium |
+| ≥ 0.14 | large |
+
+Smoke 결과 예시 (가짜 데이터, BERT 2-way): attention_loss η² = 0.6263, partial η² = 0.9102 — large.
 
 ---
 

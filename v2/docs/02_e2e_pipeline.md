@@ -27,27 +27,38 @@ outputs/experiments/v2_15seed/
       ...
     checkpoints/
     benchmark_runs.csv
-    benchmark_summary.csv
+    benchmark_summary.csv          # mean ± std + bootstrap CI (작업 #7)
     paired_tests.csv
     paired_tests_holm.csv
-    anova_2way_bert.csv
-    anova_3way.csv
+    anova_2way_bert.csv            # eta² + partial η² 포함 (작업 #14)
+    anova_2way_roberta.csv         # 작업 #2
+    anova_3way.csv                 # eta² + partial η² 포함 (작업 #14)
   freeze/
     runs/
     freeze_summary.csv
   xai/
-    samples/
+    samples/                       # primary/deep/ablation_samples.csv
     primary/
+      seed_level_metrics.csv       # 4축 메트릭 18컬럼 (작업 #11)
+      sample_level_metrics.csv     # subgroup 분해 입력 (작업 #14)
+      paired_xai_tests.csv
+      seed_stability.csv
     deep/
+      case_summary.csv
+      xai_details.json
     ablation/
-    cases/
-    seed_stability.csv
+      xai_ablation_metrics.csv     # 11컬럼 (작업 #8)
+    evidence_bundle/               # 작업 #5/#9/#10/#14 bundle 15파일
+    .cache/                        # (cond, seed) attribution 캐시 (작업 #4)
     xai_summary.json
   reports/
-    final_report.md
+    final_report.md                # 자동 표 채움 (작업 #5)
     final_report.docx
   dashboard/
-    index.html
+    index.html                     # benchmark/XAI summary cards (작업 #5)
+  execution_status.csv
+  failed_runs.csv                  # 작업 #3
+  completed_runs.csv               # 작업 #3
 ```
 
 이렇게 분리하면 기존 3-seed 결과와 새 15-seed 결과가 섞이지 않는다.
@@ -69,8 +80,9 @@ outputs/experiments/v2_15seed/
 | `xai-deep` | median seed × 500 samples | case plots, detailed XAI |
 | `xai-ablation` | 8조건 × median seed × 50 samples | ablation XAI matrix |
 | `xai-bundle` | primary/deep/ablation XAI 산출물을 full evidence bundle로 통합 | report/dashboard용 XAI evidence bundle |
-| `report` | 최종 markdown/docx 생성 | final report |
+| `report` | 최종 markdown/docx 생성 (benchmark/XAI 결과 표 자동 채움) | final report |
 | `dashboard` | run_id 기준 dashboard 생성 | index.html |
+| `daily.sh + gate_check.py` | 매일 preflight + Full Run Gate 6조건 자동 점검 (작업 #3 + #13) | `[Gate: GO/STOP]` exit code |
 
 ---
 
@@ -159,15 +171,19 @@ benchmark가 끝나면 모든 run을 다시 읽어 집계한다.
 
 ```text
 benchmark_runs.csv
-benchmark_summary.csv
+benchmark_summary.csv          # macro_f1 mean ± std + 95% CI (작업 #7: bootstrap percentile)
 paired_tests.csv
 paired_tests_holm.csv
-anova_2way_bert.csv
-anova_3way.csv
+anova_2way_bert.csv            # eta_squared + partial_eta_squared 컬럼 포함 (작업 #14)
+anova_2way_roberta.csv         # 작업 #2
+anova_3way.csv                 # eta_squared + partial_eta_squared 컬럼 포함 (작업 #14)
 per_class_summary.csv
 subgroup_source_summary.csv
 subgroup_target_summary.csv
 ```
+
+> ANOVA 효과 크기 해석 (Cohen 1988): η² < 0.01 negligible / 0.01~0.06 small / 0.06~0.14 medium / ≥ 0.14 large.
+> Bootstrap CI는 `manifest.statistics.bootstrap_iterations > 0` 일 때 percentile bootstrap, 0이면 t-분포 fallback.
 
 기존 run을 재사용할 수 있어야 하므로 aggregate는 학습 없이 독립 실행 가능해야 한다.
 
