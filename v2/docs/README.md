@@ -74,7 +74,8 @@ v2 모델은 HateXplain 텍스트만 입력으로 사용하고, `Rationale-aware
 | `19_team_role_tracks.md` | 5명 역할 카탈로그 (1045줄 깊이 본) |
 | `agent_tasks/20_claude_code_completion_brief.md` | 작업 #1~#14 명세 + 완료 상태 |
 | `agent_tasks/21_team_role_dispatch.md` | 5인 실명 매핑 + 작업 #1~#14 인계 + D0~D10 일정 |
-| `agent_tasks/22_stage_briefs.md` | 회의용 stage 선택 카드 (5분 결정 흐름) |
+| `agent_tasks/22_stage_briefs.md` | 회의용 stage 선택 카드 (5분 결정 흐름, 인원 미배정) |
+| `agent_tasks/23_role_responsibilities.md` | 역할별 책임 풀이 (인원 미배정, 22보다 깊이) — 시간순 작업·왜 필요·인터페이스·위험·실패 영향 |
 | `v2_end_to_end_team_brief.docx` | 팀원에게 공유할 v2 전체 설명, 실행 gate, 업무하달 Word 브리프 |
 | `한글_필독문서_업무도입_가이드.docx` | 한글 읽기 목록을 역할별 첫 업무와 검증 명령으로 연결하는 업무 도입 Word |
 | `../ai_skills/` | Codex/Claude/Gemini/Cursor/Antigravity 공용 AI 작업 지시서 |
