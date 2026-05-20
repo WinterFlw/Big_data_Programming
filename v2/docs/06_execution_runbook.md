@@ -120,6 +120,27 @@ RUN_XAI=1 CHECKPOINT_RETENTION=xai-minimal ./scripts/run_5090_e2e_batch.sh
 `run_5090_e2e_batch.sh`는 XAI 완료 후 `POST_XAI_PRUNE=1` 기본값으로 남은 checkpoint도
 삭제한다. 모든 checkpoint를 보존해야 한다면 저장소를 충분히 크게 잡고 아래처럼 실행한다.
 
+이미 storage-safe benchmark를 완료한 뒤 XAI를 추가로 돌리고 싶다면 120개 checkpoint를
+전부 다시 만들지 않는다. XAI에 필요한 checkpoint만 재생성한다.
+
+```bash
+./scripts/run_5090_xai_recover.sh
+```
+
+이 스크립트가 재생성하는 checkpoint:
+
+```text
+A_B, D_B: 15 seed 전체  # primary XAI용
+나머지 6조건: median seed 1개씩  # deep/ablation XAI용
+```
+
+기본값은 XAI 완료 후 checkpoint를 다시 삭제하고 essential backup까지 만든다.
+checkpoint를 XAI 후에도 보관하려면 아래처럼 명시한다.
+
+```bash
+POST_XAI_PRUNE=0 ./scripts/run_5090_xai_recover.sh
+```
+
 ```bash
 CHECKPOINT_RETENTION=keep-all POST_XAI_PRUNE=0 ./scripts/run_5090_e2e_batch.sh
 ```
