@@ -39,6 +39,51 @@ if [[ "$CHECKPOINT_RETENTION" == "none" ]]; then
     exit 1
 fi
 
+best_primary_pair_seeds() {
+    "$PYTHON_BIN" - <<PY
+import csv
+from pathlib import Path
+
+run_id = "${run_id}"
+path = Path("outputs") / "experiments" / run_id / "benchmark" / "benchmark_runs.csv"
+scores = {}
+
+with path.open(newline="", encoding="utf-8") as handle:
+    for row in csv.DictReader(handle):
+        condition = row.get("condition", "")
+        if condition not in {"A_B", "D_B"}:
+            continue
+        try:
+            seed = int(row.get("seed", ""))
+            macro_f1 = float(row.get("macro_f1", ""))
+        except ValueError:
+            continue
+        scores.setdefault(seed, {})[condition] = macro_f1
+
+ranked = []
+for seed, values in scores.items():
+    if "A_B" not in values or "D_B" not in values:
+        continue
+    paired_mean = (values["A_B"] + values["D_B"]) / 2
+    ranked.append((paired_mean, values["D_B"], values["A_B"], seed))
+
+ranked.sort(reverse=True)
+top = [seed for _, _, _, seed in ranked[:2]]
+if not top:
+    raise SystemExit(f"No completed A_B/D_B benchmark rows found in {path}")
+print(",".join(str(seed) for seed in top))
+PY
+}
+
+if [[ "${XAI_TOP4:-0}" == "1" ]]; then
+    # Qualitative emergency mode: benchmark statistics remain 15-seed, but XAI
+    # explains only the two best paired A_B/D_B seeds, i.e. four checkpoints.
+    export XAI_FAST=1
+    export XAI_PRIMARY_SEEDS="${XAI_PRIMARY_SEEDS:-$(best_primary_pair_seeds)}"
+    export RUN_XAI_DEEP="${RUN_XAI_DEEP:-0}"
+    export RUN_XAI_ABLATION="${RUN_XAI_ABLATION:-0}"
+fi
+
 if [[ "${XAI_FAST:-0}" == "1" ]]; then
     # Emergency mode for maintenance windows: keep the benchmark's 15-seed result,
     # but downsize XAI evidence generation so report/dashboard artifacts finish.
@@ -51,6 +96,10 @@ if [[ "${XAI_FAST:-0}" == "1" ]]; then
     export XAI_INTERACTION_PAIRS="${XAI_INTERACTION_PAIRS:-15}"
     export XAI_ABLATION_METRIC_SAMPLE_SIZE="${XAI_ABLATION_METRIC_SAMPLE_SIZE:-20}"
 fi
+
+run_xai_primary="${RUN_XAI_PRIMARY:-1}"
+run_xai_deep="${RUN_XAI_DEEP:-1}"
+run_xai_ablation="${RUN_XAI_ABLATION:-1}"
 
 run_step() {
     local name="$1"
@@ -133,8 +182,13 @@ echo "CHECKPOINT_RETENTION=${CHECKPOINT_RETENTION}"
 echo "POST_XAI_PRUNE=${post_xai_prune}"
 echo "RUN_BACKUP=${run_backup}"
 echo "XAI_FAST=${XAI_FAST:-0}"
+echo "XAI_TOP4=${XAI_TOP4:-0}"
 echo "SKIP_CHECKPOINT_RECOVERY=${SKIP_CHECKPOINT_RECOVERY:-0}"
+echo "RUN_XAI_PRIMARY=${run_xai_primary}"
+echo "RUN_XAI_DEEP=${run_xai_deep}"
+echo "RUN_XAI_ABLATION=${run_xai_ablation}"
 if [[ "${XAI_FAST:-0}" == "1" ]]; then
+    echo "XAI_PRIMARY_SEEDS=${XAI_PRIMARY_SEEDS:-auto}"
     echo "XAI_PRIMARY_MAX_SEEDS=${XAI_PRIMARY_MAX_SEEDS}"
     echo "XAI_PRIMARY_SAMPLE_SIZE=${XAI_PRIMARY_SAMPLE_SIZE}"
     echo "XAI_DEEP_SAMPLE_SIZE=${XAI_DEEP_SAMPLE_SIZE}"
@@ -146,28 +200,51 @@ echo "log=${log_path}"
 
 gpu_count="$(cuda_device_count)"
 seed_mid="$(middle_seed)"
+primary_recovery_seeds=""
+if [[ "${XAI_TOP4:-0}" == "1" ]]; then
+    primary_recovery_seeds="${XAI_PRIMARY_SEEDS}"
+fi
 echo "CUDA GPUs: ${gpu_count}"
 echo "middle seed for deep/ablation XAI: ${seed_mid}"
+if [[ -n "$primary_recovery_seeds" ]]; then
+    echo "primary recovery seeds: ${primary_recovery_seeds}"
+fi
 
 if [[ "${SKIP_CHECKPOINT_RECOVERY:-0}" == "1" ]]; then
     echo "Skipping checkpoint recovery because SKIP_CHECKPOINT_RECOVERY=1."
 elif [[ "$gpu_count" -ge 2 ]]; then
     run_step "regenerate primary XAI checkpoints A_B/D_B" \
-        run_parallel_pair "A_B primary" 0 "A_B" "" "D_B primary" 1 "D_B" ""
-    run_step "regenerate median ablation checkpoints" \
-        run_parallel_pair "BERT median" 0 "B_B,C_B" "$seed_mid" "RoBERTa median" 1 "A_R,B_R,C_R,D_R" "$seed_mid"
+        run_parallel_pair "A_B primary" 0 "A_B" "$primary_recovery_seeds" "D_B primary" 1 "D_B" "$primary_recovery_seeds"
+    if [[ "$run_xai_deep" == "1" || "$run_xai_ablation" == "1" ]]; then
+        run_step "regenerate median ablation checkpoints" \
+            run_parallel_pair "BERT median" 0 "B_B,C_B" "$seed_mid" "RoBERTa median" 1 "A_R,B_R,C_R,D_R" "$seed_mid"
+    fi
 else
     run_step "regenerate primary XAI checkpoints A_B/D_B" \
-        run_benchmark 0 "A_B,D_B" ""
-    run_step "regenerate median ablation checkpoints" \
-        run_benchmark 0 "B_B,C_B,A_R,B_R,C_R,D_R" "$seed_mid"
+        run_benchmark 0 "A_B,D_B" "$primary_recovery_seeds"
+    if [[ "$run_xai_deep" == "1" || "$run_xai_ablation" == "1" ]]; then
+        run_step "regenerate median ablation checkpoints" \
+            run_benchmark 0 "B_B,C_B,A_R,B_R,C_R,D_R" "$seed_mid"
+    fi
 fi
 
 run_step "status after checkpoint recovery" ./run.sh e2e status --run-id "$run_id"
 run_step "aggregate after checkpoint recovery" ./run.sh e2e aggregate --run-id "$run_id"
-run_step "xai-primary" env CUDA_VISIBLE_DEVICES=0 ./run.sh e2e xai-primary --run-id "$run_id" --resume
-run_step "xai-deep" env CUDA_VISIBLE_DEVICES=0 ./run.sh e2e xai-deep --run-id "$run_id" --resume
-run_step "xai-ablation" env CUDA_VISIBLE_DEVICES=0 ./run.sh e2e xai-ablation --run-id "$run_id" --resume
+if [[ "$run_xai_primary" == "1" ]]; then
+    run_step "xai-primary" env CUDA_VISIBLE_DEVICES=0 ./run.sh e2e xai-primary --run-id "$run_id" --resume
+else
+    echo "Skipping xai-primary because RUN_XAI_PRIMARY=${run_xai_primary}."
+fi
+if [[ "$run_xai_deep" == "1" ]]; then
+    run_step "xai-deep" env CUDA_VISIBLE_DEVICES=0 ./run.sh e2e xai-deep --run-id "$run_id" --resume
+else
+    echo "Skipping xai-deep because RUN_XAI_DEEP=${run_xai_deep}."
+fi
+if [[ "$run_xai_ablation" == "1" ]]; then
+    run_step "xai-ablation" env CUDA_VISIBLE_DEVICES=0 ./run.sh e2e xai-ablation --run-id "$run_id" --resume
+else
+    echo "Skipping xai-ablation because RUN_XAI_ABLATION=${run_xai_ablation}."
+fi
 run_step "xai-bundle" ./run.sh e2e xai-bundle --run-id "$run_id"
 run_step "report" ./run.sh e2e report --run-id "$run_id"
 run_step "dashboard" ./run.sh e2e dashboard --run-id "$run_id"

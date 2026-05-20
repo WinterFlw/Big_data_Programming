@@ -161,6 +161,18 @@ LIME num_samples: 150
 이미 checkpoint recovery가 끝났다면 `SKIP_CHECKPOINT_RECOVERY=1`을 붙인다. 아직
 checkpoint를 만들지 않았다면 이 옵션은 빼고 실행한다.
 
+더 강하게 줄여서 “잘 나온 checkpoint 4개”만 정성 XAI로 남기려면 top-4 모드를 쓴다.
+이 모드는 `benchmark_runs.csv`에서 A_B/D_B의 paired 평균 macro F1이 높은 seed 2개를
+자동 선택한다. 따라서 실제 XAI 대상은 `A_B 2개 + D_B 2개 = checkpoint 4개`다.
+
+```bash
+SKIP_CHECKPOINT_RECOVERY=1 XAI_TOP4=1 ./scripts/run_5090_xai_recover.sh
+```
+
+이 결과는 15 seed benchmark 통계의 대체물이 아니라, “상위 checkpoint 대표 사례에 대한
+qualitative XAI”로 보고서에 적는다. full seed-stability XAI는 서버 시간이 충분할 때만
+별도로 돌린다.
+
 ```bash
 CHECKPOINT_RETENTION=keep-all POST_XAI_PRUNE=0 ./scripts/run_5090_e2e_batch.sh
 ```
