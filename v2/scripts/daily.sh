@@ -76,3 +76,7 @@ fi
 
 echo ""
 echo "[daily preflight ok — Gate: $gate_status]"
+if [ "$gate_status" != "GO" ]; then
+    echo "Daily preflight gate is STOP. Fix the failed checks before running benchmark."
+    exit 1
+fi
