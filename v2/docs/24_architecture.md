@@ -363,6 +363,91 @@ flowchart TD
 
 ---
 
+## 9.1 BERT + VADER 조건 (C_B / D_B) 전체 상세 — STEP 0~4
+
+C/D 조건은 `HybridTextDataset` + `TransformerConditionClassifier(use_vader=True)`를 쓴다. 텐서 shape 단위로 추적.
+
+> 변수: `B`=batch(64) · `L`=seq(max 128) · `768`=BERT hidden · `4`=VADER · `256`=MLP hidden · `3`=labels · `T`=num_targets(~24, D_B 부가만)
+
+```mermaid
+flowchart TD
+    subgraph S0["STEP 0 — VADER 사전 추출 (학습 전 1회)"]
+        t0["text"] --> vsa["SentimentIntensityAnalyzer<br/>.polarity_scores()"]
+        vsa --> vp["vader_features.pkl<br/>(N, 4) — pos·neg·neu·compound"]
+    end
+
+    subgraph S1["STEP 1 — HybridTextDataset (입력 구성)"]
+        pt["post_tokens"] --> tk["tokenizer<br/>is_split_into_words=True<br/>truncation max_len=128"]
+        tk --> iid["input_ids (B,L)"]
+        tk --> am["attention_mask (B,L)"]
+        tk --> wi["word_ids()"]
+        rr["rationale 원본"] --> wi
+        wi --> rm["rationale_mask (B,L)<br/>단어→서브워드 복제"]
+        vp --> vf["vader (B,4)"]
+        lb["labels (B,)"]
+        tg["target_multilabel (B,T)"]
+    end
+
+    subgraph S2["STEP 2 — TransformerConditionClassifier.forward (use_vader=True)"]
+        iid --> enc["BERT 12-layer encoder<br/>output_attentions=True (D조건)"]
+        am --> enc
+        enc --> cls["pooler_output / [CLS]<br/>(B, 768)"]
+        enc --> at["attentions[-1]<br/>(B, heads, L, L)"]
+        cls --> cc["⊕ concat<br/>(B,768) + (B,4) = (B,772)"]
+        vf --> cc
+        cc --> dp["Dropout(0.1)"]
+        dp --> hd["Linear(772 → 256) + ReLU<br/>(B, 256)"]
+        hd --> mh["Main Head<br/>Linear(256→3) → logits (B,3)"]
+        hd --> ah["Aux Head<br/>Linear(256→T) → target_logits (B,T)<br/>D_B 부가만"]
+    end
+
+    subgraph S3["STEP 3 — 손실 계산"]
+        mh --> lc["L_cls = CrossEntropy<br/>class weight balanced"]
+        lb --> lc
+        at --> ca["cls_attention<br/>mean(heads)[:,0,:] = (B,L)"]
+        ca --> la["α·L_attn = BCE<br/>cls_attention vs rationale_mask<br/>(D 조건만)"]
+        rm --> la
+        ah --> lt["β·L_target = BCE_with_logits<br/>(D_B 부가만)"]
+        tg --> lt
+        lc --> tot["L_total = L_cls + α·L_attn + β·L_target"]
+        la -.D 조건.-> tot
+        lt -.D_B 부가.-> tot
+    end
+
+    subgraph S4["STEP 4 — 역전파 + 출력"]
+        tot --> bw["GradScaler fp16 backward<br/>clip_grad_norm 1.0 → AdamW + warmup"]
+        bw --> ep{"epoch 끝?"}
+        ep -->|진행| tk
+        ep -->|종료| out["checkpoint.pt (best val Macro F1)<br/>history.csv 28컬럼 / metrics.json<br/>predictions.csv"]
+        mh --> pred["추론 출력<br/>hate / offensive / normal 확률"]
+    end
+
+    classDef pre fill:#e0e7ff,stroke:#6366f1
+    classDef inp fill:#dcfce7,stroke:#16a34a
+    classDef sup fill:#fee2e2,stroke:#dc2626
+    classDef loss fill:#fef3c7,stroke:#d97706
+    classDef model fill:#dbeafe,stroke:#1d4ed8
+    class t0,vsa,vp pre
+    class iid,am,vf,cls,cc inp
+    class rr,rm,lb,tg sup
+    class lc,la,lt,tot loss
+    class enc,hd,mh,ah model
+```
+
+**C_B vs D_B 차이 (위 다이어그램에서)**
+
+| 항목 | C_B (BERT+VADER) | D_B (BERT+VADER+Attn) |
+|---|---|---|
+| VADER concat | ✓ (B,772) | ✓ (B,772) |
+| `output_attentions` | False | True |
+| `α·L_attn` 점선 | 없음 | CLS attention ↔ rationale BCE |
+| `β·L_target` 점선 | 없음 | D_B 부가 실험만 (듀얼 헤드) |
+| `L_total` | `L_cls` | `L_cls + α·L_attn (+ β·L_target)` |
+
+색 범례: 보라=VADER 사전추출 / 초록=모델 입력 / 빨강=supervision(입력 아님) / 파랑=모델 레이어 / 노랑=손실.
+
+---
+
 ## 10. 입출력 검증 게이트 — 어디서 무엇을 막나
 
 각 stage가 잘못된 입력을 어떻게 걸러내고 출력을 어떻게 보장하는지.
