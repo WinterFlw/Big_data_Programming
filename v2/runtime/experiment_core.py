@@ -37,6 +37,7 @@ import json
 import re
 import time
 from collections import Counter          # 투표 결과를 셀 때 아주 유용해요!
+from contextlib import nullcontext
 from dataclasses import asdict, dataclass, field  # 설정값을 깔끔하게 관리해요
 from pathlib import Path
 from typing import Any, Callable
@@ -1052,20 +1053,25 @@ def _compute_attention_supervision_loss(outputs: dict[str, Any], batch: dict[str
     if not attentions or "rationale_mask" not in batch:
         return torch.tensor(0.0, device=device)
 
-    last_attention = attentions[-1]
-    cls_attention = last_attention.mean(dim=1)[:, 0, :]
-    target = batch["rationale_mask"].to(device).float()
-    attention_mask = batch["attention_mask"].to(device).float()
-    has_rationale = (target.sum(dim=1) > 0).float().unsqueeze(1)
-    valid_mask = attention_mask * has_rationale
-    if valid_mask.sum() <= 0:
-        return torch.tensor(0.0, device=device)
-    loss = F.binary_cross_entropy(
-        cls_attention.clamp(1e-6, 1.0 - 1e-6),
-        target,
-        reduction="none",
-    )
-    return (loss * valid_mask).sum() / valid_mask.sum()
+    # CUDA AMP disallows binary_cross_entropy inside an fp16 autocast region.
+    # Attention probabilities are already sigmoid/softmax-like probabilities,
+    # so we keep BCE but explicitly compute this auxiliary loss in fp32.
+    autocast_guard = torch.amp.autocast("cuda", enabled=False) if device.type == "cuda" else nullcontext()
+    with autocast_guard:
+        last_attention = attentions[-1].float()
+        cls_attention = last_attention.mean(dim=1)[:, 0, :]
+        target = batch["rationale_mask"].to(device).float()
+        attention_mask = batch["attention_mask"].to(device).float()
+        has_rationale = (target.sum(dim=1) > 0).float().unsqueeze(1)
+        valid_mask = attention_mask * has_rationale
+        if valid_mask.sum() <= 0:
+            return torch.tensor(0.0, device=device)
+        loss = F.binary_cross_entropy(
+            cls_attention.clamp(1e-6, 1.0 - 1e-6),
+            target,
+            reduction="none",
+        )
+        return (loss * valid_mask).sum() / valid_mask.sum()
 
 
 def _compute_target_aux_loss(outputs: dict[str, Any], batch: dict[str, torch.Tensor], device: torch.device) -> torch.Tensor:
