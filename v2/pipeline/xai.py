@@ -803,6 +803,102 @@ def plan_primary_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[st
     }
 
 
+def _score_to_color(score: float, max_abs: float) -> str:
+    """SHAP score → rgba 배경색.
+
+    양수 = 정답 클래스 지지 → 빨강 (혐오 근거). 음수 = 반대 → 파랑.
+    절대값을 max_abs로 정규화해 농도(alpha)로.
+    """
+    if max_abs <= 0:
+        return "transparent"
+    norm = min(abs(score) / max_abs, 1.0)
+    alpha = round(norm * 0.85, 2)
+    if score >= 0:
+        return f"rgba(220,38,38,{alpha})"   # 빨강 — 정답 클래스 지지
+    return f"rgba(37,99,235,{alpha})"        # 파랑 — 반대 방향
+
+
+def _highlight_sentence(token_details: list[dict[str, Any]]) -> str:
+    """SHAP token_details(전체 단어 + score)로 문장 한 줄을 토큰별 배경색 span으로.
+
+    token_details 각 항목: {"word": str, "score": float, "abs_score": float}.
+    """
+    if not token_details:
+        return "<span class='muted'>(no attribution)</span>"
+    max_abs = max((abs(float(item.get("score", 0.0))) for item in token_details), default=0.0)
+    spans: list[str] = []
+    for item in token_details:
+        word = str(item.get("word") or item.get("token") or "")
+        if not word:
+            continue
+        score = float(item.get("score", 0.0))
+        color = _score_to_color(score, max_abs)
+        safe = word.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        spans.append(f"<span style='background:{color};padding:1px 3px;border-radius:3px' title='{score:+.3f}'>{safe}</span>")
+    return " ".join(spans)
+
+
+def _render_token_highlight_html(run_id: str, cases: list[dict[str, Any]]) -> str:
+    """대표 case들을 문장 토큰 하이라이트 HTML로. baseline vs v2 나란히 비교.
+
+    "이 문장에서 어느 단어가 혐오 판단의 근거인가"를 색칠해서 보여준다 —
+    빨강이 진할수록 정답 클래스 지지 강함. 발표 슬라이드 캡처용.
+    """
+    label_names = ["hatespeech", "offensive", "normal"]
+
+    def _label(idx: Any) -> str:
+        try:
+            return label_names[int(idx)]
+        except (ValueError, TypeError, IndexError):
+            return str(idx)
+
+    blocks: list[str] = []
+    for case in cases:
+        sid = case.get("sample_id", "")
+        true_l = _label(case.get("true_label"))
+        base_l = _label(case.get("baseline_prediction"))
+        v2_l = _label(case.get("v2_prediction"))
+        # baseline이 틀리고 v2가 맞춘 케이스는 특별 표시.
+        fixed = (base_l != true_l) and (v2_l == true_l)
+        badge = "<span class='fixed'>D_B가 고침</span>" if fixed else ""
+        human = case.get("human_rationale_tokens", "")
+        blocks.append(f"""
+  <div class="case">
+    <div class="case-head">{sid} · 정답=<b>{true_l}</b> · A_B 예측={base_l} · D_B 예측=<b>{v2_l}</b> {badge}</div>
+    <div class="sent-label">A_B (베이스)</div>
+    <div class="sentence">{case.get('baseline_highlight', '')}</div>
+    <div class="sent-label">D_B (제안)</div>
+    <div class="sentence">{case.get('v2_highlight', '')}</div>
+    <div class="human">인간 rationale 토큰: <code>{human or '(없음)'}</code></div>
+  </div>""")
+
+    return f"""<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>{run_id} — 혐오 근거 토큰 하이라이트</title>
+<style>
+  body {{ font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans CJK KR", sans-serif;
+         margin: 32px; line-height: 1.7; color: #1a1a1a; }}
+  h1 {{ font-size: 18pt; color: #0d2748; border-bottom: 2px solid #0d2748; padding-bottom: 6px; }}
+  .legend {{ background: #f8fafc; padding: 8px 12px; border-radius: 5px; font-size: 10pt; margin: 12px 0; }}
+  .case {{ border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px 16px; margin: 14px 0; }}
+  .case-head {{ font-size: 10pt; color: #475569; margin-bottom: 8px; }}
+  .fixed {{ background: #16a34a; color: white; padding: 1px 7px; border-radius: 4px; font-size: 9pt; }}
+  .sent-label {{ font-size: 9pt; color: #64748b; margin-top: 6px; }}
+  .sentence {{ font-size: 12pt; padding: 4px 0; }}
+  .human {{ font-size: 9.5pt; color: #475569; margin-top: 6px; }}
+  .muted {{ color: #94a3b8; }}
+  code {{ background: #f1f5f9; padding: 1px 5px; border-radius: 3px; font-size: 9.5pt; }}
+</style></head><body>
+<h1>{run_id} — 혐오 근거 토큰 하이라이트</h1>
+<div class="legend">
+  <b>빨강</b> = 정답 클래스(혐오 등) 지지 근거 · <b>파랑</b> = 반대 방향 · 진할수록 SHAP 기여 큼.
+  토큰에 마우스 올리면 정확한 SHAP score 표시.
+</div>
+{"".join(blocks)}
+</body></html>
+"""
+
+
 def plan_deep_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[str, Path | str]:
     """Deep XAI: median seed 1개 × 500 sample. 정성 case analysis."""
     root = experiment_root(manifest["run_id"])
@@ -855,6 +951,9 @@ def plan_deep_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[str, 
             if bundle is not None:
                 bundles[condition] = bundle
 
+    highlight_path = root / "xai" / "deep" / "token_highlight.html"
+    highlight_written: Path | str = ""
+
     if len(bundles) == len(deep_models) and bundles:
         baseline = deep_models[0]
         v2_condition = deep_models[-1]
@@ -884,7 +983,61 @@ def plan_deep_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[str, 
                     "comment": "",
                 }
             )
+
+        # ── 대표 case 선정 — D_B가 고친 케이스(baseline 오답 → v2 정답) 우선 ──
+        # 500 sample 전부 그림 만들면 과함. 흥미로운 케이스 12개만.
+        fixed_idx = [
+            i for i, s in enumerate(samples)
+            if baseline_preds[i] != int(s["label"]) and v2_preds[i] == int(s["label"])
+        ]
+        other_idx = [i for i in range(len(samples)) if i not in set(fixed_idx)]
+        highlight_count = int(xai_config.get("highlight_cases", 12))
+        selected_idx = (fixed_idx + other_idx)[:highlight_count]
+
+        # (B) 케이스별 SHAP 가로막대 PNG — runtime의 _plot_case_comparison 재활용.
+        cases_dir = root / "xai" / "deep" / "cases"
+        cases_dir.mkdir(parents=True, exist_ok=True)
+        for rank, index in enumerate(selected_idx):
+            png_path = cases_dir / f"case_{rank + 1:02d}.png"
+            try:
+                runtime_xai._plot_case_comparison(
+                    rank,
+                    texts[index],
+                    baseline_shap[index],
+                    v2_shap[index],
+                    png_path,
+                    baseline_name=baseline,
+                    improved_name=v2_condition,
+                )
+                case_rows[index]["plot_path"] = str(png_path.relative_to(root))
+            except Exception:
+                # matplotlib 실패는 case 분석을 막지 않는다 — plot_path만 빈 값.
+                case_rows[index]["plot_path"] = ""
+
+        # (A) 문장 토큰 하이라이트 HTML — "어느 단어가 혐오 근거인가" 색칠.
+        highlight_cases: list[dict[str, Any]] = []
+        for index in selected_idx:
+            sample = samples[index]
+            highlight_cases.append(
+                {
+                    "sample_id": sample["sample_id"],
+                    "true_label": sample["label"],
+                    "baseline_prediction": baseline_preds[index],
+                    "v2_prediction": v2_preds[index],
+                    "human_rationale_tokens": ",".join(rationale_map.get(str(sample["sample_id"]), [])),
+                    "baseline_highlight": _highlight_sentence(baseline_shap[index].get("token_details", [])),
+                    "v2_highlight": _highlight_sentence(v2_shap[index].get("token_details", [])),
+                }
+            )
+        highlight_path.parent.mkdir(parents=True, exist_ok=True)
+        highlight_path.write_text(
+            _render_token_highlight_html(manifest["run_id"], highlight_cases),
+            encoding="utf-8",
+        )
+        highlight_written = highlight_path
         details_payload["status"] = "completed"
+        details_payload["highlight_cases"] = len(highlight_cases)
+        details_payload["fixed_by_d_b"] = len(fixed_idx)
 
     cases_written = write_csv(case_path, case_rows, DEEP_CASE_COLUMNS)
     details_written = _write_json(details_path, details_payload)
@@ -893,6 +1046,7 @@ def plan_deep_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[str, 
         "samples": samples_written,
         "details": details_written,
         "cases": cases_written,
+        "token_highlight": highlight_written,
     }
 
 

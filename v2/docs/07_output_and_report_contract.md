@@ -335,6 +335,23 @@ both_wrong
 model_disagreement
 ```
 
+### 9.1 케이스 시각화 (작업 #16) ★
+
+`plan_deep_xai`가 대표 case 12개 (D_B가 고친 케이스 우선)에 대해 두 산출물을 만든다:
+
+```text
+xai/deep/cases/case_NN.png       # SHAP top-5 가로막대 (A_B vs D_B 좌우 비교)
+xai/deep/token_highlight.html    # 문장 전체를 토큰별 배경색으로 — "어디가 혐오 근거"
+```
+
+`token_highlight.html`:
+- 각 case의 문장을 토큰 단위로 색칠. **빨강 = 정답 클래스(혐오) 지지 근거**, 파랑 = 반대 방향, 진할수록 SHAP 기여 큼.
+- A_B(베이스) vs D_B(제안) 문장을 나란히 → "D_B가 어떤 단어를 새로 보게 됐나" 한 눈에.
+- 토큰 hover 시 정확한 SHAP score. baseline 오답 → v2 정답 케이스는 "D_B가 고침" 배지.
+- 발표 슬라이드에 캡처해서 박는 핵심 자료 — 5번 Author 추가 업무 C와 직결.
+
+`case_summary.csv`의 `plot_path` 컬럼이 위 PNG 경로로 채워진다 (이전엔 빈 값).
+
 ---
 
 ## 10. Final report 구조

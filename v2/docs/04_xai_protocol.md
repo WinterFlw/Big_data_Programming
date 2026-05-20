@@ -227,7 +227,8 @@ xai/primary/paired_xai_tests.csv        # A_B vs D_B 메트릭별 paired t (작�
 xai/primary/seed_stability.csv          # top-k Jaccard + Spearman across seeds (작업 #4)
 xai/deep/xai_details.json
 xai/deep/case_summary.csv
-xai/deep/cases/*.png
+xai/deep/cases/case_NN.png              # 대표 case SHAP top-5 가로막대 (작업 #16)
+xai/deep/token_highlight.html           # ★ 문장 토큰 하이라이트 — "어디가 혐오 근거인가" (작업 #16)
 xai/ablation/xai_ablation_metrics.csv   # 11컬럼 — 4축 모두 (작업 #4 + #8)
 xai/.cache/<cond>_seed_<seed>.json      # SHAP/LIME + sample_metrics 캐시 (작업 #4 + #14)
 xai/xai_summary.json
