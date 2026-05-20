@@ -242,6 +242,182 @@ flowchart LR
 
 ---
 
+## 8. Stage별 입출력 명세 (INPUT → 처리 → OUTPUT)
+
+각 stage가 정확히 무엇을 받아서 무엇을 내놓는지.
+
+```mermaid
+flowchart TD
+    cfg[("configs/v2_15seed.json")] --> S_plan
+
+    subgraph S_plan["plan"]
+        direction TB
+        P1["manifest 생성 + 검증<br/>조건 8개 · seed 15개 확인"]
+    end
+    S_plan --> O_plan[("manifest.json<br/>execution_status.csv<br/>plan_status.json<br/>+ 디렉토리 트리")]
+
+    rawdata[("data/dataset.json<br/>post_id_divisions.json")] --> S_data
+    subgraph S_data["data"]
+        D1["split 존재성 · hash · 분포 검증"]
+    end
+    S_data --> O_data[("split_profile marker")]
+
+    O_plan --> S_bench
+    O_data --> S_bench
+    subgraph S_bench["benchmark — 8조건 x 15seed = 120 unit"]
+        B1["train_neural_model<br/>AMP fp16 + cudnn 결정성"]
+    end
+    S_bench --> O_bench[("runs/&lt;cond&gt;/seed_&lt;n&gt;/<br/>metrics.json · history.csv 28컬럼<br/>run_config.json · predictions.csv<br/>stdout/stderr.log + checkpoint.pt")]
+
+    O_bench --> S_agg
+    subgraph S_agg["aggregate"]
+        A1["paired t-test · Holm · Cohen dz<br/>bootstrap CI · ANOVA 2/3-way"]
+    end
+    S_agg --> O_agg[("benchmark_runs/summary.csv<br/>paired_tests(_holm).csv<br/>anova_2way_bert/roberta.csv<br/>anova_3way.csv")]
+
+    O_bench --> S_xai
+    subgraph S_xai["xai-primary / deep / ablation"]
+        X1["SHAP/LIME (CPU) + 4축 12지표<br/>seed 무관 sample + 캐싱"]
+    end
+    S_xai --> O_xai[("xai/primary/*.csv · xai/deep/*<br/>token_highlight.html · cases/*.png<br/>xai/ablation/*.csv · .cache/")]
+
+    O_agg --> S_bundle
+    O_xai --> S_bundle
+    subgraph S_bundle["xai-bundle"]
+        BD1["통계 확증 claim만 추출<br/>source_artifacts 필수"]
+    end
+    S_bundle --> O_bundle[("evidence_bundle/ 15파일<br/>xai_claims.json · dashboard_bundle.json<br/>token_attributions.jsonl")]
+
+    O_agg --> S_report
+    O_bundle --> S_report
+    subgraph S_report["report + dashboard"]
+        R1["markdown/docx 표 자동 채움<br/>HTML 카드"]
+    end
+    S_report --> O_report[("reports/final_report.md/docx<br/>dashboard/index.html")]
+
+    classDef io fill:#dcfce7,stroke:#16a34a
+    classDef stage fill:#dbeafe,stroke:#1d4ed8
+    class cfg,rawdata,O_plan,O_data,O_bench,O_agg,O_xai,O_bundle,O_report io
+```
+
+### 입출력 요약표
+
+| Stage | INPUT | 처리 | OUTPUT |
+|---|---|---|---|
+| **plan** | `configs/v2_15seed.json` | manifest 생성·검증, 디렉토리 생성 | `manifest.json`, `execution_status.csv`, `plan_status.json` |
+| **data** | `data/dataset.json` + `post_id_divisions.json` | split 존재·hash·분포 검증 | split_profile marker |
+| **benchmark** | manifest + data split | 120 unit 학습 (AMP, cudnn) | unit별 `metrics.json` + `history.csv`(28컬럼) + `run_config.json` + `predictions.csv` + `checkpoint.pt` |
+| **aggregate** | `runs/*/metrics.json` 120개 | paired t / Holm / Cohen dz / bootstrap CI / ANOVA | `benchmark_summary.csv` + `paired_tests(_holm).csv` + `anova_*.csv` 3종 |
+| **xai-primary** | `checkpoints/*.pt` (A_B, D_B × 15seed) | SHAP/LIME + 4축 12지표 | `seed_level_metrics.csv`(18컬럼) + `sample_level_metrics.csv` + `paired_xai_tests.csv` + `seed_stability.csv` |
+| **xai-deep** | `checkpoints/*.pt` (median seed) | 대표 case 분석 + 토큰 하이라이트 | `case_summary.csv` + `token_highlight.html` + `cases/*.png` |
+| **xai-ablation** | `checkpoints/*.pt` (8조건 median) | 8조건 4축 경량 비교 | `xai_ablation_metrics.csv` (11컬럼) |
+| **xai-bundle** | 위 xai 산출물 + benchmark CSV | claim 추출 (통계 확증만) | `evidence_bundle/` 15파일 |
+| **report** | benchmark CSV + evidence_bundle | 표·claim 자동 삽입 | `final_report.md/docx` |
+| **dashboard** | benchmark + xai summary | HTML 카드 렌더 | `dashboard/index.html` |
+
+---
+
+## 9. 학습이 하는 일 — benchmark stage 내부 상세
+
+`train_neural_model`이 한 (condition, seed) unit에 대해 수행하는 흐름.
+
+```mermaid
+flowchart TD
+    inp["post_tokens (텍스트만)"] --> tok["Tokenizer<br/>BERT WordPiece / RoBERTa BPE<br/>max_len 128"]
+    tok --> enc["BERT/RoBERTa 12-layer<br/>→ [CLS] 768d"]
+
+    inp --> vader["VADER SentimentIntensityAnalyzer<br/>→ pos/neg/neu/compound 4d"]
+
+    enc --> concat{"C/D 조건?"}
+    vader --> concat
+    concat -->|"C/D (VADER 사용)"| d772["⊕ → 772d"]
+    concat -->|"A/B (VADER 미사용)"| d768["768d"]
+    d772 --> mlp["Dropout → Linear(→256) → ReLU"]
+    d768 --> mlp
+    mlp --> mainH["Main Head Linear(256→3)"]
+    mlp --> auxH["Aux Head Linear(256→T)<br/>D_B 부가 실험만"]
+
+    mainH --> lcls["L_cls = CrossEntropy<br/>(class weight balanced)"]
+    rationale["rationale 마스크"] --> lattn["α·L_attn = BCE<br/>(CLS attention vs rationale)<br/>B/D 조건만"]
+    target["target 라벨"] --> ltgt["β·L_target = BCE<br/>D_B 부가만"]
+
+    lcls --> total["L_total = L_cls + α·L_attn + β·L_target"]
+    lattn --> total
+    ltgt --> total
+
+    total --> bw["backward — GradScaler fp16<br/>grad clip max_norm=1.0"]
+    bw --> opt["AdamW + linear warmup 0.1"]
+    opt --> epoch{"epoch 끝?"}
+    epoch -->|"진행"| tok
+    epoch -->|"종료"| save["best val Macro F1 → checkpoint.pt 저장<br/>매 epoch history.csv 28컬럼 기록"]
+
+    classDef inp fill:#dcfce7,stroke:#16a34a
+    classDef sup fill:#fee2e2,stroke:#dc2626
+    classDef loss fill:#fef3c7,stroke:#d97706
+    class inp,vader inp
+    class rationale,target sup
+    class lcls,lattn,ltgt,total loss
+```
+
+**핵심 원칙**: 모델 입력은 **텍스트(post_tokens)만**. rationale·target은 손실 함수의 supervision 신호로만 쓰이고 모델 입력에 안 들어감. VADER 4d는 텍스트에서 자동 계산되는 파생 피처라 "텍스트만 입력" 원칙 위배 아님.
+
+---
+
+## 10. 입출력 검증 게이트 — 어디서 무엇을 막나
+
+각 stage가 잘못된 입력을 어떻게 걸러내고 출력을 어떻게 보장하는지.
+
+```mermaid
+flowchart TD
+    plan["plan"] --> v1{"manifest 검증"}
+    v1 -->|"조건 오타 / seed 중복 / 키 누락"| stop1["STOP — validate_manifest 에러"]
+    v1 -->|"통과"| ok1["120 unit 계획 확정"]
+
+    ok1 --> bench["benchmark"]
+    bench --> v2{"unit_status 판정"}
+    v2 -->|"metrics+history+config 다 있음"| completed["completed"]
+    v2 -->|"stderr에 fatal marker"| failed["failed → failed_runs.csv"]
+    v2 -->|"그 외"| planned["planned"]
+
+    completed --> agg["aggregate"]
+    agg --> v3{"빈 입력?"}
+    v3 -->|"completed 0개"| emptyCsv["헤더만 CSV (graceful)"]
+    v3 -->|"completed 있음"| realCsv["실제 통계 row"]
+
+    completed --> xai["xai-primary/deep/ablation"]
+    xai --> v4{"checkpoint 존재?"}
+    v4 -->|"없음"| skipXai["빈 CSV graceful skip"]
+    v4 -->|"있음"| realXai["SHAP/LIME 실행"]
+
+    realXai --> v5{"sample 결정성"}
+    v5 -->|"md5 불일치"| stop5["STOP — seed 의존 버그"]
+    v5 -->|"md5 일치"| okXai["4축 메트릭 산출"]
+
+    realCsv --> gate["Full Run Gate 6조건"]
+    okXai --> gate
+    gate --> v6{"6/6 PASS?"}
+    v6 -->|"FAIL"| stopGate["STOP — fix 책임자 멘션"]
+    v6 -->|"PASS"| go["GO — full 120 학습"]
+
+    classDef stop fill:#fee2e2,stroke:#dc2626
+    classDef pass fill:#dcfce7,stroke:#16a34a
+    class stop1,stop5,stopGate,failed stop
+    class ok1,completed,go,okXai pass
+```
+
+검증 규칙 요약:
+
+| Stage | 입력 검증 | 출력 보장 |
+|---|---|---|
+| plan | `validate_manifest` — 조건 오타·seed 중복·키 누락 시 STOP | 120 unit `execution_status.csv` |
+| benchmark | unit별 `metrics+history+config` 3개 다 있어야 completed | `failed_runs.csv` / `completed_runs.csv` 자동 분리 |
+| aggregate | completed 0개여도 헤더만 CSV (graceful) | schema 컬럼 고정 — downstream 안 깨짐 |
+| xai-* | checkpoint 없으면 빈 CSV skip | sample md5 일치 검사 (seed 무관성) |
+| xai-bundle | 통계 미확증 결과는 strong claim 금지 | 모든 claim에 `source_artifacts` 필수 |
+| Full Run Gate | 6조건 자동 점검 (`gate_check.py`) | 6/6 PASS만 full 학습 GO |
+
+---
+
 ## 부록 — 디렉토리 구조
 
 ```mermaid
