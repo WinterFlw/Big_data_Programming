@@ -95,22 +95,30 @@ HuggingFace/Torch/pip/matplotlib 캐시는 자동으로 아래 영구 경로에 
 다른 영구 경로를 쓰고 싶을 때만 실행 전에 `RUNPOD_PERSISTENT_ROOT` 또는
 `HATESPEECH_CACHE_ROOT`를 명시한다.
 
-체크포인트 저장공간은 기본적으로 절약 모드다.
+50GB 안팎의 작은 Network Storage에서는 기본 배치를 저장공간 절약 모드로 둔다.
 
 ```text
-CHECKPOINT_RETENTION=xai-minimal
+RUN_XAI=0
+CHECKPOINT_RETENTION=none
+```
+
+이 기본값은 학습/통계/리포트/대시보드를 먼저 끝내고 checkpoint를 남기지 않는다.
+50GB에서 가장 현실적인 운영 모드다. 대신 나중에 XAI를 하려면 필요한 조건을 다시
+학습해야 할 수 있다.
+
+```bash
+./scripts/run_5090_e2e_batch.sh
+```
+
+XAI까지 같은 서버 할당에서 진행하고 싶다면 저장공간을 더 확보한 뒤 아래처럼 명시한다.
+
+```bash
+RUN_XAI=1 CHECKPOINT_RETENTION=xai-minimal ./scripts/run_5090_e2e_batch.sh
 ```
 
 이 정책은 중복 checkpoint를 만들지 않고, XAI에 필요한 checkpoint만 남긴다.
 `run_5090_e2e_batch.sh`는 XAI 완료 후 `POST_XAI_PRUNE=1` 기본값으로 남은 checkpoint도
-삭제한다. 통계/리포트만 필요하고 XAI를 나중에 하지 않을 계획이면 아래처럼 더 줄일 수
-있다.
-
-```bash
-RUN_XAI=0 CHECKPOINT_RETENTION=none ./scripts/run_5090_e2e_batch.sh
-```
-
-반대로 모든 checkpoint를 보존해야 한다면 저장소를 충분히 크게 잡고 아래처럼 실행한다.
+삭제한다. 모든 checkpoint를 보존해야 한다면 저장소를 충분히 크게 잡고 아래처럼 실행한다.
 
 ```bash
 CHECKPOINT_RETENTION=keep-all POST_XAI_PRUNE=0 ./scripts/run_5090_e2e_batch.sh
@@ -187,19 +195,15 @@ daily preflight
 -> full benchmark(2GPU이면 병렬, 1GPU이면 순차)
 -> status
 -> aggregate
--> xai-primary
--> xai-deep
--> xai-ablation
--> xai-bundle
 -> report
 -> dashboard
 ```
 
-XAI는 benchmark보다 오래 걸릴 수 있으므로, 먼저 학습과 통계까지만 끝내고 싶으면
-아래처럼 실행한다.
+기본값은 50GB Network Storage를 고려해 XAI를 건너뛴다. XAI까지 포함하려면 아래처럼
+명시한다.
 
 ```bash
-RUN_XAI=0 ./scripts/run_5090_e2e_batch.sh
+RUN_XAI=1 CHECKPOINT_RETENTION=xai-minimal ./scripts/run_5090_e2e_batch.sh
 ```
 
 smoke 없이 바로 full benchmark부터 들어가려면 아래처럼 실행한다. 단, 첫 서버

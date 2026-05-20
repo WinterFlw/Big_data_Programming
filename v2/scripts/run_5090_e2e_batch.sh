@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# One-command RunPod batch runner for the full v2 pipeline on RTX 5090.
+# One-command RunPod batch runner for the v2 pipeline on RTX 5090.
 #
 # This script is intentionally boring:
 #   1. Validate the Python/CUDA environment.
 #   2. Optionally run a tiny smoke test.
 #   3. Run the benchmark on 2 GPUs when available, or 1 GPU sequentially.
 #   4. Merge outputs through status/aggregate.
-#   5. Run XAI, evidence bundle, report, and dashboard.
+#   5. Generate report and dashboard.
+#
+# The default is storage-safe for a small RunPod network volume: no XAI and no
+# retained checkpoints. Enable XAI explicitly after increasing storage or when
+# you accept the extra checkpoint/cache footprint.
 #
 # It does not make a single model use multiple GPUs. When 2 GPUs are available
 # it runs independent condition x seed jobs in parallel. When only 1 GPU is
@@ -21,11 +25,11 @@ source "scripts/env_defaults.sh"
 run_id="${RUN_ID:-v2_15seed}"
 run_smoke="${RUN_SMOKE:-1}"
 smoke_seeds="${SMOKE_SEEDS:-42}"
-run_xai="${RUN_XAI:-1}"
+run_xai="${RUN_XAI:-0}"
 xai_gpu="${XAI_GPU:-0}"
 log_dir="${LOG_DIR:-outputs/experiments/${run_id}/server_logs}"
 all_conditions="${ALL_CONDITIONS:-A_B,B_B,C_B,D_B,A_R,B_R,C_R,D_R}"
-checkpoint_retention="${CHECKPOINT_RETENTION:-xai-minimal}"
+checkpoint_retention="${CHECKPOINT_RETENTION:-none}"
 post_xai_prune="${POST_XAI_PRUNE:-1}"
 export CHECKPOINT_RETENTION="$checkpoint_retention"
 
@@ -125,6 +129,11 @@ echo "XAI_GPU=${xai_gpu}"
 echo "CHECKPOINT_RETENTION=${CHECKPOINT_RETENTION}"
 echo "POST_XAI_PRUNE=${post_xai_prune}"
 echo "batch_log=${batch_log}"
+
+if [[ "$run_xai" != "1" ]]; then
+    echo "Storage-safe default: XAI is disabled and checkpoints are not retained."
+    echo "For XAI, rerun with: RUN_XAI=1 CHECKPOINT_RETENTION=xai-minimal"
+fi
 
 if [[ "$run_xai" == "1" && "$CHECKPOINT_RETENTION" == "none" ]]; then
     echo "STOP: CHECKPOINT_RETENTION=none deletes checkpoints needed by XAI."

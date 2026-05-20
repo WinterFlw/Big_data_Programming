@@ -21,7 +21,7 @@ bert_conditions="${BERT_CONDITIONS:-A_B,B_B,C_B,D_B}"
 roberta_conditions="${ROBERTA_CONDITIONS:-A_R,B_R,C_R,D_R}"
 seeds="${SEEDS:-}"
 log_dir="${LOG_DIR:-outputs/experiments/${run_id}/server_logs}"
-checkpoint_retention="${CHECKPOINT_RETENTION:-xai-minimal}"
+checkpoint_retention="${CHECKPOINT_RETENTION:-none}"
 export CHECKPOINT_RETENTION="$checkpoint_retention"
 
 mkdir -p "$log_dir"

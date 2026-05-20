@@ -282,7 +282,7 @@ def _write_normalized_metrics(
         "precision_macro": runtime_record.get("macro_precision", ""),
         "recall_macro": runtime_record.get("macro_recall", ""),
         "loss": runtime_record.get("loss", ""),
-        "checkpoint_path": str(checkpoint_path) if checkpoint_path else runtime_record.get("checkpoint_path", ""),
+        "checkpoint_path": str(checkpoint_path) if checkpoint_path else "",
         "metrics_path": str(unit.metrics_path),
         "predictions_path": str(predictions_path) if predictions_path else prediction_artifact or "",
         "runtime_metrics_path": str(runtime_metrics_path) if runtime_metrics_path.exists() else "",
