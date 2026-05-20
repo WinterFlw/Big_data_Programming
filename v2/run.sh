@@ -9,6 +9,10 @@ set -e
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd -P)"
 cd "$script_dir"
 
+# Keep model/dataset/package caches on persistent storage when RunPod mounts
+# /workspace. This must happen before Python imports HuggingFace/PyTorch.
+source "$script_dir/scripts/env_defaults.sh"
+
 # PYTHON_BIN lets the server operator pin a virtualenv interpreter:
 #
 #   PYTHON_BIN=/path/to/venv/bin/python ./run.sh e2e status

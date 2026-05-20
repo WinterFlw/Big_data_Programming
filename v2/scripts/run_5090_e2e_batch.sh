@@ -16,6 +16,8 @@ set -euo pipefail
 
 cd "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd -P)/.."
 
+source "scripts/env_defaults.sh"
+
 run_id="${RUN_ID:-v2_15seed}"
 run_smoke="${RUN_SMOKE:-1}"
 smoke_seeds="${SMOKE_SEEDS:-42}"
@@ -109,9 +111,10 @@ run_best_available_benchmark() {
     fi
 }
 
-echo "RunPod 2x RTX 5090 v2 E2E batch"
+echo "RunPod RTX 5090 v2 E2E batch"
 echo "run_id=${run_id}"
 echo "PYTHON_BIN=${PYTHON_BIN}"
+echo "HATESPEECH_CACHE_ROOT=${HATESPEECH_CACHE_ROOT}"
 echo "RUN_SMOKE=${run_smoke}"
 echo "SMOKE_SEEDS=${smoke_seeds}"
 echo "RUN_XAI=${run_xai}"

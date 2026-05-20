@@ -14,6 +14,8 @@ set -euo pipefail
 
 cd "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd -P)/.."
 
+source "scripts/env_defaults.sh"
+
 run_id="${RUN_ID:-v2_15seed}"
 bert_conditions="${BERT_CONDITIONS:-A_B,B_B,C_B,D_B}"
 roberta_conditions="${ROBERTA_CONDITIONS:-A_R,B_R,C_R,D_R}"
@@ -96,6 +98,7 @@ PY
 echo "RunPod dual RTX 5090 benchmark runner"
 echo "run_id=${run_id}"
 echo "PYTHON_BIN=${PYTHON_BIN}"
+echo "HATESPEECH_CACHE_ROOT=${HATESPEECH_CACHE_ROOT}"
 echo "Detected CUDA GPUs: ${gpu_count}"
 echo "Logs: ${log_dir}"
 

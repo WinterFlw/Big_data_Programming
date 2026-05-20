@@ -83,6 +83,18 @@ export PYTHON_BIN="$PWD/.venv/bin/python"
 python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no cuda')"
 ```
 
+`run.sh`, `daily.sh`, `run_5090_dual.sh`, `run_5090_e2e_batch.sh`는 공통으로
+`scripts/env_defaults.sh`를 읽는다. RunPod에서 `/workspace`가 보이면
+HuggingFace/Torch/pip/matplotlib 캐시는 자동으로 아래 영구 경로에 저장된다.
+
+```text
+/workspace/.cache/hatespeech-v2/
+```
+
+따라서 사람이 매번 `HF_HOME`, `TORCH_HOME`, `PIP_CACHE_DIR`를 export할 필요는 없다.
+다른 영구 경로를 쓰고 싶을 때만 실행 전에 `RUNPOD_PERSISTENT_ROOT` 또는
+`HATESPEECH_CACHE_ROOT`를 명시한다.
+
 초기 계획 생성:
 
 ```bash

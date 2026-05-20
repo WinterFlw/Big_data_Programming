@@ -6,6 +6,8 @@ set -e
 
 cd "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd -P)/.."
 
+source "scripts/env_defaults.sh"
+
 if [[ -n "${PYTHON_BIN:-}" ]]; then
     python_bin="$PYTHON_BIN"
 elif command -v python >/dev/null 2>&1; then
