@@ -136,6 +136,43 @@ python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.devi
 ./scripts/run_5090_dual.sh
 ```
 
+서버를 오래 잡아둘 수 있고, benchmark 이후 산출물까지 한 번에 이어서 만들고
+싶다면 full E2E batch runner를 사용한다.
+
+```bash
+./scripts/run_5090_e2e_batch.sh
+```
+
+이 명령은 아래 순서로 실행한다.
+
+```text
+daily preflight
+-> 2GPU smoke benchmark(seed 42)
+-> 2GPU full benchmark
+-> status
+-> aggregate
+-> xai-primary
+-> xai-deep
+-> xai-ablation
+-> xai-bundle
+-> report
+-> dashboard
+```
+
+XAI는 benchmark보다 오래 걸릴 수 있으므로, 먼저 학습과 통계까지만 끝내고 싶으면
+아래처럼 실행한다.
+
+```bash
+RUN_XAI=0 ./scripts/run_5090_e2e_batch.sh
+```
+
+smoke 없이 바로 full benchmark부터 들어가려면 아래처럼 실행한다. 단, 첫 서버
+실행에서는 권장하지 않는다.
+
+```bash
+RUN_SMOKE=0 ./scripts/run_5090_e2e_batch.sh
+```
+
 smoke만 2GPU로 나눠 돌리고 싶으면 seed를 제한한다.
 
 ```bash
