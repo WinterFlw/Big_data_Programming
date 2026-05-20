@@ -6,12 +6,23 @@ set -e
 
 cd "$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd -P)/.."
 
+if [[ -n "${PYTHON_BIN:-}" ]]; then
+    python_bin="$PYTHON_BIN"
+elif command -v python >/dev/null 2>&1; then
+    python_bin="$(command -v python)"
+elif command -v python3 >/dev/null 2>&1; then
+    python_bin="$(command -v python3)"
+else
+    echo "Python interpreter not found in PATH."
+    exit 1
+fi
+
 echo "=== compile pipeline ==="
-python3 -m compileall pipeline scripts/validate_commit_message.py
+"$python_bin" -m compileall pipeline scripts/validate_commit_message.py
 
 echo ""
 echo "=== config validation ==="
-python3 -m json.tool configs/v2_15seed.json > /tmp/v2_config_check.json && echo "config ok"
+"$python_bin" -m json.tool configs/v2_15seed.json > /tmp/v2_config_check.json && echo "config ok"
 
 echo ""
 echo "=== CLI help ==="
@@ -55,7 +66,7 @@ echo ""
 echo "=== Full Run Gate 자동 점검 ==="
 # sample 결정성 검사는 xai-primary 재실행을 동반하므로 daily.sh 안에서는 skip.
 # Pilot이 별도로 `python3 scripts/gate_check.py` 단독 실행 시 검사.
-if python3 scripts/gate_check.py --run-id v2_15seed --skip-sample-check; then
+if "$python_bin" scripts/gate_check.py --run-id v2_15seed --skip-sample-check; then
     gate_status="GO"
 else
     gate_status="STOP"

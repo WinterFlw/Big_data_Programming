@@ -3,6 +3,7 @@ transformers>=4.30
 datasets
 scikit-learn
 scipy
+statsmodels>=0.14
 numpy
 pandas
 matplotlib

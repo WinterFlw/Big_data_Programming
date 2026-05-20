@@ -68,6 +68,19 @@ random seed propagation
 
 ## 3. 권장 CLI 흐름
 
+서버에서는 먼저 Python을 명시적으로 고정한다. `python3`가 시스템 Python으로
+잡히면 `numpy`, `torch`, `matplotlib`가 없는 환경으로 preflight가 실패할 수 있다.
+
+```bash
+cd v2
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+export PYTHON_BIN="$PWD/.venv/bin/python"
+python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no cuda')"
+```
+
 초기 계획 생성:
 
 ```bash
@@ -89,13 +102,13 @@ random seed propagation
 첫 실제 smoke run:
 
 ```bash
-./run.sh e2e benchmark --run-id v2_15seed --conditions A_B,D_B --seeds 42 --resume
+./run.sh e2e benchmark --run-id v2_15seed --conditions A_B,D_B --seeds 42 --execute --resume
 ```
 
 전체 benchmark:
 
 ```bash
-./run.sh e2e benchmark --run-id v2_15seed --resume
+./run.sh e2e benchmark --run-id v2_15seed --execute --resume
 ```
 
 집계:
