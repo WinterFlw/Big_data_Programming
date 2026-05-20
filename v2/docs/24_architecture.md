@@ -1,232 +1,177 @@
-# 24. v2 아키텍처 — Mermaid 다이어그램
+# 24. 연구 파이프라인 — 모델의 흐름과 철학
 
-> HateSpeachStudy v2_15seed 파이프라인 구조. 모든 다이어그램은 **좌→우 직선 흐름**으로 큰 줄기가 한눈에 보이도록 그렸다.
-> GitHub은 ```mermaid 코드블록을 자동 렌더링한다.
-> 마지막 업데이트: 2026-05-19
+> 이 문서는 파일·디렉토리·CI 같은 엔지니어링이 아니라, **모델이 무엇을 왜 학습하는지**, 연구가 어떤 질문에서 출발해 어떻게 답하는지를 담는다.
+> GitHub은 ```mermaid 코드블록을 자동 렌더링한다. 마지막 업데이트: 2026-05-19
 
 ---
 
-## 1. 메인 파이프라인 (큰 줄기 한 줄)
+## 0. 한 줄 — 무엇을 묻고 무엇으로 답하나
+
+> 비하어에 기대는 모델은 맥락 혐오를 놓친다.
+> **단어 단서를 유지하면서 맥락 단서까지 함께 학습한 모델**이 분류 성능과 판단 투명성 모두에서 나아짐을, 통제된 ablation과 자동 XAI로 입증한다.
+
+---
+
+## 1. 연구 서사 — 문제에서 결론까지
 
 ```mermaid
 flowchart LR
-    plan --> data --> benchmark --> aggregate --> xai --> bundle --> report --> dashboard
-```
-
-곁가지는 따로:
-
-```mermaid
-flowchart LR
-    benchmark[benchmark] --> agg[aggregate 통계]
-    benchmark --> xai[xai 3종]
-    agg --> bundle[xai-bundle]
-    xai --> bundle
-    bundle --> report[report]
-    bundle --> dash[dashboard]
-    agg --> report
+    problem[문제<br/>비하어 매칭은<br/>맥락 혐오를 놓침] --> diagnose[진단 H1<br/>베이스 BERT가<br/>단어에 과의존]
+    diagnose --> treat[처방<br/>Attention Loss<br/>+ VADER]
+    treat --> verify[검증 H2·H3<br/>8조건 ablation<br/>+ 자동 XAI 4축]
+    verify --> conclude[결론<br/>단어 신호 유지<br/>+ 맥락 단서 추가 학습]
 ```
 
 ---
 
-## 2. 모듈 레이어 (CLI → pipeline → runtime)
+## 2. 베이스 모델의 문제 — 왜 고쳐야 하나
 
 ```mermaid
 flowchart LR
-    runsh[run.sh] --> cli[cli.py] --> runner[runner.py]
-    runner --> pipe[pipeline/<br/>orchestration 12파일]
-    pipe --> adapter[training_adapter<br/>· xai adapter]
-    adapter --> runtime[runtime/<br/>experiment_core · experiment_xai]
-    daily[scripts/daily.sh] --> gate[gate_check.py]
-    ci[GitHub Actions] --> daily
+    sent["문장: 'those people should go back'"] --> base[베이스 BERT]
+    base --> miss["비하어 없음 → normal 오판"]
+    slur["문장: 'all X must die'"] --> base
+    base --> easy["비하어 die 매칭 → hate 정답"]
+    miss --> issue[단어 단서에 과의존<br/>맥락 단서 활용 부족]
+    easy --> issue
+```
+
+베이스는 비하어가 있으면 잘 맞히고, 비하어 없는 맥락 혐오는 놓친다. **단어 자체가 신호가 아닌 게 아니라, 단어에 *과의존*하는 게 문제.**
+
+---
+
+## 3. 두 처방 — 서로 다른 층위에 개입
+
+```mermaid
+flowchart LR
+    text[입력 텍스트] --> v[VADER 감성 4d<br/>입력층 개입] --> model[모델]
+    text --> model
+    rationale[인간 rationale<br/>학습 손실층 개입] --> model
+    model --> learn[단어 + 맥락<br/>함께 학습]
+```
+
+| 처방 | 어느 층위 | 무엇을 가르치나 | 근거 |
+|---|---|---|---|
+| **VADER 감성 피처** | 입력층 (concat) | "이 문장의 감정 온도" — 맥락 단서 | Cheng 2022 선행연구 기반 사전 가설 |
+| **Attention Loss** | 학습 손실층 | "어디를 봐야 하는가" — 인간 근거 토큰에 정렬 | Mathew 2021 rationale을 평가→학습으로 |
+
+두 처방은 직교한다 — VADER는 모델 구조, Attention Loss는 학습 손실. 그래서 ablation으로 따로 떼어 측정할 수 있다.
+
+---
+
+## 4. 모델이 실제로 학습하는 것 (D_B 기준)
+
+```mermaid
+flowchart LR
+    text[텍스트] --> bert[BERT가 문맥 표현 학습] --> meaning["[CLS] 문장 의미 768d"]
+    text --> senti[VADER가 감정 신호 추출] --> meaning2[감성 4d]
+    meaning --> fuse[의미 + 감성 결합]
+    meaning2 --> fuse
+    fuse --> judge[혐오 / 공격 / 일반 판단]
+    rationale[인간 근거] --> guide[판단의 시선을<br/>근거 토큰에 정렬] --> judge
+```
+
+모델은 세 신호를 함께 본다 — **BERT의 문맥 의미**, **VADER의 감정 온도**, 그리고 학습 중 **인간 근거가 가르치는 시선의 방향**. 추론할 땐 텍스트만 있으면 된다 (rationale은 학습 때만).
+
+---
+
+## 5. 8조건 ablation — 두 처방을 따로 떼어 측정
+
+```mermaid
+flowchart LR
+    AB["A_B 베이스<br/>처방 없음"] --> BB["B_B<br/>+ Attention Loss"]
+    AB --> CB["C_B<br/>+ VADER"]
+    BB --> DB["D_B<br/>+ 둘 다"]
+    CB --> DB
+```
+
+```mermaid
+flowchart LR
+    q1["Attention Loss 효과?"] --> a1["B_B - A_B"]
+    q2["VADER 효과?"] --> a2["C_B - A_B"]
+    q3["둘이 시너지?"] --> a3["D_B - B_B - C_B + A_B"]
+    q4["RoBERTa도 같나?"] --> a4["A_R~D_R 반복"]
+```
+
+같은 데이터·시드·하이퍼파라미터에서 **한 번에 한 처방만 바꿔** 주효과·상호작용·강건성을 분리한다. 이게 "통제된 ablation".
+
+---
+
+## 6. 무엇이 좋아졌는지 — 두 가지 차원으로 본다
+
+```mermaid
+flowchart LR
+    DB[D_B 개선 모델] --> perf[분류 성능<br/>Macro F1 향상?]
+    DB --> trans[판단 투명성<br/>맥락 단서를 보는가?]
+    perf --> h2[H2 검증]
+    trans --> h3[H3 검증]
+```
+
+성능만 좋아진 게 아니라 **모델이 판단하는 방식**도 바뀌었는지 본다 — 그게 이 연구의 핵심 주장.
+
+---
+
+## 7. XAI 4축 — 모델이 단어에 기대나, 맥락을 보나
+
+```mermaid
+flowchart LR
+    ask["모델은 무엇을 보고 판단하나?"] --> ax1["축1 Attribution<br/>어떤 토큰을 지목하나"]
+    ax1 --> ax2["축2 Faithfulness<br/>그 토큰이 진짜 근거인가"]
+    ax2 --> ax3["축3 Context Learning ★<br/>한두 단어 집중 vs 여러 토큰 분산"]
+    ax3 --> ax4["축4 Plausibility<br/>인간 근거와 닮았나"]
+```
+
+3축 Context Learning이 본 연구의 결정 카드 — **인간이 만든 비하어 목록 같은 카테고리에 기대지 않고**, 모델 내부 토큰 동역학만으로 맥락 학습을 정량화한다.
+
+---
+
+## 8. 단어 의존 → 맥락 의존, 어떻게 드러나나
+
+```mermaid
+flowchart LR
+    ab["A_B 단어 의존"] --> ci_hi["CI 높음<br/>소수 토큰 집중"]
+    ab --> is_lo["IS 낮음<br/>토큰 독립적"]
+    ab --> mss_sm["MSS 작음<br/>1~2 토큰이면 충분"]
+    db["D_B 맥락 학습"] --> ci_lo["CI 낮음<br/>여러 토큰 분산"]
+    db --> is_hi["IS 높음<br/>토큰 시너지"]
+    db --> mss_lg["MSS 큼<br/>여러 토큰 필요"]
+```
+
+**비유** — A_B는 단거리 선수(혼자 뛴다), D_B는 축구팀(11명 패스로 골). 단어 의존 모델은 토큰 하나하나가 독립이고, 맥락 의존 모델은 토큰들이 함께 작동한다.
+
+---
+
+## 9. 가설 검증 사슬 — H1에서 H3까지
+
+```mermaid
+flowchart LR
+    h1["H1 진단<br/>A_B 단어 과의존 확인"] --> h2["H2 개선<br/>D_B 분류 성능 향상<br/>ΔF1 > 0"]
+    h2 --> h3["H3 입증<br/>D_B 자동 XAI 4축<br/>맥락 학습 통계 유의"]
+    h3 --> robust["RoBERTa에서도 일관"]
+    robust --> claim["주장 성립<br/>단어 + 맥락 함께 학습"]
+```
+
+H1 진단에서 출발해 H2(성능)·H3(판단 방식)를 거치고, RoBERTa에서도 같은 패턴이 나오면 주장이 강건해진다. **단일 지표가 아니라 다축 일관성으로 판정** — 한 지표만 좋으면 우연일 수 있으니까.
+
+---
+
+## 10. 전체를 한 흐름으로
+
+```mermaid
+flowchart LR
+    data[HateXplain<br/>텍스트 + 인간 근거] --> train["학습<br/>BERT + VADER + Attention Loss"]
+    train --> models[8조건 모델]
+    models --> measure["측정<br/>분류 성능 + 자동 XAI 4축"]
+    measure --> answer["답<br/>단어 신호 유지하며<br/>맥락 단서까지 학습"]
 ```
 
 ---
 
-## 3. 학습 흐름 (데이터 → 8조건 → 산출물)
+## 부록 — 절대 하지 않는 주장
 
-```mermaid
-flowchart LR
-    raw[HateXplain<br/>19,192건] --> split[Stratified split<br/>70/10/20] --> cond[8조건 x 15seed<br/>= 120 unit] --> train[train_neural_model<br/>AMP fp16] --> out[checkpoint.pt<br/>+ metrics + history.csv]
-```
-
-8조건 매트릭스:
-
-```mermaid
-flowchart LR
-    bert[BERT] --> AB[A_B 베이스] & BB[B_B +Attn] & CB[C_B +VADER] & DB[D_B +Attn+VADER]
-    roberta[RoBERTa] --> AR[A_R] & BR[B_R] & CR[C_R] & DR[D_R]
-```
-
----
-
-## 4. BERT + VADER 모델 내부 (forward 한 줄)
-
-```mermaid
-flowchart LR
-    text[텍스트] --> tok[Tokenizer] --> bert[BERT 12-layer] --> cls["[CLS] 768d"] --> cat["⊕ concat 772d"] --> mlp["MLP 772→256"] --> head[Main Head 256→3] --> logits[logits 3-class]
-    text --> vader[VADER 4d] --> cat
-```
-
-A/B 조건은 VADER 없이 768d 직행. C/D 조건만 `⊕ concat`으로 772d.
-
----
-
-## 5. 손실 계산 (출력 → 3개 손실 → 합산)
-
-```mermaid
-flowchart LR
-    logits[logits] --> lcls[L_cls<br/>CrossEntropy]
-    attn["CLS attention"] --> lattn[α·L_attn<br/>BCE vs rationale]
-    auxlogits[target_logits] --> ltgt[β·L_target<br/>BCE]
-    lcls --> total[L_total]
-    lattn --> total
-    ltgt --> total
-    total --> back[backward → AdamW]
-```
-
-`L_total = L_cls + α·L_attn + β·L_target` — L_attn은 B/D 조건, L_target은 D_B 부가만.
-
----
-
-## 6. XAI 4축 흐름 (checkpoint → 메트릭)
-
-```mermaid
-flowchart LR
-    ckpt[checkpoint.pt] --> sample[stratified sample<br/>seed 무관] --> shap[SHAP / LIME] --> axis[4축 12지표] --> metric[seed_level_metrics<br/>+ token_highlight.html]
-```
-
-4축:
-
-```mermaid
-flowchart LR
-    shap[SHAP/LIME] --> a1[1 Attribution] --> a2[2 Faithfulness] --> a3[3 Context Learning ★] --> a4[4 Plausibility]
-```
-
-(축은 병렬 계산이지만 읽기 순서대로 나열 — 3축 Context Learning이 본 연구 결정 카드.)
-
----
-
-## 7. 5인 역할 + Git 흐름
-
-```mermaid
-flowchart LR
-    s2[2번 서버 학습] -->|git push| repo[(GitHub main)]
-    repo -->|git pull| s1[1번 Gate]
-    repo -->|git pull| s3[3번 통계]
-    repo -->|git pull| s4[4번 XAI]
-    repo -->|git pull| s5[5번 발표]
-    repo --> ci[CI ✓/✗]
-```
-
----
-
-## 8. CI 자동화 흐름
-
-```mermaid
-flowchart LR
-    push[git push] --> trigger[GitHub Actions] --> daily[daily.sh 실행] --> check[8조건 점검] --> result[✓ 초록 / ✗ 빨강]
-```
-
----
-
-## 9. Stage별 입출력 (INPUT → stage → OUTPUT)
-
-```mermaid
-flowchart LR
-    cfg[configs.json] --> plan[plan] --> mani[manifest.json]
-    mani --> bench[benchmark] --> runs[runs/.../<br/>metrics·history·checkpoint]
-    runs --> agg[aggregate] --> csv[benchmark·anova CSV]
-    runs --> xai[xai-*] --> xout[xai/primary·deep·ablation]
-    csv --> bundle[xai-bundle] --> ev[evidence_bundle 15파일]
-    xout --> bundle
-    ev --> rep[report] --> final[final_report.md/docx]
-    ev --> dash[dashboard] --> html[index.html]
-```
-
-| Stage | INPUT | OUTPUT |
-|---|---|---|
-| plan | `configs/v2_15seed.json` | `manifest.json`, `execution_status.csv` |
-| benchmark | manifest + data split | `metrics.json` + `history.csv`(28컬럼) + `checkpoint.pt` |
-| aggregate | `runs/*/metrics.json` | `benchmark_summary.csv` + `paired_tests.csv` + `anova_*.csv` |
-| xai-primary | `checkpoints/*.pt` | `seed_level_metrics.csv`(18컬럼) + `seed_stability.csv` |
-| xai-deep | `checkpoints/*.pt` | `case_summary.csv` + `token_highlight.html` + `cases/*.png` |
-| xai-ablation | `checkpoints/*.pt` | `xai_ablation_metrics.csv` |
-| xai-bundle | xai 산출물 + benchmark CSV | `evidence_bundle/` 15파일 |
-| report | benchmark CSV + bundle | `final_report.md/docx` |
-| dashboard | benchmark + xai | `dashboard/index.html` |
-
----
-
-## 10. BERT + VADER (C_B / D_B) STEP 0~4 상세
-
-학습 전체를 단계별 좌→우로. 텐서 shape: `B`=batch · `L`=seq(128) · `768`=BERT · `4`=VADER · `256`=MLP · `3`=labels.
-
-**STEP 0~1 — VADER 추출 + 입력 구성**
-
-```mermaid
-flowchart LR
-    text[text] --> vsa[polarity_scores] --> vp[vader 4d]
-    ptok[post_tokens] --> tk[tokenizer] --> iid[input_ids B,L]
-    tk --> am[attention_mask B,L]
-    tk --> rm[rationale_mask B,L]
-```
-
-**STEP 2 — forward**
-
-```mermaid
-flowchart LR
-    iid[input_ids] --> bert[BERT 12-layer] --> cls["[CLS] B,768"]
-    vp[vader B,4] --> cat["⊕ B,772"]
-    cls --> cat --> mlp["Linear 772→256 + ReLU"] --> mh[Main Head → logits B,3]
-    mlp --> ah[Aux Head → target B,T<br/>D_B 부가만]
-```
-
-**STEP 3~4 — 손실 + 출력**
-
-```mermaid
-flowchart LR
-    logits[logits] --> lc[L_cls] --> tot[L_total]
-    rm[rationale] --> la[α·L_attn] --> tot
-    tot --> bw[backward AMP] --> ck[checkpoint + history.csv]
-```
-
-C_B는 `α·L_attn` 빼고 `L_total = L_cls`. D_B는 포함.
-
----
-
-## 11. 입출력 검증 게이트 (어디서 막나)
-
-```mermaid
-flowchart LR
-    plan[plan] --> g1{manifest OK?} -->|"NO"| stop1[STOP]
-    g1 -->|"YES"| bench[benchmark] --> g2{unit 완료?}
-    g2 -->|"failed"| fail[failed_runs.csv]
-    g2 -->|"completed"| gate{Gate 6/6?}
-    gate -->|"NO"| stop2[STOP — fix 멘션]
-    gate -->|"YES"| go[GO — full 학습]
-```
-
-| Stage | 검증 |
-|---|---|
-| plan | 조건 오타·seed 중복·키 누락 → STOP |
-| benchmark | metrics+history+config 3개 다 있어야 completed |
-| aggregate / xai | 빈 입력이면 헤더만 CSV (graceful) |
-| Full Run Gate | 6조건 자동 (`gate_check.py`) — 6/6만 GO |
-
----
-
-## 12. 디렉토리 구조
-
-```mermaid
-flowchart LR
-    v2[v2/] --> pipeline[pipeline/]
-    v2 --> runtime[runtime/]
-    v2 --> scripts[scripts/]
-    v2 --> docs[docs/]
-    v2 --> outputs[outputs/experiments/]
-    docs --> rg[role_guides/ 5인 Word]
-    docs --> at[agent_tasks/ 00~24]
-```
+- "혐오는 단어가 아니라 맥락이다" (이분법 과장) — 단어도 신호다. *과의존*이 문제일 뿐.
+- "XAI 진단으로 VADER를 골랐다" — VADER는 Cheng 2022 선행연구 기반 사전 가설. XAI는 사후 검증.
+- "순환적 프레임워크 / 피드백 루프" — 본 연구는 "가설 → 통제된 ablation → XAI 사후 검증"의 단방향 과학적 검증.
 
 ---
 
