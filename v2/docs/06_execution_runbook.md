@@ -95,6 +95,27 @@ HuggingFace/Torch/pip/matplotlib 캐시는 자동으로 아래 영구 경로에 
 다른 영구 경로를 쓰고 싶을 때만 실행 전에 `RUNPOD_PERSISTENT_ROOT` 또는
 `HATESPEECH_CACHE_ROOT`를 명시한다.
 
+체크포인트 저장공간은 기본적으로 절약 모드다.
+
+```text
+CHECKPOINT_RETENTION=xai-minimal
+```
+
+이 정책은 중복 checkpoint를 만들지 않고, XAI에 필요한 checkpoint만 남긴다.
+`run_5090_e2e_batch.sh`는 XAI 완료 후 `POST_XAI_PRUNE=1` 기본값으로 남은 checkpoint도
+삭제한다. 통계/리포트만 필요하고 XAI를 나중에 하지 않을 계획이면 아래처럼 더 줄일 수
+있다.
+
+```bash
+RUN_XAI=0 CHECKPOINT_RETENTION=none ./scripts/run_5090_e2e_batch.sh
+```
+
+반대로 모든 checkpoint를 보존해야 한다면 저장소를 충분히 크게 잡고 아래처럼 실행한다.
+
+```bash
+CHECKPOINT_RETENTION=keep-all POST_XAI_PRUNE=0 ./scripts/run_5090_e2e_batch.sh
+```
+
 초기 계획 생성:
 
 ```bash

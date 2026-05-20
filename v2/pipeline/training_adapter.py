@@ -11,6 +11,7 @@ from __future__ import annotations
 import contextlib
 import csv
 import json
+import os
 import pickle
 import shutil
 import sys
@@ -102,7 +103,13 @@ def _write_json(path: Path, payload: dict[str, Any]) -> Path:
 
 
 def _copy_checkpoint(source_value: str | None, unit: RunUnit) -> Path | None:
-    """Copy the runtime checkpoint into the v2 benchmark checkpoint directory."""
+    """Move the runtime checkpoint into the v2 benchmark checkpoint directory.
+
+    Runtime training first writes the best checkpoint under v2/checkpoints/.
+    The v2 contract reads checkpoints from outputs/.../benchmark/checkpoints/.
+    Moving instead of copying avoids keeping two large .pt files per run on the
+    RunPod network volume.
+    """
     if not source_value:
         return None
     source = Path(source_value)
@@ -111,8 +118,58 @@ def _copy_checkpoint(source_value: str | None, unit: RunUnit) -> Path | None:
     target = experiment_root(unit.run_id) / "benchmark" / "checkpoints" / f"{unit.condition.lower()}_seed_{unit.seed}.pt"
     target.parent.mkdir(parents=True, exist_ok=True)
     if source.resolve() != target.resolve():
-        shutil.copy2(source, target)
+        if target.exists():
+            target.unlink()
+        shutil.move(str(source), str(target))
     return target
+
+
+def _xai_minimal_checkpoint_needed(manifest: dict[str, Any], unit: RunUnit) -> bool:
+    """Return whether this checkpoint is needed by the current XAI stages.
+
+    Primary XAI uses all seeds for its primary model pair. Deep/Ablation XAI in
+    the current implementation use the middle manifest seed. This lets 5090
+    runs avoid storing all 120 checkpoints while still preserving the planned
+    XAI evidence path.
+    """
+    benchmark_seeds = [int(seed) for seed in manifest["benchmark"]["seeds"]]
+    middle_seed = benchmark_seeds[len(benchmark_seeds) // 2]
+    xai_config = manifest.get("xai", {})
+
+    primary_models = set(xai_config.get("primary", {}).get("models", []))
+    if unit.condition in primary_models:
+        return True
+
+    deep_models = set(xai_config.get("deep", {}).get("models", []))
+    ablation_models = set(xai_config.get("ablation", {}).get("models", []))
+    if unit.seed == middle_seed and unit.condition in (deep_models | ablation_models):
+        return True
+    return False
+
+
+def _apply_checkpoint_retention(manifest: dict[str, Any], unit: RunUnit, checkpoint_path: Path | None) -> Path | None:
+    """Apply CHECKPOINT_RETENTION to save network storage during long runs.
+
+    Policies:
+      keep-all     Keep every checkpoint.
+      xai-minimal  Keep only checkpoints needed by configured XAI stages.
+      none         Delete checkpoints after metrics/predictions are normalized.
+    """
+    if checkpoint_path is None or not checkpoint_path.exists():
+        return checkpoint_path
+
+    policy = os.environ.get("CHECKPOINT_RETENTION", "keep-all").strip().lower()
+    if policy in {"", "keep-all", "all"}:
+        return checkpoint_path
+    if policy not in {"xai-minimal", "none"}:
+        raise ValueError(
+            "CHECKPOINT_RETENTION must be one of keep-all, xai-minimal, none "
+            f"(got {policy!r})"
+        )
+    if policy == "none" or not _xai_minimal_checkpoint_needed(manifest, unit):
+        checkpoint_path.unlink()
+        return None
+    return checkpoint_path
 
 
 def _normalize_predictions(prediction_artifact: str | None, unit: RunUnit) -> Path | None:
@@ -278,6 +335,7 @@ def execute_run_unit(
     record["use_vader"] = spec.use_vader
 
     checkpoint_path = _copy_checkpoint(record.get("checkpoint_path"), unit)
+    checkpoint_path = _apply_checkpoint_retention(manifest, unit, checkpoint_path)
     predictions_path = _normalize_predictions(record.get("prediction_artifact"), unit)
     _write_run_config(manifest, unit, spec, hyperparams)
     _write_normalized_metrics(manifest, unit, spec, record, checkpoint_path, predictions_path)

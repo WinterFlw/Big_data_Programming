@@ -25,6 +25,9 @@ run_xai="${RUN_XAI:-1}"
 xai_gpu="${XAI_GPU:-0}"
 log_dir="${LOG_DIR:-outputs/experiments/${run_id}/server_logs}"
 all_conditions="${ALL_CONDITIONS:-A_B,B_B,C_B,D_B,A_R,B_R,C_R,D_R}"
+checkpoint_retention="${CHECKPOINT_RETENTION:-xai-minimal}"
+post_xai_prune="${POST_XAI_PRUNE:-1}"
+export CHECKPOINT_RETENTION="$checkpoint_retention"
 
 mkdir -p "$log_dir"
 batch_timestamp="$(date +%Y%m%d_%H%M%S)"
@@ -119,7 +122,15 @@ echo "RUN_SMOKE=${run_smoke}"
 echo "SMOKE_SEEDS=${smoke_seeds}"
 echo "RUN_XAI=${run_xai}"
 echo "XAI_GPU=${xai_gpu}"
+echo "CHECKPOINT_RETENTION=${CHECKPOINT_RETENTION}"
+echo "POST_XAI_PRUNE=${post_xai_prune}"
 echo "batch_log=${batch_log}"
+
+if [[ "$run_xai" == "1" && "$CHECKPOINT_RETENTION" == "none" ]]; then
+    echo "STOP: CHECKPOINT_RETENTION=none deletes checkpoints needed by XAI."
+    echo "Use CHECKPOINT_RETENTION=xai-minimal, or set RUN_XAI=0 for metrics-only runs."
+    exit 1
+fi
 
 run_step "cuda check" check_cuda
 run_step "daily preflight" ./scripts/daily.sh
@@ -135,6 +146,9 @@ fi
 run_step "best available GPU full benchmark" run_best_available_benchmark "full" ""
 run_step "status after benchmark" ./run.sh e2e status --run-id "$run_id"
 run_step "aggregate benchmark" ./run.sh e2e aggregate --run-id "$run_id"
+if [[ "$CHECKPOINT_RETENTION" != "keep-all" && "$CHECKPOINT_RETENTION" != "all" ]]; then
+    run_step "checkpoint prune (${CHECKPOINT_RETENTION})" "$PYTHON_BIN" scripts/prune_checkpoints.py --run-id "$run_id" --policy "$CHECKPOINT_RETENTION"
+fi
 
 if [[ "$run_xai" == "1" ]]; then
     echo ""
@@ -143,6 +157,9 @@ if [[ "$run_xai" == "1" ]]; then
     run_step "xai-deep" env CUDA_VISIBLE_DEVICES="$xai_gpu" ./run.sh e2e xai-deep --run-id "$run_id" --resume
     run_step "xai-ablation" env CUDA_VISIBLE_DEVICES="$xai_gpu" ./run.sh e2e xai-ablation --run-id "$run_id" --resume
     run_step "xai-bundle" ./run.sh e2e xai-bundle --run-id "$run_id"
+    if [[ "$post_xai_prune" == "1" ]]; then
+        run_step "post-XAI checkpoint prune" "$PYTHON_BIN" scripts/prune_checkpoints.py --run-id "$run_id" --policy none
+    fi
 else
     echo "Skipping XAI because RUN_XAI=${run_xai}."
 fi

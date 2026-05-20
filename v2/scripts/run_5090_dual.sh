@@ -21,6 +21,8 @@ bert_conditions="${BERT_CONDITIONS:-A_B,B_B,C_B,D_B}"
 roberta_conditions="${ROBERTA_CONDITIONS:-A_R,B_R,C_R,D_R}"
 seeds="${SEEDS:-}"
 log_dir="${LOG_DIR:-outputs/experiments/${run_id}/server_logs}"
+checkpoint_retention="${CHECKPOINT_RETENTION:-xai-minimal}"
+export CHECKPOINT_RETENTION="$checkpoint_retention"
 
 mkdir -p "$log_dir"
 
@@ -99,6 +101,7 @@ echo "RunPod dual RTX 5090 benchmark runner"
 echo "run_id=${run_id}"
 echo "PYTHON_BIN=${PYTHON_BIN}"
 echo "HATESPEECH_CACHE_ROOT=${HATESPEECH_CACHE_ROOT}"
+echo "CHECKPOINT_RETENTION=${CHECKPOINT_RETENTION}"
 echo "Detected CUDA GPUs: ${gpu_count}"
 echo "Logs: ${log_dir}"
 
