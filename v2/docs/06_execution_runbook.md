@@ -76,6 +76,8 @@ cd v2
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
+# RTX 5090은 Blackwell(sm_120)이므로 CUDA 12.8 wheel을 우선 설치한다.
+python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 python -m pip install -r requirements.txt
 export PYTHON_BIN="$PWD/.venv/bin/python"
 python -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no cuda')"
@@ -109,6 +111,49 @@ python -c "import torch; print(torch.__version__, torch.cuda.is_available(), tor
 
 ```bash
 ./run.sh e2e benchmark --run-id v2_15seed --execute --resume
+```
+
+RunPod에서 RTX 5090 두 장만 잡히는 경우에는 단일 명령 하나로 multi-GPU 학습을
+시키지 않는다. v2 학습 코드는 condition x seed 단위의 단일 GPU 실행을 기준으로
+작성되어 있으므로, GPU 0과 GPU 1에 서로 다른 condition shard를 맡긴다.
+
+2x RTX 5090 권장 분할:
+
+```text
+GPU 0: A_B, B_B, C_B, D_B  # BERT family
+GPU 1: A_R, B_R, C_R, D_R  # RoBERTa family
+```
+
+두 GPU가 모두 보이는지 먼저 확인한다.
+
+```bash
+python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.device_count()); print([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])"
+```
+
+자동 shard runner:
+
+```bash
+./scripts/run_5090_dual.sh
+```
+
+smoke만 2GPU로 나눠 돌리고 싶으면 seed를 제한한다.
+
+```bash
+SEEDS=42 ./scripts/run_5090_dual.sh
+```
+
+수동 tmux 실행이 필요하면 터미널 두 개에서 아래처럼 나눠 실행한다.
+
+```bash
+CUDA_VISIBLE_DEVICES=0 ./run.sh e2e benchmark --run-id v2_15seed --conditions A_B,B_B,C_B,D_B --execute --resume
+CUDA_VISIBLE_DEVICES=1 ./run.sh e2e benchmark --run-id v2_15seed --conditions A_R,B_R,C_R,D_R --execute --resume
+```
+
+두 shard가 끝난 뒤에는 공유 상태표를 다시 만든다.
+
+```bash
+./run.sh e2e status --run-id v2_15seed
+./run.sh e2e aggregate --run-id v2_15seed
 ```
 
 집계:
