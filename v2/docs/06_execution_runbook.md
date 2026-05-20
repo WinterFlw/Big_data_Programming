@@ -206,6 +206,23 @@ daily preflight
 RUN_XAI=1 CHECKPOINT_RETENTION=xai-minimal ./scripts/run_5090_e2e_batch.sh
 ```
 
+RunPod maintenance나 host 데이터 삭제 공지가 있으면 XAI는 실행하지 않는다. 먼저
+기본 storage-safe batch로 학습/통계/리포트만 만들고, 즉시 essential backup을 만든다.
+
+```bash
+./scripts/run_5090_e2e_batch.sh
+./scripts/backup_essential_outputs.sh
+```
+
+백업 아카이브 기본 위치:
+
+```text
+/workspace/hatespeech_backups/
+```
+
+이 파일도 RunPod 네트워크 볼륨 위에 있으므로, maintenance 전에 JupyterLab 다운로드,
+SCP, 또는 외부 스토리지로 반드시 빼낸다.
+
 smoke 없이 바로 full benchmark부터 들어가려면 아래처럼 실행한다. 단, 첫 서버
 실행에서는 권장하지 않는다.
 
