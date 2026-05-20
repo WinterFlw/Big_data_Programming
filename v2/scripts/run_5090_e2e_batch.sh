@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# One-command RunPod batch runner for the full v2 pipeline on 2x RTX 5090.
+# One-command RunPod batch runner for the full v2 pipeline on RTX 5090.
 #
 # This script is intentionally boring:
 #   1. Validate the Python/CUDA environment.
-#   2. Optionally run a tiny two-GPU smoke test.
-#   3. Run the full benchmark with GPU 0 = BERT, GPU 1 = RoBERTa.
+#   2. Optionally run a tiny smoke test.
+#   3. Run the benchmark on 2 GPUs when available, or 1 GPU sequentially.
 #   4. Merge outputs through status/aggregate.
 #   5. Run XAI, evidence bundle, report, and dashboard.
 #
-# It does not make a single model use two GPUs. Instead, it runs independent
-# condition x seed jobs in parallel, which matches the v2 output contract.
+# It does not make a single model use multiple GPUs. When 2 GPUs are available
+# it runs independent condition x seed jobs in parallel. When only 1 GPU is
+# available, it runs the same jobs sequentially with the same output contract.
 
 set -euo pipefail
 
@@ -21,6 +22,7 @@ smoke_seeds="${SMOKE_SEEDS:-42}"
 run_xai="${RUN_XAI:-1}"
 xai_gpu="${XAI_GPU:-0}"
 log_dir="${LOG_DIR:-outputs/experiments/${run_id}/server_logs}"
+all_conditions="${ALL_CONDITIONS:-A_B,B_B,C_B,D_B,A_R,B_R,C_R,D_R}"
 
 mkdir -p "$log_dir"
 batch_timestamp="$(date +%Y%m%d_%H%M%S)"
@@ -63,9 +65,48 @@ print("cuda_device_count:", torch.cuda.device_count() if torch.cuda.is_available
 if torch.cuda.is_available():
     for index in range(torch.cuda.device_count()):
         print(f"gpu[{index}]:", torch.cuda.get_device_name(index))
-if not torch.cuda.is_available() or torch.cuda.device_count() < 2:
-    raise SystemExit("STOP: 2 CUDA GPUs are required for this batch runner.")
+if not torch.cuda.is_available() or torch.cuda.device_count() < 1:
+    raise SystemExit("STOP: at least 1 CUDA GPU is required for this batch runner.")
 PY
+}
+
+cuda_device_count() {
+    "$PYTHON_BIN" - <<'PY'
+import torch
+print(torch.cuda.device_count() if torch.cuda.is_available() else 0)
+PY
+}
+
+run_single_gpu_benchmark() {
+    local name="$1"
+    local seeds_value="${2:-}"
+    local seed_args=()
+    if [[ -n "$seeds_value" ]]; then
+        seed_args=(--seeds "$seeds_value")
+    fi
+    env CUDA_VISIBLE_DEVICES=0 ./run.sh e2e benchmark \
+        --run-id "$run_id" \
+        --conditions "$all_conditions" \
+        "${seed_args[@]}" \
+        --execute \
+        --resume
+}
+
+run_best_available_benchmark() {
+    local name="$1"
+    local seeds_value="${2:-}"
+    local gpu_count
+    gpu_count="$(cuda_device_count)"
+    if [[ "$gpu_count" -ge 2 ]]; then
+        if [[ -n "$seeds_value" ]]; then
+            env SEEDS="$seeds_value" ./scripts/run_5090_dual.sh
+        else
+            ./scripts/run_5090_dual.sh
+        fi
+    else
+        echo "Only ${gpu_count} CUDA GPU detected. Running ${name} sequentially on GPU 0."
+        run_single_gpu_benchmark "$name" "$seeds_value"
+    fi
 }
 
 echo "RunPod 2x RTX 5090 v2 E2E batch"
@@ -83,12 +124,12 @@ run_step "daily preflight" ./scripts/daily.sh
 if [[ "$run_smoke" == "1" ]]; then
     echo ""
     echo "Running smoke test first. Completed smoke units will be skipped by the full run."
-    run_step "dual 5090 smoke benchmark" env SEEDS="$smoke_seeds" ./scripts/run_5090_dual.sh
+    run_step "best available GPU smoke benchmark" run_best_available_benchmark "smoke" "$smoke_seeds"
 else
     echo "Skipping smoke test because RUN_SMOKE=${run_smoke}."
 fi
 
-run_step "dual 5090 full benchmark" ./scripts/run_5090_dual.sh
+run_step "best available GPU full benchmark" run_best_available_benchmark "full" ""
 run_step "status after benchmark" ./run.sh e2e status --run-id "$run_id"
 run_step "aggregate benchmark" ./run.sh e2e aggregate --run-id "$run_id"
 
