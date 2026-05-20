@@ -39,6 +39,19 @@ if [[ "$CHECKPOINT_RETENTION" == "none" ]]; then
     exit 1
 fi
 
+if [[ "${XAI_FAST:-0}" == "1" ]]; then
+    # Emergency mode for maintenance windows: keep the benchmark's 15-seed result,
+    # but downsize XAI evidence generation so report/dashboard artifacts finish.
+    export XAI_PRIMARY_MAX_SEEDS="${XAI_PRIMARY_MAX_SEEDS:-3}"
+    export XAI_PRIMARY_SAMPLE_SIZE="${XAI_PRIMARY_SAMPLE_SIZE:-30}"
+    export XAI_DEEP_SAMPLE_SIZE="${XAI_DEEP_SAMPLE_SIZE:-60}"
+    export XAI_ABLATION_SAMPLE_SIZE="${XAI_ABLATION_SAMPLE_SIZE:-20}"
+    export XAI_SHAP_MAX_EVALS="${XAI_SHAP_MAX_EVALS:-150}"
+    export XAI_LIME_NUM_SAMPLES="${XAI_LIME_NUM_SAMPLES:-150}"
+    export XAI_INTERACTION_PAIRS="${XAI_INTERACTION_PAIRS:-15}"
+    export XAI_ABLATION_METRIC_SAMPLE_SIZE="${XAI_ABLATION_METRIC_SAMPLE_SIZE:-20}"
+fi
+
 run_step() {
     local name="$1"
     shift
@@ -119,6 +132,16 @@ echo "PYTHON_BIN=${PYTHON_BIN}"
 echo "CHECKPOINT_RETENTION=${CHECKPOINT_RETENTION}"
 echo "POST_XAI_PRUNE=${post_xai_prune}"
 echo "RUN_BACKUP=${run_backup}"
+echo "XAI_FAST=${XAI_FAST:-0}"
+echo "SKIP_CHECKPOINT_RECOVERY=${SKIP_CHECKPOINT_RECOVERY:-0}"
+if [[ "${XAI_FAST:-0}" == "1" ]]; then
+    echo "XAI_PRIMARY_MAX_SEEDS=${XAI_PRIMARY_MAX_SEEDS}"
+    echo "XAI_PRIMARY_SAMPLE_SIZE=${XAI_PRIMARY_SAMPLE_SIZE}"
+    echo "XAI_DEEP_SAMPLE_SIZE=${XAI_DEEP_SAMPLE_SIZE}"
+    echo "XAI_ABLATION_SAMPLE_SIZE=${XAI_ABLATION_SAMPLE_SIZE}"
+    echo "XAI_SHAP_MAX_EVALS=${XAI_SHAP_MAX_EVALS}"
+    echo "XAI_LIME_NUM_SAMPLES=${XAI_LIME_NUM_SAMPLES}"
+fi
 echo "log=${log_path}"
 
 gpu_count="$(cuda_device_count)"
@@ -126,7 +149,9 @@ seed_mid="$(middle_seed)"
 echo "CUDA GPUs: ${gpu_count}"
 echo "middle seed for deep/ablation XAI: ${seed_mid}"
 
-if [[ "$gpu_count" -ge 2 ]]; then
+if [[ "${SKIP_CHECKPOINT_RECOVERY:-0}" == "1" ]]; then
+    echo "Skipping checkpoint recovery because SKIP_CHECKPOINT_RECOVERY=1."
+elif [[ "$gpu_count" -ge 2 ]]; then
     run_step "regenerate primary XAI checkpoints A_B/D_B" \
         run_parallel_pair "A_B primary" 0 "A_B" "" "D_B primary" 1 "D_B" ""
     run_step "regenerate median ablation checkpoints" \

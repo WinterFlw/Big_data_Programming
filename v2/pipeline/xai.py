@@ -24,6 +24,7 @@ caching: outputs/experiments/<run_id>/xai/.cache/ 에 (condition, seed, sample_i
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from statistics import mean as _mean
@@ -638,6 +639,87 @@ def _safe_runtime_config(runtime_core: Any) -> Any:
         return None
 
 
+def _env_int(name: str, default: int | None = None, minimum: int = 1) -> int | None:
+    """Read a positive integer environment override for emergency XAI downsizing."""
+    value = os.environ.get(name, "").strip()
+    if not value:
+        return default
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be an integer, got {value!r}") from exc
+    if parsed < minimum:
+        raise ValueError(f"{name} must be >= {minimum}, got {parsed}")
+    return parsed
+
+
+def _stage_sample_size(stage: str, configured_size: int) -> int:
+    """Apply optional XAI sample-size limits without editing the manifest.
+
+    The manifest keeps the formal target (for example primary sample 200), while
+    RunPod emergency runs can set XAI_PRIMARY_SAMPLE_SIZE / XAI_DEEP_SAMPLE_SIZE /
+    XAI_ABLATION_SAMPLE_SIZE, or a global XAI_SAMPLE_SIZE, to finish before a
+    maintenance window. Overrides are capped at the configured target so a typo
+    cannot silently enlarge a run.
+    """
+    stage_key = f"XAI_{stage.upper()}_SAMPLE_SIZE"
+    override = _env_int(stage_key, None) or _env_int("XAI_SAMPLE_SIZE", None)
+    if override is None:
+        return configured_size
+    return min(configured_size, override)
+
+
+def _primary_xai_seeds(manifest: dict[str, Any], xai_config: dict[str, Any]) -> list[int]:
+    """Return the seed list used by primary XAI.
+
+    Full evidence uses all benchmark seeds. For time-limited cloud runs, callers
+    may set XAI_PRIMARY_SEEDS=42,112,182 or XAI_PRIMARY_MAX_SEEDS=3. The max-seed
+    path picks evenly spaced seeds, preserving low/middle/high seed coverage
+    instead of simply taking the first few.
+    """
+    benchmark_seeds = [int(seed) for seed in manifest["benchmark"]["seeds"]]
+
+    explicit = os.environ.get("XAI_PRIMARY_SEEDS", "").strip()
+    if explicit:
+        requested = [int(seed.strip()) for seed in explicit.split(",") if seed.strip()]
+        benchmark_seed_set = set(benchmark_seeds)
+        return [seed for seed in requested if seed in benchmark_seed_set]
+
+    config_subset = xai_config.get("seed_subset")
+    if isinstance(config_subset, list) and config_subset:
+        requested = [int(seed) for seed in config_subset]
+        benchmark_seed_set = set(benchmark_seeds)
+        return [seed for seed in requested if seed in benchmark_seed_set]
+
+    max_seeds = _env_int("XAI_PRIMARY_MAX_SEEDS", None)
+    if max_seeds is None or max_seeds >= len(benchmark_seeds):
+        return benchmark_seeds
+    if max_seeds == 1:
+        return [benchmark_seeds[len(benchmark_seeds) // 2]]
+
+    last_index = len(benchmark_seeds) - 1
+    indices = sorted({round(i * last_index / (max_seeds - 1)) for i in range(max_seeds)})
+    return [benchmark_seeds[index] for index in indices]
+
+
+def _apply_runtime_xai_overrides(config: Any) -> Any:
+    """Apply SHAP/LIME loop-count overrides to the mutable runtime config."""
+    if config is None:
+        return None
+    overrides = {
+        "XAI_SHAP_MAX_EVALS": "shap_max_evals",
+        "XAI_SHAP_BATCH_SIZE": "shap_batch_size",
+        "XAI_LIME_NUM_SAMPLES": "lime_num_samples",
+        "XAI_INTERACTION_PAIRS": "xai_interaction_pairs",
+        "XAI_ABLATION_METRIC_SAMPLE_SIZE": "xai_ablation_sample_size",
+    }
+    for env_name, attr_name in overrides.items():
+        value = _env_int(env_name, None)
+        if value is not None and hasattr(config, attr_name):
+            setattr(config, attr_name, value)
+    return config
+
+
 def _human_rationales(runtime_xai: Any) -> dict[str, list[str]]:
     """runtime의 human rationale dictionary. 실패 시 빈 dict."""
     try:
@@ -650,7 +732,7 @@ def plan_primary_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[st
     """Primary XAI: A_B vs D_B를 15 seed 모두에서 같은 sample로 비교."""
     root = experiment_root(manifest["run_id"])
     xai_config = manifest["xai"]["primary"]
-    sample_size = int(xai_config["sample_size"])
+    sample_size = _stage_sample_size("primary", int(xai_config["sample_size"]))
     sample_path = root / "xai" / "samples" / "primary_samples.csv"
     metric_path = root / "xai" / "primary" / "seed_level_metrics.csv"
     paired_path = root / "xai" / "primary" / "paired_xai_tests.csv"
@@ -689,14 +771,14 @@ def plan_primary_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[st
     samples_written = _write_sample_csv(sample_path, samples)
 
     rationale_map = _human_rationales(runtime_xai)
-    config = _safe_runtime_config(runtime_core)
+    config = _apply_runtime_xai_overrides(_safe_runtime_config(runtime_core))
 
     metric_rows: list[dict[str, Any]] = []
     sample_level_rows: list[dict[str, Any]] = []
     per_seed_attributions: dict[tuple[str, int], list[dict[str, Any]]] = {}
 
     primary_conditions = list(xai_config.get("models", ["A_B", "D_B"]))
-    seeds = [int(seed) for seed in manifest["benchmark"]["seeds"]]
+    seeds = _primary_xai_seeds(manifest, xai_config)
 
     for condition in primary_conditions:
         for seed in seeds:
@@ -903,7 +985,7 @@ def plan_deep_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[str, 
     """Deep XAI: median seed 1개 × 500 sample. 정성 case analysis."""
     root = experiment_root(manifest["run_id"])
     xai_config = manifest["xai"]["deep"]
-    sample_size = int(xai_config["sample_size"])
+    sample_size = _stage_sample_size("deep", int(xai_config["sample_size"]))
 
     sample_path = root / "xai" / "samples" / "deep_samples.csv"
     case_path = root / "xai" / "deep" / "case_summary.csv"
@@ -931,7 +1013,7 @@ def plan_deep_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[str, 
     median_seed = int(manifest["benchmark"]["seeds"][len(manifest["benchmark"]["seeds"]) // 2])
     deep_models = list(xai_config.get("models", ["A_B", "D_B"]))
 
-    config = _safe_runtime_config(runtime_core)
+    config = _apply_runtime_xai_overrides(_safe_runtime_config(runtime_core))
     rationale_map = _human_rationales(runtime_xai)
 
     case_rows: list[dict[str, Any]] = []
@@ -1054,7 +1136,7 @@ def plan_ablation_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[s
     """Ablation 매트릭스: 8조건 × median seed × 50 sample. directional check."""
     root = experiment_root(manifest["run_id"])
     xai_config = manifest["xai"]["ablation"]
-    sample_size = int(xai_config["sample_size"])
+    sample_size = _stage_sample_size("ablation", int(xai_config["sample_size"]))
 
     sample_path = root / "xai" / "samples" / "ablation_samples.csv"
     metric_path = root / "xai" / "ablation" / "xai_ablation_metrics.csv"
@@ -1085,7 +1167,7 @@ def plan_ablation_xai(manifest: dict[str, Any], dry_run: bool = False) -> dict[s
         samples = []
     samples_written = _write_sample_csv(sample_path, samples)
 
-    config = _safe_runtime_config(runtime_core)
+    config = _apply_runtime_xai_overrides(_safe_runtime_config(runtime_core))
     rationale_map = _human_rationales(runtime_xai)
 
     median_seed = int(manifest["benchmark"]["seeds"][len(manifest["benchmark"]["seeds"]) // 2])

@@ -141,6 +141,26 @@ checkpoint를 XAI 후에도 보관하려면 아래처럼 명시한다.
 POST_XAI_PRUNE=0 ./scripts/run_5090_xai_recover.sh
 ```
 
+RunPod maintenance 전이라 full primary XAI가 끝나기 어렵다면 빠른 evidence 모드로 줄인다.
+이 모드는 benchmark 15 seed 결과는 유지하고, XAI만 대표 seed/sample로 축소한다.
+
+```bash
+SKIP_CHECKPOINT_RECOVERY=1 XAI_FAST=1 ./scripts/run_5090_xai_recover.sh
+```
+
+기본 fast XAI 범위:
+
+```text
+primary: A_B/D_B × 대표 3 seed × sample 30
+deep: sample 60
+ablation: sample 20
+SHAP max_evals: 150
+LIME num_samples: 150
+```
+
+이미 checkpoint recovery가 끝났다면 `SKIP_CHECKPOINT_RECOVERY=1`을 붙인다. 아직
+checkpoint를 만들지 않았다면 이 옵션은 빼고 실행한다.
+
 ```bash
 CHECKPOINT_RETENTION=keep-all POST_XAI_PRUNE=0 ./scripts/run_5090_e2e_batch.sh
 ```
