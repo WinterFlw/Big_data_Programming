@@ -28,7 +28,7 @@ hatespeech/
 
 ## 실행 방법
 
-프로젝트 루트(`hatespeech/`)에서 실행해야 해요 (`from src...`/`from model...` 임포트 기준).
+프로젝트 루트(`hatespeech/`)에서 실행 (`from src...`/`from model...` 임포트 기준).
 
 ```bash
 python main.py status        # 파이프라인 상태 확인
