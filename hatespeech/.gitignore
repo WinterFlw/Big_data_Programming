@@ -1,0 +1,12 @@
+# 생성물/대용량 (코드만 추적해요)
+data/
+outputs/
+checkpoints/
+
+# Python 캐시
+__pycache__/
+*.pyc
+
+# matplotlib / 캐시
+.mplconfig/
+.cache/

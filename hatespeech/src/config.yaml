@@ -1,0 +1,58 @@
+# ╔══════════════════════════════════════════════════════════╗
+# ║  config.yaml — 실험 전체 설정 (ucam 구조의 설정 단일 출처)  ║
+# ╚══════════════════════════════════════════════════════════╝
+# ExperimentConfig 데이터클래스의 필드와 1:1로 매핑되는 flat 구조예요.
+# 여기 값만 바꾸면 코드 수정 없이 실험 설정을 조정할 수 있어요.
+# (참고: outputs/experiment_config.json 스냅샷이 있으면 그게 우선 적용됩니다.)
+
+# ── 데이터 분할 비율 (합계 = 1.0) ──
+split_train: 0.70
+split_val: 0.10
+split_test: 0.20
+
+# ── 학습 하이퍼파라미터 ──
+max_len: 128
+batch_size: 64
+epochs: 5
+learning_rate: 2.0e-5
+warmup_ratio: 0.10
+weight_decay: 0.01
+dropout: 0.10
+mlp_hidden: 256
+
+# ── Early Stopping ──
+early_stopping_patience: 2
+early_stopping_min_delta: 1.0e-4
+
+# ── 클래스 불균형 ──
+imbalance_threshold: 0.40
+
+# ── 반복 실험 시드 ──
+seeds: [42, 52, 62]
+
+# ── 하이퍼파라미터 탐색 후보 ──
+tune_learning_rates: [1.0e-5, 2.0e-5, 3.0e-5]
+tune_batch_sizes: [64]
+tune_dropouts: [0.1, 0.2, 0.3]
+tune_epochs: [5]
+tuning_seed: 42
+tuning_max_epochs: 5
+
+# ── XAI 분석 설정 ──
+xai_sample_size: 500
+lime_num_features: 5
+lime_num_samples: 500
+shap_max_evals: 300
+shap_batch_size: 32
+
+# ── v2.1 ablation 설정 ──
+v2_enabled: true
+alpha_grid: [0.0, 0.1, 0.3, 0.5, 0.7, 1.0]
+beta_grid: [0.0, 0.1, 0.3]
+attention_loss_alpha: 0.0
+target_loss_beta: 0.0
+target_labels: []
+xai_context_sample_size: 500
+xai_ablation_sample_size: 50
+xai_interaction_pairs: 50
+xai_mss_threshold: 0.8
