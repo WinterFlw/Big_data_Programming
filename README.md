@@ -1,131 +1,168 @@
-# HateSpeachStudy
+# Context-Aware Hate Speech Detection
 
-HateXplain 기반 혐오표현 탐지 연구 프로젝트입니다. 현재 저장소의 기준 작업 공간은 `v2/`이며, 과거 1차 파이프라인과 산출물은 `v1/`로 분리했습니다.
+HateXplain 데이터셋을 기반으로 혐오표현 탐지 모델의 **성능**, **재현성**, **설명 가능성(XAI)**을 함께 검증한 빅데이터프로그래밍 산학협력 프로젝트입니다.
 
-## 현재 상태
+핵심 아이디어는 단순히 욕설이나 특정 키워드에 반응하는 모델이 아니라, 사람이 혐오 판단의 근거로 표시한 토큰 단위 rationale을 학습 과정에 반영해 모델의 attention을 더 설명 가능한 방향으로 유도하는 것입니다.
 
-| 영역 | 위치 | 상태 |
+## Project Summary
+
+| 항목 | 내용 |
+|---|---|
+| Status | Completed project |
+| Task | 3-class hate speech classification |
+| Dataset | HateXplain |
+| Labels | `hatespeech`, `offensive`, `normal` |
+| Main models | BERT, RoBERTa |
+| Proposed component | Rationale-aware attention loss |
+| Auxiliary feature | VADER sentiment score |
+| Experiment design | Backbone x Attention Loss x VADER, 8 conditions |
+| Repetition | 15 training seeds, 120 total runs |
+| Primary metric | Macro F1 |
+| XAI methods | SHAP, LIME, rationale alignment, masking/faithfulness checks |
+
+## Final Result
+
+The best-performing condition in this experiment was **B_B: BERT + rationale-aware attention loss**.
+
+| Condition | Backbone | Attention Loss | VADER | Macro F1 mean | Weighted F1 mean | Interpretation |
+|---|---|---:|---:|---:|---:|---|
+| A_B | BERT | No | No | 0.6798 | 0.6876 | BERT baseline |
+| B_B | BERT | Yes | No | **0.6858** | **0.6935** | Best condition |
+| C_B | BERT | No | Yes | 0.6825 | 0.6903 | Sentiment feature only |
+| D_B | BERT | Yes | Yes | 0.6836 | 0.6910 | Attention + sentiment |
+| A_R | RoBERTa | No | No | 0.6653 | 0.6723 | RoBERTa baseline |
+| B_R | RoBERTa | Yes | No | 0.6763 | 0.6836 | Best RoBERTa condition |
+| C_R | RoBERTa | No | Yes | 0.6698 | 0.6777 | Sentiment feature only |
+| D_R | RoBERTa | Yes | Yes | 0.6743 | 0.6813 | Attention + sentiment |
+
+### Statistical Findings
+
+| Question | Result | Interpretation |
 |---|---|---|
-| 현재 v2 작업 | `v2/` | 15 seed 실험, 통계 검증, XAI 보강, 서버 배치 실행을 위한 새 기준 폴더 |
-| v2 실행 코드 | `v2/runtime/`, `v2/pipeline/` | 학습/추론/XAI runtime과 end-to-end orchestration 코드 |
-| 과거 v1 기록 | `v1/` | 1차 baseline 코드, 대시보드, 기존 결과, 발표/문서 산출물 보관 |
-| GitHub 첫 화면 | `README.md` | 현재 구조와 실행 진입점만 안내 |
+| Did B_B improve over A_B? | mean diff +0.0060, Holm-adjusted p = 0.0027 | Yes, small but statistically significant |
+| Did attention loss matter? | 3-way ANOVA p ~= 6.2e-06, eta squared ~= 0.0955 | Meaningful factor |
+| Did VADER matter? | 3-way ANOVA p ~= 0.5248, eta squared ~= 0.0017 | Weak independent effect |
+| Which factor explained most variance? | Backbone eta squared ~= 0.3896 | Model backbone was the strongest factor |
 
-루트에는 새 작업 기준만 남깁니다. 새 구현, 문서화, 팀원 분업, 서버 실행 계획은 `v2/`에서 진행합니다.
+This is **not claimed as an external state-of-the-art result**. The result means that, within this controlled 8-condition experiment, B_B was the strongest candidate.
 
-## v2 빠른 시작
+## What Changed Compared With A Baseline
+
+The baseline model uses only the text encoder output for classification. The proposed variant adds a training signal from human rationale annotations:
+
+```text
+text
+-> BERT / RoBERTa encoder
+-> optional VADER sentiment feature fusion
+-> MLP classifier
+-> cross-entropy loss
+   + optional rationale-aware attention loss
+```
+
+The rationale-aware attention loss encourages the model to place more attention on tokens that human annotators marked as important for the hate/offensive/normal decision.
+
+## XAI Analysis
+
+XAI was used as a post-hoc verification layer, not as the primary performance claim.
+
+Main observations:
+
+- SHAP and LIME were used to inspect important tokens.
+- Rationale alignment was checked with top-k token overlap against human rationale.
+- Faithfulness-style checks tested how predictions changed when important tokens were masked or removed.
+- XAI evidence suggested improved explanation stability in selected A_B vs D_B cases, but this part should be interpreted as qualitative/supporting evidence rather than full statistical proof.
+
+Important distinction:
+
+- **Final performance model:** `B_B`
+- **Representative XAI comparison:** `A_B` vs `D_B`
+
+The XAI comparison was limited by compute time, so it should not be overstated as a complete explanation of the final B_B result.
+
+## Team Contribution Mapping
+
+This section is reserved for mapping each team member to their project responsibilities and final artifacts. Do not include private contact information in this public README.
+
+| Member | Role | Main Contributions | Related Files / Artifacts | Evidence To Check |
+|---|---|---|---|---|
+| TBD | Project lead / integration | Pipeline design, experiment integration, final review | `v2/run.sh`, `v2/pipeline/`, `README.md` | E2E run logs, final report, commit history |
+| TBD | Data / preprocessing | Dataset preparation, label mapping, split validation | `v2/runtime/`, `v2/configs/v2_15seed.json` | split policy, preprocessing notes |
+| TBD | Model training | BERT/RoBERTa training, seed runs, checkpoint handling | `v2/runtime/experiment_core.py`, `v2/pipeline/training_adapter.py` | completed runs, benchmark CSVs |
+| TBD | Statistics / analysis | Macro F1 comparison, paired tests, Holm correction, ANOVA interpretation | `v2/pipeline/statistics.py`, `v2/outputs/experiments/v2_15seed/benchmark/` | summary tables, statistical results |
+| TBD | XAI / reporting | SHAP/LIME interpretation, rationale alignment, report/dashboard materials | `v2/pipeline/xai*.py`, `v2/docs/04_xai_protocol.md`, `outputs/` | XAI visuals, report sections |
+
+## Repository Structure
+
+```text
+.
+├── README.md
+├── hatespeech/                  # Earlier modularized code snapshot
+├── v1/                          # Archived first pipeline and earlier outputs
+├── v2/                          # Main reproducible experiment workspace
+│   ├── configs/                 # v2_15seed experiment config
+│   ├── docs/                    # Model, pipeline, statistics, XAI, runbook docs
+│   ├── pipeline/                # E2E orchestration, manifest, statistics, reporting
+│   ├── runtime/                 # Training, inference, dashboard, XAI runtime code
+│   ├── scripts/                 # Server run, backup, gate check utilities
+│   └── outputs/                 # Generated experiment outputs
+└── outputs/                     # Optional local analysis/visualization artifacts
+```
+
+The canonical implementation is under [`v2/`](v2/). The `v1/` directory is kept as an archive for comparison and project history.
+
+## Reproducing The Experiment
+
+The full experiment requires a CUDA GPU environment. The final run was executed on a cloud GPU instance and used 15 seeds across 8 conditions.
 
 ```bash
 git clone https://github.com/WinterFlw/Big_data_Programming.git
 cd Big_data_Programming
 
-./v2/run.sh e2e status --run-id v2_15seed
-./v2/run.sh e2e plan --run-id v2_15seed --force
-./v2/run.sh e2e benchmark --run-id v2_15seed --conditions A_B,D_B --seeds 42 --dry-run
+python -m venv .venv
+source .venv/bin/activate
+pip install -r v2/requirements.txt
+
+cd v2
+./run.sh e2e status --run-id v2_15seed
+./run.sh e2e plan --run-id v2_15seed --force
+./run.sh e2e benchmark --run-id v2_15seed --conditions A_B --seeds 42 --execute --resume
+./run.sh e2e aggregate --run-id v2_15seed
+./run.sh e2e report --run-id v2_15seed
 ```
 
-현재 v2 코드는 실행 계획, manifest, 상태 파일, benchmark 실행 adapter, 통계/XAI/report 산출물 골격을 만드는 단계까지 준비되어 있습니다. 학습/추론/XAI 실행 코드는 `v2/runtime/`에 있고, orchestration은 `v2/pipeline/`에서 처리합니다. 특히 v2의 차별점은 단순 정확도 경쟁이 아니라, `xai-bundle` stage를 통해 SHAP/LIME/faithfulness/plausibility/context 결과를 하나의 **full XAI evidence bundle**로 묶어 report와 dashboard가 직접 읽게 만드는 데 있습니다. 다음 작업은 서버 또는 로컬 GPU 환경에서 `A_B seed 42` smoke 학습을 실제로 돌려 adapter와 산출물 계약을 검증하는 것입니다.
-
-## v2 문서 읽는 순서
-
-처음 합류한 팀원은 아래 순서로 읽으면 됩니다.
-
-1. `v2/README.md`
-2. `v2/docs/00_reading_order.md`
-3. `v2/docs/01_model_definition.md`
-4. `v2/docs/02_e2e_pipeline.md`
-5. `v2/docs/03_validation_and_statistics.md`
-6. `v2/docs/04_xai_protocol.md`
-7. `v2/docs/06_execution_runbook.md`
-8. `v2/docs/11_team_tasking_and_server_run_plan.md`
-9. `v2/docs/14_team_assignment_matrix.md`
-10. `v2/docs/15_runtime_code_validation_matrix.md`
-11. `v2/docs/agent_tasks/README.md`
-12. `v2/docs/agent_tasks/10_team_dispatch_prompts.md`
-13. `v2/docs/AI_협업_도구_설치_및_사용_가이드.md`
-14. `v2/docs/16_portable_ai_agent_skills_guide.md`
-15. `v2/docs/17_korean_reading_file_index.md`
-16. `v2/docs/20_role_file_review_matrix.md`
-17. `v2/ai_skills/README.md`
-
-## v2 실험 개요
-
-v2 목표는 과거 baseline 결과를 그대로 확장하는 것이 아니라, 서버 실행을 전제로 새 end-to-end 실험을 재설계하는 것입니다.
-
-| 항목 | 내용 |
-|---|---|
-| 데이터 | HateXplain 기반 3-class 혐오표현 탐지 |
-| 반복 수 | 15 seeds |
-| 조건 수 | 8개 ablation 조건 |
-| 핵심 비교 | `A_B` baseline 대비 `D_B` 결합 모델 및 RoBERTa 계열 확장 |
-| 통계 | paired test, Holm correction, confidence interval, effect size |
-| XAI | SHAP, Integrated Gradients, LIME, attention rollout, case review, evidence bundle |
-| 산출물 | `v2/outputs/experiments/v2_15seed/` |
-
-조건명은 다음 구조를 따릅니다.
-
-```text
-A_B: BERT baseline
-B_B: BERT + attention/rationale supervision
-C_B: BERT + VADER/context feature
-D_B: BERT + attention/rationale supervision + VADER/context feature
-A_R/B_R/C_R/D_R: RoBERTa 계열 동일 ablation
-```
-
-## 팀원 분업
-
-역할별 지시서는 `v2/docs/agent_tasks/`에 있습니다.
-팀원별 기간과 코드 책임 범위는 `v2/docs/14_team_assignment_matrix.md`를 기준으로 합니다.
-v2 내부 runtime code 검증 범위는 `v2/docs/15_runtime_code_validation_matrix.md`를 기준으로 합니다.
-
-| 역할 | 시작 문서 |
-|---|---|
-| Benchmark 담당 | `v2/docs/agent_tasks/01_benchmark_agent.md` |
-| Statistics 담당 | `v2/docs/agent_tasks/02_statistics_agent.md` |
-| XAI 담당 | `v2/docs/agent_tasks/03_xai_agent.md` |
-| XAI Evidence Bundle 담당 | `v2/docs/agent_tasks/09_e2e_xai_evidence_bundle_agent.md` |
-| Report/Dashboard 담당 | `v2/docs/agent_tasks/04_report_dashboard_agent.md` |
-| QA/Server 담당 | `v2/docs/agent_tasks/05_qa_server_agent.md` |
-| Integration Lead | `v2/docs/agent_tasks/06_integration_lead_agent.md` |
-| Review 담당 | `v2/docs/agent_tasks/07_review_agent.md` |
-| 팀장 하달문 | `v2/docs/agent_tasks/10_team_dispatch_prompts.md` |
-
-AI 도구 설치와 사용법은 `v2/docs/AI_협업_도구_설치_및_사용_가이드.docx`와 Markdown 원본을 참고합니다.
-Claude/Gemini/Cursor/Antigravity까지 공통으로 쓸 AI 작업 지시서는 `v2/CLAUDE.md`, `v2/GEMINI.md`, `v2/ai_skills/`를 참고합니다.
-
-## v1 기록 확인
-
-과거 1차 파이프라인은 `v1/`에 보관했습니다. 기존 대시보드를 확인해야 할 때만 아래처럼 들어갑니다.
+For the full 120-run benchmark:
 
 ```bash
-cd v1
-pip install -r requirements.txt
-python3 dashboard_app.py
+cd v2
+./run.sh e2e benchmark --run-id v2_15seed --execute --resume
+./run.sh e2e aggregate --run-id v2_15seed
+./run.sh e2e xai-primary --run-id v2_15seed
+./run.sh e2e xai-bundle --run-id v2_15seed
+./run.sh e2e report --run-id v2_15seed
+./run.sh e2e dashboard --run-id v2_15seed
 ```
 
-v1은 현재 연구의 기준 구현이 아닙니다. 새 실험, 새 문서, 새 팀 작업은 모두 `v2/`에서 진행합니다.
+Large checkpoints and some generated artifacts are intentionally excluded from version control. Re-running the pipeline recreates the standard CSV/JSON/report/dashboard outputs under `v2/outputs/experiments/v2_15seed/`.
 
-## 커밋 규칙
+## Key Documents
 
-v2 작업은 커밋 메시지 훅을 사용합니다.
+| Document | Purpose |
+|---|---|
+| [`v2/docs/01_model_definition.md`](v2/docs/01_model_definition.md) | Model definition and condition naming |
+| [`v2/docs/02_e2e_pipeline.md`](v2/docs/02_e2e_pipeline.md) | End-to-end pipeline overview |
+| [`v2/docs/03_validation_and_statistics.md`](v2/docs/03_validation_and_statistics.md) | Statistical validation plan |
+| [`v2/docs/04_xai_protocol.md`](v2/docs/04_xai_protocol.md) | XAI protocol and interpretation rules |
+| [`v2/docs/06_execution_runbook.md`](v2/docs/06_execution_runbook.md) | Server/GPU execution guide |
+| [`v2/configs/v2_15seed.json`](v2/configs/v2_15seed.json) | Final experiment configuration |
 
-```bash
-./v2/scripts/install_commit_msg_hook.sh
-```
+## Limitations
 
-커밋 메시지는 아래 형식입니다.
+- The performance gain is statistically significant but numerically small.
+- VADER sentiment scores did not provide a strong independent improvement.
+- XAI analysis was performed on representative checkpoints due to compute limits, not on every full-run checkpoint.
+- The project uses HateXplain, so conclusions should be interpreted within that dataset distribution.
+- The repository excludes large model checkpoints; exact checkpoint-level reproduction requires rerunning training.
 
-```text
-docs(v2): update experiment runbook
+## Takeaway
 
-Why:
-- ...
-
-What:
-- ...
-
-Validation:
-- ...
-```
-
-상세 규칙은 `v2/docs/13_commit_message_policy.md`를 따릅니다.
+Rationale-aware attention supervision provided a small but consistent improvement over the BERT baseline in this controlled experiment. The project is most useful as a reproducible framework for comparing performance, statistical reliability, and explanation behavior in hate speech detection models.
