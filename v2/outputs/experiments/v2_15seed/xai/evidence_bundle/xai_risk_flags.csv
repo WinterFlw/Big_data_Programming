@@ -1,2 +1,6 @@
 sample_id,condition,seed,flag_type,severity,evidence,recommended_report_note
-<run-level>,all,,no_seed_metrics,info,xai/primary/seed_level_metrics.csv has no rows.,Mark XAI section as not yet executed.
+<run-level>,A_B vs D_B,,low_pair_count,warning,n_pairs=2 for metric shap_lime_overlap_at_5,Treat XAI paired test as exploratory.
+<run-level>,A_B vs D_B,,low_pair_count,warning,n_pairs=2 for metric rationale_f1_at_5,Treat XAI paired test as exploratory.
+<run-level>,A_B vs D_B,,low_pair_count,warning,n_pairs=2 for metric comprehensiveness,Treat XAI paired test as exploratory.
+<run-level>,A_B vs D_B,,low_pair_count,warning,n_pairs=2 for metric sufficiency,Treat XAI paired test as exploratory.
+<run-level>,A_B vs D_B,,low_pair_count,warning,n_pairs=2 for metric loo_drop,Treat XAI paired test as exploratory.

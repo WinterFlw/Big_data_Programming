@@ -1,0 +1,21 @@
+{
+  "run_id": "v2_15seed",
+  "condition": "B_B",
+  "seed": 82,
+  "model_name": "bert-base-uncased",
+  "backbone": "BERT",
+  "use_attention_loss": true,
+  "use_sentiment": false,
+  "train_seconds": 45.54699397087097,
+  "best_epoch": 2,
+  "macro_f1": 0.6925571987754799,
+  "weighted_f1": 0.7009095102140919,
+  "accuracy": 0.6996613701484762,
+  "precision_macro": 0.6945979778083323,
+  "recall_macro": 0.6910479757838158,
+  "loss": 0.8182420243819555,
+  "checkpoint_path": "",
+  "metrics_path": "/workspace/HateSpeachStudy/v2/outputs/experiments/v2_15seed/benchmark/runs/b_b/seed_82/metrics.json",
+  "predictions_path": "/workspace/HateSpeachStudy/v2/outputs/experiments/v2_15seed/benchmark/runs/b_b/seed_82/predictions.csv",
+  "runtime_metrics_path": "/workspace/HateSpeachStudy/v2/outputs/experiments/v2_15seed/benchmark/runs/b_b/seed_82/runtime_metrics.json"
+}

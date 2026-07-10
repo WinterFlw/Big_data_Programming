@@ -16,14 +16,23 @@
   <p>Output root: <code>outputs/experiments/v2_15seed</code></p>
   <table>
     <tbody>
-      <tr><th>planned</th><td>120</td></tr>
-<tr><th>completed</th><td>0</td></tr>
+      <tr><th>planned</th><td>0</td></tr>
+<tr><th>completed</th><td>120</td></tr>
 <tr><th>failed</th><td>0</td></tr>
 <tr><th>total</th><td>120</td></tr>
     </tbody>
   </table>
-  
-  <h2>XAI Summary Cards</h2><table><thead><tr><th>Title</th><th>Value</th><th>Source</th></tr></thead><tbody><tr><td>No XAI evidence yet</td><td>Run xai-primary / xai-deep / xai-ablation, then re-run xai-bundle.</td><td><code>&lt;bundle placeholder&gt;</code></td></tr></tbody></table>
+  <h2>Benchmark Summary</h2><table><thead><tr><th>Condition</th><th>Backbone</th><th>N seeds</th><th>Macro F1</th></tr></thead><tbody><tr><td>A_B</td><td>BERT</td><td>15</td><td>0.6798 ± 0.0076</td></tr>
+<tr><td>B_B</td><td>BERT</td><td>15</td><td>0.6858 ± 0.0060</td></tr>
+<tr><td>C_B</td><td>BERT</td><td>15</td><td>0.6825 ± 0.0088</td></tr>
+<tr><td>D_B</td><td>BERT</td><td>15</td><td>0.6836 ± 0.0041</td></tr>
+<tr><td>A_R</td><td>RoBERTa</td><td>15</td><td>0.6653 ± 0.0072</td></tr>
+<tr><td>B_R</td><td>RoBERTa</td><td>15</td><td>0.6763 ± 0.0040</td></tr>
+<tr><td>C_R</td><td>RoBERTa</td><td>15</td><td>0.6698 ± 0.0065</td></tr>
+<tr><td>D_R</td><td>RoBERTa</td><td>15</td><td>0.6743 ± 0.0069</td></tr></tbody></table>
+  <h2>XAI Summary Cards</h2><table><thead><tr><th>Title</th><th>Value</th><th>Source</th></tr></thead><tbody><tr><td>Top benchmark condition</td><td>B_B (0.685780115774346 ± 0.005993749356719612)</td><td><code>benchmark/benchmark_summary.csv</code></td></tr>
+<tr><td>Rationale F1@5 (mean across seeds)</td><td>0.0857</td><td><code>xai/primary/seed_level_metrics.csv</code></td></tr>
+<tr><td>Most stable explanation (top-k Jaccard)</td><td>D_B mean=0.5797883597883597</td><td><code>xai/primary/seed_stability.csv</code></td></tr></tbody></table>
   <h2>XAI Evidence Bundle</h2>
   <p>Report/dashboard stages should prefer these bundle artifacts before raw XAI case files.</p>
   <table>

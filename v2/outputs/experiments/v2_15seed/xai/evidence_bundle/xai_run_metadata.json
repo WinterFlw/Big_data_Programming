@@ -1,7 +1,7 @@
 {
-  "status": "planned",
+  "status": "completed",
   "run_id": "v2_15seed",
-  "created_at": "2026-05-18T14:48:00.319305+00:00",
+  "created_at": "2026-05-20T13:51:08.912769+00:00",
   "commit_hash": "pending",
   "config_path": "configs/v2_15seed.json",
   "manifest_path": "outputs/experiments/v2_15seed/manifest.json",

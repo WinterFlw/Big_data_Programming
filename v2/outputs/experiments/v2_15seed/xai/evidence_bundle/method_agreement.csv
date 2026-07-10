@@ -1,1 +1,5 @@
 sample_id,condition,seed,overlap_at_5,overlap_at_10,rank_corr,notes
+<aggregated>,A_B,182,0.3933333333333333,0.15,,sample_count=30
+<aggregated>,A_B,162,0.4066666666666667,0.19007936507936507,,sample_count=30
+<aggregated>,D_B,182,0.45333333333333337,0.20238095238095238,,sample_count=30
+<aggregated>,D_B,162,0.4866666666666667,0.19973544973544974,,sample_count=30

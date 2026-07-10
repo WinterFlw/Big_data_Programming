@@ -1,19 +1,29 @@
 {
-  "status": "planned",
+  "status": "completed",
   "run_id": "v2_15seed",
   "summary_cards": [
     {
-      "title": "No XAI evidence yet",
-      "value": "Run xai-primary / xai-deep / xai-ablation, then re-run xai-bundle.",
-      "source": "<bundle placeholder>"
+      "title": "Top benchmark condition",
+      "value": "B_B (0.685780115774346 ± 0.005993749356719612)",
+      "source": "benchmark/benchmark_summary.csv"
+    },
+    {
+      "title": "Rationale F1@5 (mean across seeds)",
+      "value": "0.0857",
+      "source": "xai/primary/seed_level_metrics.csv"
+    },
+    {
+      "title": "Most stable explanation (top-k Jaccard)",
+      "value": "D_B mean=0.5797883597883597",
+      "source": "xai/primary/seed_stability.csv"
     }
   ],
   "primary": {
-    "seed_metric_count": 0,
-    "paired_test_count": 0
+    "seed_metric_count": 4,
+    "paired_test_count": 5
   },
   "seed_stability": {
-    "rows": 0
+    "rows": 4
   },
   "deep_cases": [],
   "ablation": {

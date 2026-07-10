@@ -1,0 +1,20 @@
+{
+  "run_id": "v2_15seed",
+  "condition": "A_R",
+  "seed": 82,
+  "manifest_hash": "c75bc0254e3ca26c",
+  "model_name": "roberta-base",
+  "family": "RoBERTa",
+  "use_attention_loss": false,
+  "use_sentiment": false,
+  "use_target_aux": false,
+  "hyperparams": {
+    "learning_rate": 2e-05,
+    "dropout": 0.3,
+    "batch_size": 64,
+    "epochs": 5,
+    "mlp_hidden": 256,
+    "attention_loss_alpha": 0.0,
+    "target_loss_beta": 0.0
+  }
+}

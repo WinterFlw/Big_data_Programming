@@ -1,5 +1,36 @@
 {
-  "status": "planned",
+  "status": "completed",
   "run_id": "v2_15seed",
-  "cards": []
+  "cards": [
+    {
+      "claim_id": "claim_001",
+      "headline": "A_B vs B_B shows higher macro F1 (mean diff +0.0060, supplementary adjusted p=0.0027).",
+      "what_it_means": "Strong/moderate strength claims are recommended for the main report. Weak/exploratory results should remain in the appendix.",
+      "how_to_read": "Interpret the sign of mean_diff relative to the comparison label. A positive diff means the second condition exceeds the first.",
+      "source_artifacts": [
+        "benchmark/paired_tests_holm.csv"
+      ],
+      "strength": "strong"
+    },
+    {
+      "claim_id": "claim_002",
+      "headline": "A_R vs D_R shows higher macro F1 (mean diff +0.0090, supplementary adjusted p=0.0417).",
+      "what_it_means": "Strong/moderate strength claims are recommended for the main report. Weak/exploratory results should remain in the appendix.",
+      "how_to_read": "Interpret the sign of mean_diff relative to the comparison label. A positive diff means the second condition exceeds the first.",
+      "source_artifacts": [
+        "benchmark/paired_tests_holm.csv"
+      ],
+      "strength": "moderate"
+    },
+    {
+      "claim_id": "claim_003",
+      "headline": "D_B vs D_R shows lower macro F1 (mean diff -0.0093, supplementary adjusted p=0.0090).",
+      "what_it_means": "Strong/moderate strength claims are recommended for the main report. Weak/exploratory results should remain in the appendix.",
+      "how_to_read": "Interpret the sign of mean_diff relative to the comparison label. A positive diff means the second condition exceeds the first.",
+      "source_artifacts": [
+        "benchmark/paired_tests_holm.csv"
+      ],
+      "strength": "strong"
+    }
+  ]
 }

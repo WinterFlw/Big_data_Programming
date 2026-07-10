@@ -1,1 +1,5 @@
 sample_id,condition,seed,comprehensiveness,sufficiency,loo_drop
+<aggregated>,A_B,182,0.4177,0.3026,0.1554010044535001
+<aggregated>,A_B,162,0.2873,0.235,0.10526464427510898
+<aggregated>,D_B,182,0.3423,0.2973,0.09978437115748723
+<aggregated>,D_B,162,0.2495,0.1909,0.08197123348712922

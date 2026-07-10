@@ -1,8 +1,36 @@
 {
-  "status": "planned",
+  "status": "completed",
   "run_id": "v2_15seed",
   "purpose": "Report-ready XAI claims derived from primary/deep/ablation artifacts.",
-  "claims": [],
+  "claims": [
+    {
+      "id": "claim_001",
+      "category": "benchmark",
+      "text": "A_B vs B_B shows higher macro F1 (mean diff +0.0060, supplementary adjusted p=0.0027).",
+      "strength": "strong",
+      "source_artifacts": [
+        "benchmark/paired_tests_holm.csv"
+      ]
+    },
+    {
+      "id": "claim_002",
+      "category": "benchmark",
+      "text": "A_R vs D_R shows higher macro F1 (mean diff +0.0090, supplementary adjusted p=0.0417).",
+      "strength": "moderate",
+      "source_artifacts": [
+        "benchmark/paired_tests_holm.csv"
+      ]
+    },
+    {
+      "id": "claim_003",
+      "category": "benchmark",
+      "text": "D_B vs D_R shows lower macro F1 (mean diff -0.0093, supplementary adjusted p=0.0090).",
+      "strength": "strong",
+      "source_artifacts": [
+        "benchmark/paired_tests_holm.csv"
+      ]
+    }
+  ],
   "source_artifacts": {
     "primary_samples": "xai/samples/primary_samples.csv",
     "deep_samples": "xai/samples/deep_samples.csv",
@@ -18,10 +46,5 @@
     "benchmark_summary": "benchmark/benchmark_summary.csv",
     "benchmark_paired_holm": "benchmark/paired_tests_holm.csv"
   },
-  "required_before_claiming": [
-    "Fill primary seed-level XAI metrics.",
-    "Fill paired XAI tests and seed stability.",
-    "Fill deep qualitative case summaries.",
-    "Fill ablation-level XAI metrics."
-  ]
+  "required_before_claiming": []
 }

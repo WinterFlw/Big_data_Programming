@@ -34,6 +34,18 @@ outputs/vader_features.pkl
 빅데프 참고문헌pdf/
 v1/빅데프 참고문헌pdf/
 
+# 개인정보 포함 파일 (학생 실명·학번·이메일·전화 — 추적 제외, 로컬 보존)
+*수행계획서*
+*.hwp
+*개발자 키우기*
+*최종발표_올에이프로젝트*
+# 미추적 로컬 작업 폴더 (실험 결과는 v2/outputs로 이미 반영)
+hatespeech_결과분석/
+hatespeech_v2_15seed_essential_*/
+# 루트 발표/문서 작업물 (실험 데이터 아님 — 발표자료·node_modules·팀 Q&A)
+/outputs/
+node_modules/
+
 # v1 legacy generated / large artifacts
 v1/checkpoints/
 v1/models/

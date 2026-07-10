@@ -1,0 +1,132 @@
+{
+  "display_name": "D_R",
+  "model_name": "roberta-base",
+  "seed": 162,
+  "best_epoch": 3,
+  "best_val_macro_f1": 0.6541580216717712,
+  "elapsed_seconds": 47.72207546234131,
+  "class_weight": {
+    "counts": {
+      "hatespeech": 4151,
+      "offensive": 3830,
+      "normal": 5452
+    },
+    "ratios": {
+      "hatespeech": 0.3090151120375195,
+      "offensive": 0.28511873743765354,
+      "normal": 0.40586615052482694
+    },
+    "minority_ratio": 0.28511873743765354,
+    "use_class_weight": true,
+    "threshold": 0.4,
+    "weights": {
+      "hatespeech": 1.0786958965711073,
+      "offensive": 1.1691035683202784,
+      "normal": 0.8212888236732697
+    }
+  },
+  "hyperparams": {
+    "split_train": 0.7,
+    "split_val": 0.1,
+    "split_test": 0.2,
+    "max_len": 128,
+    "batch_size": 64,
+    "epochs": 5,
+    "learning_rate": 2e-05,
+    "warmup_ratio": 0.1,
+    "weight_decay": 0.01,
+    "dropout": 0.3,
+    "mlp_hidden": 256,
+    "early_stopping_patience": 2,
+    "early_stopping_min_delta": 0.0001,
+    "imbalance_threshold": 0.4,
+    "seeds": [
+      162
+    ],
+    "tune_learning_rates": [
+      1e-05,
+      2e-05,
+      3e-05
+    ],
+    "tune_batch_sizes": [
+      64
+    ],
+    "tune_dropouts": [
+      0.1,
+      0.2,
+      0.3
+    ],
+    "tune_epochs": [
+      5
+    ],
+    "tuning_seed": 42,
+    "tuning_max_epochs": 5,
+    "xai_sample_size": 500,
+    "lime_num_features": 5,
+    "lime_num_samples": 500,
+    "shap_max_evals": 300,
+    "shap_batch_size": 32,
+    "v2_enabled": true,
+    "alpha_grid": [
+      0.0,
+      0.1,
+      0.3,
+      0.5,
+      0.7,
+      1.0
+    ],
+    "beta_grid": [
+      0.0,
+      0.1,
+      0.3
+    ],
+    "attention_loss_alpha": 1.0,
+    "target_loss_beta": 0.0,
+    "target_labels": [],
+    "xai_context_sample_size": 500,
+    "xai_ablation_sample_size": 50,
+    "xai_interaction_pairs": 50,
+    "xai_mss_threshold": 0.8
+  },
+  "metrics": {
+    "accuracy": 0.6939307111226882,
+    "macro_f1": 0.6827991452991453,
+    "macro_precision": 0.6821385838338605,
+    "macro_recall": 0.6842715446027615,
+    "auroc": 0.849842189113446,
+    "per_class_precision": {
+      "hatespeech": 0.751004016064257,
+      "offensive": 0.56047197640118,
+      "normal": 0.7349397590361446
+    },
+    "per_class_recall": {
+      "hatespeech": 0.7883642495784149,
+      "offensive": 0.5205479452054794,
+      "normal": 0.7439024390243902
+    },
+    "per_class_f1": {
+      "hatespeech": 0.7692307692307693,
+      "offensive": 0.5397727272727273,
+      "normal": 0.7393939393939394
+    },
+    "confusion_matrix": [
+      [
+        935,
+        165,
+        86
+      ],
+      [
+        193,
+        570,
+        332
+      ],
+      [
+        117,
+        282,
+        1159
+      ]
+    ],
+    "loss": 0.8229679425557455
+  },
+  "prediction_artifact": "/workspace/HateSpeachStudy/v2/outputs/experiments/v2_15seed/benchmark/runs/d_r/seed_162/predictions.pkl"
+}

@@ -1,0 +1,1 @@
+sample_id,true_label,baseline_prediction,v2_prediction,case_type,baseline_confidence,v2_confidence,top_tokens_baseline,top_tokens_v2,human_rationale_tokens,plot_path,comment

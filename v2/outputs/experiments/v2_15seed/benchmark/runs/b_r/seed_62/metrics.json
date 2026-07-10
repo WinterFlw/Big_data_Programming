@@ -1,0 +1,21 @@
+{
+  "run_id": "v2_15seed",
+  "condition": "B_R",
+  "seed": 62,
+  "model_name": "roberta-base",
+  "backbone": "RoBERTa",
+  "use_attention_loss": true,
+  "use_sentiment": false,
+  "train_seconds": 49.17930197715759,
+  "best_epoch": 4,
+  "macro_f1": 0.6704843308281294,
+  "weighted_f1": 0.677886550994579,
+  "accuracy": 0.6793435790570461,
+  "precision_macro": 0.6685484620004338,
+  "recall_macro": 0.6752256634605261,
+  "loss": 0.841224749883016,
+  "checkpoint_path": "",
+  "metrics_path": "/workspace/HateSpeachStudy/v2/outputs/experiments/v2_15seed/benchmark/runs/b_r/seed_62/metrics.json",
+  "predictions_path": "/workspace/HateSpeachStudy/v2/outputs/experiments/v2_15seed/benchmark/runs/b_r/seed_62/predictions.csv",
+  "runtime_metrics_path": "/workspace/HateSpeachStudy/v2/outputs/experiments/v2_15seed/benchmark/runs/b_r/seed_62/runtime_metrics.json"
+}
